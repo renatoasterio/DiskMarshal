@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and troubleshooting
+    url: https://github.com/renatoasterio/MacCleaner/blob/main/docs/guide/faq.md
+    about: Common error messages and how to fix them. Em português também.
+  - name: Report a vulnerability
+    url: https://github.com/renatoasterio/MacCleaner/security
+    about: Please report security problems privately, not in a public issue.

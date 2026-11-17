@@ -23,7 +23,7 @@ use crate::i18n::pt_br;
 use crate::navigation::Screen;
 use crate::theme::{
     FONT_SIZE_BRAND, FONT_SIZE_DATA, FONT_SIZE_RAIL, FONT_SIZE_SMALL, FONT_SIZE_TITLE,
-    MOTION_ENTER_SECONDS, MOTION_SCAN_BAND_SECONDS, MOTION_TYPE_SECONDS_PER_CHARACTER,
+    MOTION_ENTER_SECONDS, MOTION_SCAN_BAND_SECONDS, MOTION_TYPE_SECONDS_PER_CHARACTER, Palette,
     RAIL_ITEM_HEIGHT, RAIL_WIDTH, SPACE_1, SPACE_2, SPACE_3, SPACE_4, SPACE_5, STATUS_BAR_HEIGHT,
     Tokens, apply_style, display, display_bold, install_fonts,
 };
@@ -69,6 +69,8 @@ pub struct UiOptions {
     pub motion: MotionPreference,
     /// The screen shown first.
     pub initial_screen: Screen,
+    /// The color scheme the interface starts with.
+    pub palette: Palette,
 }
 
 impl Default for UiOptions {
@@ -77,6 +79,7 @@ impl Default for UiOptions {
             shows_boot: true,
             motion: MotionPreference::default(),
             initial_screen: Screen::default(),
+            palette: Palette::default(),
         }
     }
 }
@@ -101,6 +104,7 @@ impl MacCleanerUi {
     pub fn new(ctx: &Context, services: UiServices, options: UiOptions) -> Self {
         let appearance = AppearanceSettings {
             motion: options.motion,
+            palette: options.palette,
             ..Default::default()
         };
         let tokens = appearance.palette.tokens();

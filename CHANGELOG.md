@@ -6,6 +6,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Public documentation in English and Portuguese: README with a tour GIF and screenshots,
+  and guides for getting started, usage, safety, and questions and troubleshooting.
+- MIT license, contributing guide, code of conduct, vulnerability reporting policy, and
+  issue and pull request templates.
+- Each prototype screen has its own address (`index.html#cleanup`), and its counters
+  animate after the start-up sequence instead of behind it.
 - Navigable HTML prototype of the seven screens, with three palettes and motion controls.
 - Layered Cargo workspace with shared lints, pinned toolchain, `cargo xtask check` and CI.
 - Disk scan: file tree with aggregated sizes, iCloud state per item, packages measured as

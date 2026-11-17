@@ -92,10 +92,10 @@ mod capture {
 /// With `EFRAME_SCREENSHOT_TO=<file>.png` set, eframe saves the second frame
 /// and exits. That hook exists only in the OpenGL renderer, and the frame has
 /// to be still, so this build skips the start-up sequence and all motion.
-/// `MACCLEANER_SCREEN=<slug>` chooses the screen to capture.
+/// `MACCLEANER_SCREEN=<slug>` and `MACCLEANER_PALETTE=<slug>` choose what to capture.
 #[cfg(feature = "capture")]
 mod capture {
-    use maccleaner_ui::{MotionPreference, Screen};
+    use maccleaner_ui::{MotionPreference, Palette, Screen};
 
     use super::UiOptions;
 
@@ -111,10 +111,15 @@ mod capture {
             .ok()
             .and_then(|slug| Screen::from_slug(&slug))
             .unwrap_or_default();
+        let palette = std::env::var("MACCLEANER_PALETTE")
+            .ok()
+            .and_then(|slug| Palette::from_slug(&slug))
+            .unwrap_or_default();
         UiOptions {
             shows_boot: false,
             motion: MotionPreference::Off,
             initial_screen,
+            palette,
         }
     }
 }

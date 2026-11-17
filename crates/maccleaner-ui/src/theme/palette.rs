@@ -21,6 +21,22 @@ impl Palette {
     /// Every palette, in the order they are offered.
     pub const ALL: [Self; 3] = [Self::Agency, Self::Terminal, Self::Tactical];
 
+    /// Finds a palette by its identifier, such as `terminal`.
+    #[must_use]
+    pub fn from_slug(slug: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|palette| palette.slug() == slug)
+    }
+
+    /// Identifier of the palette, stable across languages.
+    #[must_use]
+    pub const fn slug(self) -> &'static str {
+        match self {
+            Self::Agency => "agency",
+            Self::Terminal => "terminal",
+            Self::Tactical => "tactical",
+        }
+    }
+
     /// Name shown to the user.
     #[must_use]
     pub const fn label(self) -> &'static str {
@@ -92,3 +108,23 @@ const TACTICAL: Tokens = Tokens {
     color_warn: rgb(0xff_7a_1a),
     ..AGENCY
 };
+
+#[cfg(test)]
+mod tests {
+    use super::Palette;
+
+    #[test]
+    fn every_palette_is_found_by_its_slug() {
+        for palette in Palette::ALL {
+            assert_eq!(Palette::from_slug(palette.slug()), Some(palette));
+        }
+        assert_eq!(Palette::from_slug("nope"), None);
+    }
+
+    #[test]
+    fn palettes_differ_in_their_accent_color() {
+        let [agency, terminal, tactical] =
+            Palette::ALL.map(|palette| palette.tokens().color_accent);
+        assert!(agency != terminal && terminal != tactical && agency != tactical);
+    }
+}
