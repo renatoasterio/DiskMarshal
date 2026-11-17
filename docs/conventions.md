@@ -1,0 +1,54 @@
+# Conventions
+
+Code, file names, folders and commits are written in English. Text shown to
+the user is Brazilian Portuguese and lives in one place per binary
+(`i18n/pt_br.rs` in the interface).
+
+## Naming
+
+| Item | Rule | Example |
+|---|---|---|
+| Crate | kebab-case, `maccleaner-` prefix | `maccleaner-domain` |
+| Folder and `.rs` file | snake_case; one main type per file, same name | `duplicate_group.rs` holds `DuplicateGroup` |
+| Module with children | `name.rs` plus folder `name/`; never `mod.rs` | `scan.rs`, `scan/file_tree.rs` |
+| Struct, enum, trait | UpperCamelCase | `FileTree`, `RiskLevel` |
+| Port (trait) | noun for a capability | `ContentHasher` |
+| Adapter | technology + port name | `Blake3ContentHasher` |
+| Use case | verb + object, single `execute` method | `ScanDisk` in `scan_disk.rs` |
+| Function, variable | snake_case; booleans start with `is_`, `has_`, `can_` | `is_cloud_only` |
+| Constant | SCREAMING_SNAKE_CASE | `STAT_BLOCK_BYTES` |
+| Error | one `...Error` enum per crate, built with `thiserror` | `ApplicationError` |
+| Test | a sentence stating the behavior | `never_follows_symbolic_links` |
+| Document | kebab-case; decision records are numbered | `docs/adr/0002-one-shot-privilege-elevation.md` |
+| Commit | [Conventional Commits](https://www.conventionalcommits.org/) | `feat(scan): add bulk walker` |
+
+## No duplicated code
+
+- **Workspace-level configuration.** Version, edition, license, dependency
+  versions and lints are declared once in the root `Cargo.toml` and inherited
+  with `key.workspace = true`.
+- **Rules as data.** A new cache location or ecosystem is a new TOML entry.
+- **Shared interface components.** Lists with selection, risk badges, action
+  footers and confirmation dialogs are single components reused by every screen.
+- **Single sources.** Colors, glow and durations in `theme/tokens.rs`; texts in
+  `i18n/pt_br.rs`; size formatting in `ByteSize`; fixtures in
+  `maccleaner-test-support`.
+- **Rule of thumb.** The second time the same logic appears, extract it.
+
+## Code quality
+
+- Public items have documentation comments (`missing_docs` is enforced).
+- No `unwrap`, `expect` or `panic!` outside tests. Errors are typed with
+  `thiserror`; `anyhow` is used only in binaries.
+- Sizes and counters use saturating arithmetic.
+- Unit tests sit next to the code in a `tests` module; tests that need real
+  files use `TempTree` from `maccleaner-test-support`.
+
+## Quality gate
+
+```bash
+cargo xtask check
+```
+
+It runs `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test` and
+`cargo deny check`. CI runs the same command. A change is not done while it fails.
