@@ -4,8 +4,33 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- The number keys now go from 1 to 9: the screens after the cleanup moved one
+  or two places to make room for the apps and Docker screens.
+
 ### Added
 
+- Apps screen: lists the installed apps with their size, version and whether
+  they are open; for the chosen app, lists the bundle and what it left in the
+  Library folders, each item with its kind, a "Seguro" or "Revisar" badge and
+  its size. Items named exactly after the bundle identifier come selected;
+  items that only start with it, or are named like the app, wait for the user.
+  What belongs to the user goes to the Trash. An app that is open is refused.
+- Uninstall with macOS authentication: a bundle owned by root and what the app
+  left in `/Library` are removed by `maccleaner-privileged-helper`, which is
+  told the app by its identifier and removes only the requested items that its
+  own analysis finds too. Not yet run as root or exercised against the real
+  dialog.
+- Docker screen: finds out whether Docker is installed and running; shows how
+  much it holds of images, containers, volumes and build cache; lists what no
+  container uses. The build cache and images without a name come selected.
+  Docker itself removes what is approved, nothing is forced, and the report
+  shows what Docker freed, measured before and after. The removal was exercised
+  against a stand-in for Docker only.
+- `maccleaner-cli apps` and `maccleaner-cli docker`: show what those two
+  screens would find, without removing anything.
+- Dashboard: a row for what Docker says it can free.
 - `cargo xtask install`: builds the release app, assembles and signs
   `dist/MacCleaner.app` (the app, the privileged helper and the icon) and copies
   it to `/Applications`, or to the folder given as an argument. `cargo xtask bundle`
@@ -69,7 +94,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   and issue and pull request templates.
 - Each prototype screen has its own address (`index.html#cleanup`), and its counters
   animate after the start-up sequence instead of behind it.
-- Navigable HTML prototype of the seven screens, with three palettes and motion
+- Navigable HTML prototype of the screens, with three palettes and motion
   controls.
 - Layered Cargo workspace with shared lints, pinned toolchain, `cargo xtask check`
   and CI.

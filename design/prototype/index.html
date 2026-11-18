@@ -227,6 +227,26 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .slider-row { display: flex; align-items: center; gap: var(--space-3); }
 .slider-row input { flex: 1; accent-color: var(--color-accent); }
 
+/* Apps and Docker */
+.grid-apps { display: grid; grid-template-columns: 286px minmax(0, 1fr); gap: var(--space-3); flex: 1; min-height: 0; }
+.grid-apps > .hud-panel { display: flex; flex-direction: column; min-height: 0; padding-bottom: 4px; }
+.detail-col { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; min-height: 0; overflow-y: auto; }
+.detail-col .hud-panel { padding-bottom: 4px; }
+.scroll { overflow-y: auto; min-height: 0; flex: 1; }
+.search { width: 100%; background: var(--color-surface-window); border: 1px solid var(--color-line-strong); color: var(--color-text-primary); font: inherit; padding: 6px 8px; margin-bottom: var(--space-2); }
+.search::placeholder { color: var(--color-text-muted); }
+.row.app { grid-template-columns: minmax(0, 1fr) 62px; width: 100%; background: none; border: 0; border-top: 1px solid var(--color-line); text-align: left; }
+.row.app[aria-pressed="true"] { background: rgb(var(--color-accent-rgb) / .1); box-shadow: inset 2px 0 0 var(--color-accent); }
+.row.leftover { grid-template-columns: 14px minmax(0, 1fr) 76px 68px; }
+.row.docker { grid-template-columns: 14px 104px minmax(0, 1.1fr) minmax(0, 1fr) 76px 68px; }
+.row.locked { opacity: .45; }
+.kind { color: var(--color-accent); font-size: 11px; white-space: nowrap; }
+.open { color: var(--color-alert); }
+.app-facts { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); font-size: 12px; color: var(--color-text-secondary); }
+.app-facts b { color: var(--color-text-primary); font-weight: 500; }
+.state-panel { max-width: 580px; }
+.state-panel p { margin: 0 0 var(--space-3); color: var(--color-text-secondary); }
+
 /* Disk map */
 .map-bar { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
 .crumbs { display: flex; gap: 6px; align-items: center; flex: 1; min-width: 0; font-size: 12px; }
@@ -356,6 +376,13 @@ button { font: inherit; color: inherit; cursor: pointer; }
     </div>
   </div>
 
+  <div class="control-group" role="group" aria-label="Estado do Docker no protótipo">
+    <span class="control-label">Só no protótipo · estado do Docker</span>
+    <button class="chip" data-docker-state="running" aria-pressed="true">Em execução</button>
+    <button class="chip" data-docker-state="stopped" aria-pressed="false">Instalado, parado</button>
+    <button class="chip" data-docker-state="missing" aria-pressed="false">Não instalado</button>
+  </div>
+
   <details class="token-sheet">
     <summary>Tokens deste visual (os mesmos nomes vão para o tema em Rust)</summary>
     <div class="token-grid" id="token-grid"></div>
@@ -370,6 +397,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   const $$ = (selector, scope = document) => [...scope.querySelectorAll(selector)];
   const formatNumber = (value, decimals = 0) => value.toLocaleString('pt-BR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
   const formatGb = (value) => formatNumber(value, 1) + ' GB';
+  const formatSize = (gb) => gb >= 1 ? formatGb(gb) : gb >= 0.001 ? formatNumber(gb * 1000, gb >= 0.1 ? 0 : 1) + ' MB' : formatNumber(Math.max(1, Math.round(gb * 1e6))) + ' KB';
   const motion = () => root.dataset.motion || 'full';
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
@@ -403,7 +431,48 @@ button { font: inherit; color: inherit; cursor: pointer; }
   const SAMPLE_PATHS = ['~/Library/Caches/com.apple.Safari/WebKitCache', '~/Projetos/portal-web/node_modules/.cache', '~/Library/Developer/Xcode/DerivedData',
     '~/Downloads/instalador-2024.dmg', '~/Imagens/Capturas/tela-0412.png', '~/Projetos/indexador/target/debug/deps', '~/Library/Logs/DiagnosticReports',
     '~/Documentos/Backups/backup-fotos-2023.zip', '~/Filmes/Gravações/reuniao-0311.mov', '~/Library/Application Support/Code/Cache'];
-  const RECLAIM = [['developer', 'Projetos de código', 23.8], ['cleanup', 'Caches e temporários', 12.4], ['duplicates', 'Arquivos duplicados', 8.1], ['photos', 'Fotos parecidas', 3.9]];
+  const RECLAIM = [['developer', 'Projetos de código', 23.8], ['cleanup', 'Caches e temporários', 12.4], ['docker', 'Resíduos do Docker', 9.9], ['duplicates', 'Arquivos duplicados', 8.1], ['photos', 'Fotos parecidas', 3.9]];
+  const RECLAIM_TOTAL = RECLAIM.reduce((sum, row) => sum + row[2], 0);
+  /* Installed apps. `admin` marks a bundle owned by root (App Store or installer package); `daemon` adds system services. */
+  const APPS = [
+    { id: 'xcode', name: 'Xcode', bundle: 'com.apple.dt.Xcode', version: '16.1', gb: 12.6, cache: 2.4, admin: true },
+    { id: 'docker', name: 'Docker', bundle: 'com.docker.docker', version: '4.34', gb: 2.2, cache: 0.12, sandbox: 0.9, daemon: true, running: true },
+    { id: 'garageband', name: 'GarageBand', bundle: 'com.apple.garageband10', version: '10.4', gb: 1.1, sandbox: 0.31, admin: true },
+    { id: 'figma', name: 'Figma', bundle: 'com.figma.Desktop', version: '124.5', gb: 0.64, data: 0.88, cache: 0.19 },
+    { id: 'slack', name: 'Slack', bundle: 'com.tinyspeck.slackmacgap', version: '4.41', gb: 0.52, data: 1.3, cache: 0.21 },
+    { id: 'zoom', name: 'zoom.us', bundle: 'us.zoom.xos', version: '6.2', gb: 0.47, data: 0.36, cache: 0.05, admin: true, daemon: true },
+    { id: 'postman', name: 'Postman', bundle: 'com.postmanlabs.mac', version: '11.18', gb: 0.44, data: 0.72, cache: 0.14 },
+    { id: 'spotify', name: 'Spotify', bundle: 'com.spotify.client', version: '1.2.50', gb: 0.36, data: 0.04, cache: 3.2, running: true },
+    { id: 'obs', name: 'OBS', bundle: 'com.obsproject.obs-studio', version: '31.0', gb: 0.41, data: 0.02 },
+    { id: 'telegram', name: 'Telegram', bundle: 'ru.keepcoder.Telegram', version: '11.3', gb: 0.29, sandbox: 2.7, admin: true },
+    { id: 'unarchiver', name: 'The Unarchiver', bundle: 'cx.c3.theunarchiver', version: '4.3.8', gb: 0.03, sandbox: 0.004, admin: true },
+  ];
+  const leftoversOf = (a) => [
+    ['Aplicativo', `/Applications/${a.name}.app`, a.gb, 'safe', a.admin ? 'admin' : 'user'],
+    a.data && ['Dados do app', `~/Library/Application Support/${a.name}`, a.data, 'review', 'user'],
+    a.sandbox && ['Contêiner', `~/Library/Containers/${a.bundle}`, a.sandbox, 'safe', 'user'],
+    a.cache && ['Caches', `~/Library/Caches/${a.bundle}`, a.cache, 'safe', 'user'],
+    a.cache && ['Dados web', `~/Library/HTTPStorages/${a.bundle}`, 0.0087, 'safe', 'user'],
+    ['Preferências', `~/Library/Preferences/${a.bundle}.plist`, 0.00004, 'safe', 'user'],
+    ['Estado salvo', `~/Library/Saved Application State/${a.bundle}.savedState`, 0.0021, 'safe', 'user'],
+    a.daemon && ['Serviço', `/Library/LaunchDaemons/${a.bundle}.daemon.plist`, 0.000004, 'safe', 'admin'],
+    a.daemon && ['Auxiliar', `/Library/PrivilegedHelperTools/${a.bundle}.daemon`, 0.0061, 'safe', 'admin'],
+  ].filter(Boolean);
+  /* What Docker reports as unused. Whatever a container uses never enters this list. */
+  let dockerState = 'running';
+  const DOCKER_TOTALS = [['Imagens', '14,2 GB', '31 imagens · 12 em uso', 0.38], ['Containers', '82 MB', '17 containers · 5 ativos', 0.61], ['Volumes', '2,6 GB', '28 volumes · 9 em uso', 0.22], ['Cache de build', '8,4 GB', '212 registros', 1]];
+  const DOCKER = [
+    ['Cache de build', '212 registros', 'refeito no próximo build', 8.4, 'safe'],
+    ['Imagem', '&lt;sem nome&gt;', 'sobra de build · criada há 3 meses', 0.9, 'safe'],
+    ['Imagem', '&lt;sem nome&gt;', 'sobra de build · criada há 5 meses', 0.6, 'safe'],
+    ['Imagem', 'portal-web:dev', 'nenhum container usa · criada há 5 meses', 1.4, 'review'],
+    ['Imagem', 'postgres:14', 'nenhum container usa · criada há 1 ano', 0.42, 'review'],
+    ['Imagem', 'node:18-alpine', 'nenhum container usa · criada há 8 meses', 0.17, 'review'],
+    ['Container', 'api-faturamento-db-1', 'parado · criado há 7 meses', 0.031, 'review'],
+    ['Container', 'etl-relatorios-run-3f2a', 'parado · criado há 9 meses', 0.004, 'review'],
+    ['Volume', 'api-faturamento_pgdata', 'nenhum container usa · pode guardar um banco de dados', 0.48, 'review'],
+    ['Volume', '4f1c9e07…a27b', 'anônimo · nenhum container usa', 0.083, 'review'],
+  ];
   const CLEANUP = [
     { id: 'app-caches', name: 'Caches de aplicativos', path: '~/Library/Caches', gb: 4.2, risk: 'safe', scope: 'user', on: true },
     { id: 'temp', name: 'Arquivos temporários', path: '$TMPDIR · mais de 7 dias', gb: 0.9, risk: 'safe', scope: 'user', on: true },
@@ -449,7 +518,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   /* ---------- Dialog flow shared by every destructive action ---------- */
   const overlayHost = $('#overlay-host');
   const closeOverlay = () => { overlayHost.innerHTML = ''; };
-  function confirmFlow({ title, lines, needsAdmin, verb, totalGb, onDone }) {
+  function confirmFlow({ title, lines, needsAdmin, verb, totalGb, onDone, samples = SAMPLE_PATHS, doneNote = 'liberados · registrado no histórico' }) {
     overlayHost.innerHTML = `<div class="overlay"><div class="hud-panel dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
       <h2 id="dlg-title">Autorização requerida</h2><div>${title}</div><ul>${lines.map((l) => `<li>${l}</li>`).join('')}</ul>
       <div class="dialog-actions"><button class="btn quiet" data-act="cancel">Cancelar</button><button class="btn primary" data-act="go">${verb}</button></div></div></div>`;
@@ -464,15 +533,15 @@ button { font: inherit; color: inherit; cursor: pointer; }
       const tick = setInterval(() => {
         step += 1; const done = Math.round(step / total * 30);
         cells.forEach((c, i) => c.classList.toggle('on', i < done));
-        $('#run-status').textContent = `${Math.round(step / total * 100)}% · ${formatGb(totalGb * step / total)}`;
-        const stream = $('#run-stream'); stream.insertAdjacentHTML('afterbegin', `<div>removido ${SAMPLE_PATHS[step % SAMPLE_PATHS.length]}</div>`);
+        $('#run-status').textContent = `${Math.round(step / total * 100)}% · ${formatSize(totalGb * step / total)}`;
+        const stream = $('#run-stream'); stream.insertAdjacentHTML('afterbegin', `<div>removido ${samples[step % samples.length]}</div>`);
         if (stream.children.length > 3) stream.lastChild.remove();
         if (step >= total) { clearInterval(tick); finish(); }
       }, 70);
     }
     function finish() {
       overlayHost.innerHTML = `<div class="overlay"><div class="hud-panel dialog" role="dialog" aria-modal="true"><h2 style="color:var(--color-ok)">Concluído</h2>
-        <div><span class="big-number" data-count="${totalGb}" data-dec="1" data-suffix=" GB"></span><p class="stage-sub">liberados · registrado no histórico</p></div>
+        <div><span class="big-number" data-count="${totalGb >= 1 ? totalGb : totalGb * 1000}" data-dec="${totalGb >= 1 ? 1 : 0}" data-suffix="${totalGb >= 1 ? ' GB' : ' MB'}"></span><p class="stage-sub">${doneNote}</p></div>
         <div class="dialog-actions"><button class="btn primary" data-act="close">Fechar</button></div></div></div>`;
       activate(overlayHost);
       $('[data-act="close"]', overlayHost).onclick = () => { closeOverlay(); onDone(); };
@@ -489,12 +558,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
     $('[data-act="cancel"]', overlayHost).onclick = closeOverlay;
     $('[data-act="touch"]', overlayHost).focus();
   }
-  function selectionSummary(scope, summaryEl) {
+  function selectionSummary(scope, summaryEl, prefix = '') {
     const picked = $$('.chk[data-gb]:checked', scope);
     const total = picked.reduce((sum, c) => sum + Number(c.dataset.gb), 0);
     const admin = picked.some((c) => c.dataset.scope === 'admin');
     summaryEl.classList.remove('field-error');
-    summaryEl.innerHTML = `<b>${picked.length}</b> selecionados · <b>${formatGb(total)}</b>${admin ? ` · ${lockIcon} inclui itens de administrador` : ''}`;
+    summaryEl.innerHTML = `<b>${picked.length}</b> selecionados · ${prefix}<b>${formatSize(total)}</b>${admin ? ` · ${lockIcon} inclui itens de administrador` : ''}`;
     return { picked, total, admin };
   }
   function markDone(picked) { picked.forEach((c) => { c.checked = false; c.disabled = true; c.removeAttribute('data-gb'); c.closest('.row, .photo')?.classList.add('done'); }); }
@@ -513,9 +582,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
       icon: '<path d="M3 3h7v7H3zM14 3h7v4h-7zM14 11h7v10h-7zM3 14h7v7H3z"/>',
       render: () => `<div class="grid-dash">
           ${gauge('Disco', 0.863, 397, 0, 'GB DE 460', 'warn')}${gauge('Memória', 0.669, 21.4, 1, 'GB DE 32')}${gauge('CPU', 0.54, 54, 0, '°C · 23% USO')}
-          <div class="hud-panel"><div class="panel-head"><span>Espaço recuperável</span><span class="meta">4 categorias</span></div>
-            <div class="big-number" data-count="48.2" data-dec="1" data-suffix=" GB">0</div>
-            <div style="margin-top:8px">${RECLAIM.map(([go, name, gb]) => `<button class="reclaim-row" data-go="${go}"><span>${name}</span><span class="seg">${segments(gb / 48.2)}</span><span class="num">${formatGb(gb)}</span></button>`).join('')}</div>
+          <div class="hud-panel"><div class="panel-head"><span>Espaço recuperável</span><span class="meta">${RECLAIM.length} categorias</span></div>
+            <div class="big-number" data-count="${RECLAIM_TOTAL.toFixed(1)}" data-dec="1" data-suffix=" GB">0</div>
+            <div style="margin-top:8px">${RECLAIM.map(([go, name, gb]) => `<button class="reclaim-row" data-go="${go}"><span>${name}</span><span class="seg">${segments(gb / RECLAIM_TOTAL)}</span><span class="num">${formatGb(gb)}</span></button>`).join('')}</div>
           </div></div>
         <div class="grid-dash-2">
           <div class="hud-panel"><div class="panel-head"><span>Eventos recentes</span><span class="meta">ao vivo</span></div><ul class="log" id="log"></ul></div>
@@ -548,6 +617,58 @@ button { font: inherit; color: inherit; cursor: pointer; }
       },
       mount(el) { wireSelection(el, { verb: 'Autorizar limpeza', title: 'Os itens abaixo serão apagados de forma permanente.',
         lines: (s) => [`${s.picked.length} regras · ${formatGb(s.total)}`, 'Xcode Archives, se marcado, vai para a Lixeira', s.admin ? 'Itens do sistema pedem Touch ID ou senha do macOS' : 'Nenhum item exige autenticação'] }); },
+    },
+    apps: {
+      label: 'Aplicativos', title: 'Desinstalar aplicativos', sub: 'O app e tudo o que ele deixou na Biblioteca · prévia item por item antes de remover',
+      icon: '<path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14.5 14.5l5 5M19.5 14.5l-5 5"/>',
+      render: () => `<div class="grid-apps">
+          <div class="hud-panel"><div class="panel-head"><span>Instalados</span><span class="meta" id="apps-meta"></span></div>
+            <input class="search" id="app-search" type="search" placeholder="Buscar pelo nome" aria-label="Buscar app pelo nome">
+            <div class="scroll" id="app-list"></div></div>
+          <div class="detail-col" id="app-detail"></div></div>
+        <div class="action-footer"><span class="summary" id="summary"></span><button class="btn primary" id="act">Desinstalar</button></div>`,
+      mount(el) {
+        let apps = [...APPS], chosen = 'slack';
+        const summary = $('#summary', el), list = $('#app-list', el), detail = $('#app-detail', el);
+        const app = () => apps.find((a) => a.id === chosen);
+        /* An app that is open cannot be uninstalled: it would recreate its files. */
+        const refresh = () => {
+          const a = app();
+          if (!a) { summary.classList.remove('field-error'); summary.textContent = 'Escolha um app na lista.'; return null; }
+          if (a.running) { summary.classList.add('field-error'); summary.textContent = `${a.name} está aberto. Feche o app para poder desinstalar.`; return null; }
+          return selectionSummary(el, summary);
+        };
+        const drawList = () => {
+          const term = $('#app-search', el).value.trim().toLowerCase(), shown = apps.filter((a) => a.name.toLowerCase().includes(term));
+          $('#apps-meta', el).textContent = `${apps.length} apps · ${formatGb(apps.reduce((sum, a) => sum + a.gb, 0))}`;
+          list.innerHTML = shown.map((a) => `<button class="row app" data-app="${a.id}" aria-pressed="${a.id === chosen}"><span style="min-width:0"><div>${a.admin ? lockIcon + ' ' : ''}${a.name}</div><div class="path">versão ${a.version}${a.running ? ' · <span class="open">aberto</span>' : ''}</div></span><span class="num">${formatSize(a.gb)}</span></button>`).join('') || '<p class="path" style="padding:8px">Nenhum app com esse nome.</p>';
+        };
+        const drawDetail = () => {
+          const a = app();
+          if (!a) { detail.innerHTML = ''; refresh(); return; }
+          const items = leftoversOf(a), total = items.reduce((sum, item) => sum + item[2], 0);
+          const rows = (scope) => items.filter((item) => item[4] === scope).map(([kind, path, gb, risk], n) => `<label class="row leftover ${a.running ? 'locked' : ''}"><input class="chk" type="checkbox" id="left-${scope}-${n}" data-gb="${gb}" data-scope="${scope}" data-path="${path}" ${risk === 'safe' && !a.running ? 'checked' : ''} ${a.running ? 'disabled' : ''}><span style="min-width:0"><div class="path" style="color:var(--color-text-primary);font-size:13px">${path.slice(path.lastIndexOf('/') + 1)}</div><div class="path">${kind} · ${path.slice(0, path.lastIndexOf('/'))}</div></span>${badge(risk)}<span class="num">${formatSize(gb)}</span></label>`).join('');
+          const group = (title, meta, scope) => rows(scope) ? `<div class="hud-panel"><div class="panel-head"><span>${title}</span><span class="meta">${meta}</span></div>${rows(scope)}</div>` : '';
+          detail.innerHTML = `<div class="hud-panel" style="padding-bottom:var(--space-3)"><div class="panel-head"><span style="color:var(--color-text-primary)">${a.name}</span><span class="meta">${a.running ? 'aberto agora' : a.admin ? 'instalado pela App Store ou por um instalador' : 'instalado por você'}</span></div>
+              <div class="app-facts"><span>Identificador <b>${a.bundle}</b></span><span>Versão <b>${a.version}</b></span><span>Encontrado <b>${items.length} itens · ${formatSize(total)}</b></span></div></div>
+            ${group('Conta do usuário', 'vai para a Lixeira · pode ser recuperado', 'user')}${group(lockIcon + ' Sistema', 'pede Touch ID ou senha · apagado de vez', 'admin')}`;
+          refresh();
+        };
+        list.onclick = (e) => { const row = e.target.closest('[data-app]'); if (!row) return; chosen = row.dataset.app; drawList(); drawDetail(); };
+        $('#app-search', el).oninput = drawList;
+        el.addEventListener('change', refresh);
+        $('#act', el).onclick = () => {
+          const a = app(), s = refresh();
+          if (!s) return;
+          if (!s.picked.length) { summary.classList.add('field-error'); summary.textContent = 'Selecione ao menos um item.'; return; }
+          const reviewed = s.picked.some((c) => c.closest('.row').querySelector('.badge.review'));
+          confirmFlow({ title: `Os itens marcados de ${a.name} saem deste Mac.`,
+            lines: [`${s.picked.length} itens · ${formatSize(s.total)}`, 'Os itens da sua conta vão para a Lixeira e podem ser recuperados de lá', s.admin && 'Os itens de sistema pedem Touch ID ou senha e são apagados de vez', reviewed && 'Itens com o selo Revisar podem ser de outro app: confira antes'].filter(Boolean),
+            needsAdmin: s.admin, verb: 'Desinstalar', totalGb: s.total, samples: s.picked.map((c) => c.dataset.path), doneNote: 'removidos · o que foi para a Lixeira libera espaço quando ela for esvaziada',
+            onDone: () => { apps = apps.filter((other) => other !== a); chosen = apps.find((other) => !other.running)?.id; drawList(); drawDetail(); } });
+        };
+        drawList(); drawDetail();
+      },
     },
     duplicates: {
       label: 'Duplicados', title: 'Arquivos duplicados', sub: '3 grupos confirmados por conteúdo (BLAKE3) · 8,1 GB recuperáveis',
@@ -593,6 +714,29 @@ button { font: inherit; color: inherit; cursor: pointer; }
         wireSelection(el, { verb: 'Autorizar exclusão', title: 'As pastas abaixo serão apagadas de forma permanente. Elas são recriadas ao instalar dependências ou compilar.', lines: (s) => [`${s.picked.length} pastas · ${formatGb(s.total)}`, 'Nenhum código-fonte é removido'] });
       },
     },
+    docker: {
+      label: 'Docker', title: 'Resíduos do Docker', sub: 'Imagens sem uso, containers parados, volumes órfãos e cache de build · o que está em uso não entra na lista',
+      icon: '<path d="M3 18h18M5 12h4v5H5zM10 12h4v5h-4zM15 12h4v5h-4zM10 6h4v5h-4z"/>',
+      render: () => {
+        const again = (label) => `<button class="btn quiet" data-recheck>${label}</button>`;
+        if (dockerState === 'missing') return `<div class="hud-panel state-panel"><div class="panel-head"><span>Docker não encontrado</span></div><p>Nenhuma instalação do Docker foi encontrada neste Mac, então não há o que limpar aqui.</p><p class="path" style="white-space:normal">Procurado em /usr/local/bin, /opt/homebrew/bin, Docker Desktop, OrbStack e Rancher Desktop.</p>${again('Verificar de novo')}</div>`;
+        if (dockerState === 'stopped') return `<div class="hud-panel state-panel"><div class="panel-head"><span>Docker parado</span><span class="meta">instalado · sem resposta</span></div><p>O Docker está instalado, mas não está em execução. Imagens, volumes e cache ficam dentro dele: só dá para medir e limpar com ele aberto.</p><p>Abra o Docker, espere ele terminar de iniciar e verifique de novo.</p>${again('Verificar de novo')}</div>`;
+        return `<div class="grid-mon-4">${DOCKER_TOTALS.map(([name, size, count, unused]) => `<div class="hud-panel"><div class="panel-head"><span>${name}</span></div><div class="readout">${size}</div><div class="seg" style="margin-top:10px;--seg-color:var(--color-warn)">${segments(unused)}</div><p class="stage-sub">${count}<br>${Math.round(unused * 100)}% sem uso</p></div>`).join('')}</div>
+          <div class="control-group" id="kind-filter"><span class="control-label">Tipo</span>${['Todos', 'Cache de build', 'Imagem', 'Container', 'Volume'].map((kind, i) => `<button class="chip" data-kind="${kind}" aria-pressed="${!i}">${kind}</button>`).join('')}<span style="flex:1"></span><span class="path">Docker 24.0 · em execução</span>${again('Medir de novo')}</div>
+          <div class="hud-panel" style="padding-bottom:4px;display:flex;flex-direction:column;flex:1;min-height:0"><div class="row docker head"><span></span><span>Tipo</span><span>Nome</span><span>Situação</span><span>Risco</span><span class="num">Tamanho</span></div>
+            <div class="scroll">${DOCKER.map(([kind, name, detail, gb, risk], i) => `<label class="row docker" data-kind="${kind}"><input class="chk" type="checkbox" id="docker-${i}" data-gb="${gb}" data-kind="${kind}" data-path="${kind.toLowerCase()} ${name}" ${risk === 'safe' ? 'checked' : ''}><span class="kind">${kind}</span><span class="path" style="color:var(--color-text-primary);font-size:13px">${name}</span><span class="path">${detail}</span>${badge(risk)}<span class="num">${formatSize(gb)}</span></label>`).join('')}</div></div>
+          <div class="action-footer"><span class="summary" id="summary"></span><button class="btn primary" id="act">Limpar selecionados</button></div>`;
+      },
+      mount(el) {
+        $$('[data-recheck]', el).forEach((button) => { button.onclick = () => show('docker'); });
+        if (dockerState !== 'running') return;
+        $('#kind-filter', el).onclick = (e) => { const chip = e.target.closest('.chip'); if (!chip) return;
+          $$('#kind-filter .chip', el).forEach((c) => c.setAttribute('aria-pressed', String(c === chip)));
+          $$('.row.docker[data-kind]', el).forEach((r) => { r.hidden = chip.dataset.kind !== 'Todos' && r.dataset.kind !== chip.dataset.kind; }); };
+        wireSelection(el, { verb: 'Autorizar limpeza', prefix: 'até ', title: 'Os itens marcados são apagados pelo próprio Docker, de forma permanente.', doneNote: 'liberados dentro do Docker · registrado no histórico',
+          lines: (s) => [`${s.picked.length} itens · até ${formatSize(s.total)}`, 'Imagens e cache voltam com um novo pull ou build', s.picked.some((c) => /Volume|Container/.test(c.dataset.kind)) && 'O conteúdo de volumes e containers não tem volta', 'O que estiver em uso na hora é recusado pelo Docker e fica como está'].filter(Boolean) });
+      },
+    },
     disk_map: {
       label: 'Mapa do disco', title: 'Mapa de setores', sub: 'Cada bloco é proporcional ao espaço ocupado · clique para ampliar',
       icon: '<path d="M3 3h18v18H3zM3 12h10M13 3v18M13 8h8M13 15h8"/>',
@@ -620,14 +764,15 @@ button { font: inherit; color: inherit; cursor: pointer; }
     },
   };
 
-  function wireSelection(el, { verb, title, lines }) {
+  function wireSelection(el, { verb, title, lines, prefix = '', doneNote }) {
     const summary = $('#summary', el);
-    const refresh = () => selectionSummary(el, summary);
+    const refresh = () => selectionSummary(el, summary, prefix);
     el.addEventListener('change', refresh); refresh();
     $('#act', el).onclick = () => {
       const s = refresh();
       if (!s.picked.length) { summary.classList.add('field-error'); summary.textContent = 'Selecione ao menos um item.'; return; }
-      confirmFlow({ title, lines: lines(s), needsAdmin: s.admin, verb, totalGb: s.total, onDone: () => { markDone(s.picked); refresh(); } });
+      const named = s.picked.map((c) => c.dataset.path).filter(Boolean);
+      confirmFlow({ title, lines: lines(s), needsAdmin: s.admin, verb, totalGb: s.total, doneNote, samples: named.length ? named : undefined, onDone: () => { markDone(s.picked); refresh(); } });
     };
   }
 
@@ -640,7 +785,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
       $('#scan-items', el).textContent = formatNumber(4712330 * step / total);
       stream.insertAdjacentHTML('afterbegin', `<div>${SAMPLE_PATHS[step % SAMPLE_PATHS.length]}</div>`); if (stream.children.length > 3) stream.lastChild.remove();
       if (step >= total) { clearInterval(tick); btn.disabled = false; radar.classList.remove('fast'); $('#scan-state', el).textContent = 'concluída'; stream.innerHTML = '';
-        $('#log', el).insertAdjacentHTML('afterbegin', `<li><time>${new Date().toLocaleTimeString('pt-BR')}</time><span class="tag">scan</span><span>varredura concluída · 48,2 GB recuperáveis</span></li>`); }
+        $('#log', el).insertAdjacentHTML('afterbegin', `<li><time>${new Date().toLocaleTimeString('pt-BR')}</time><span class="tag">scan</span><span>varredura concluída · ${formatGb(RECLAIM_TOTAL)} recuperáveis</span></li>`); }
     });
   }
 
@@ -767,6 +912,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   $$('[data-palette-choice]').forEach((chip) => { chip.onclick = () => { const p = chip.dataset.paletteChoice; if (p === 'agency') delete root.dataset.palette; else root.dataset.palette = p;
     press('[data-palette-choice]', chip); paintTokens(); show(current()); }; });
   $$('[data-motion-choice]').forEach((chip) => { chip.onclick = () => { root.dataset.motion = chip.dataset.motionChoice; press('[data-motion-choice]', chip); show(current()); }; });
+  $$('[data-docker-state]').forEach((chip) => { chip.onclick = () => { dockerState = chip.dataset.dockerState; press('[data-docker-state]', chip); show('docker'); }; });
   $('#glow-range').oninput = (e) => { root.style.setProperty('--glow-strength', e.target.value); paintTokens(); };
   const settingsToggle = $('#settings-toggle'), settingsPanel = $('#settings-panel');
   const setSettingsOpen = (open) => { settingsPanel.hidden = !open; settingsToggle.setAttribute('aria-expanded', String(open)); };

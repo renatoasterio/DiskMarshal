@@ -8,18 +8,17 @@ use egui::{
 use maccleaner_domain::monitoring::{SensorReading, SystemSnapshot, ThermalLevel};
 
 use super::view_model::MonitorViewModel;
-use crate::components::{CellWidth, HudPanel, cell_row, key_value, line_plot, segmented_bar};
+use crate::components::{
+    CellWidth, HudPanel, cell_row, key_value, line_plot, readout, segmented_bar,
+};
 use crate::i18n::pt_br;
 use crate::screens::ScreenContext;
-use crate::theme::{
-    FONT_SIZE_DATA, FONT_SIZE_SMALL, SPACE_1, SPACE_2, SPACE_3, Tokens, display_bold,
-};
+use crate::theme::{FONT_SIZE_DATA, FONT_SIZE_SMALL, SPACE_1, SPACE_2, SPACE_3, Tokens};
 
 const PLOT_HEIGHT: f32 = 132.0;
 const CORE_BARS_HEIGHT: f32 = PLOT_HEIGHT;
 /// Height of the memory, disk and temperature panels: room for five sensors.
 const MIDDLE_ROW_HEIGHT: f32 = 176.0;
-const READOUT_FONT_SIZE: f32 = 28.0;
 const BAR_CELLS: usize = 18;
 
 /// Draws the screen for this frame.
@@ -132,22 +131,6 @@ fn core_bars(ui: &mut Ui, tokens: &Tokens, cores: &[f32]) {
             tokens.color_text_muted,
         );
     }
-}
-
-fn readout(ui: &mut Ui, tokens: &Tokens, value: &str, unit: &str) {
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = SPACE_1 + 2.0;
-        ui.label(
-            RichText::new(value)
-                .font(FontId::new(READOUT_FONT_SIZE, display_bold()))
-                .color(tokens.color_text_primary),
-        );
-        ui.label(
-            RichText::new(unit)
-                .size(FONT_SIZE_SMALL)
-                .color(tokens.color_text_secondary),
-        );
-    });
 }
 
 fn memory_panel(ui: &mut Ui, tokens: &Tokens, snapshot: &SystemSnapshot) {

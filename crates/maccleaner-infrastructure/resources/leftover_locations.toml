@@ -1,0 +1,120 @@
+# Catalog of the folders where apps leave items named after themselves.
+#
+# When an app is uninstalled, the items DIRECTLY inside each folder are
+# compared with the app. An item belongs to the app when its name is the app's
+# bundle identifier, alone or followed by a dot and something else. `~` is the
+# user's home folder.
+#
+#   kind     what the items found in the folder are: support, caches,
+#            preferences, container, saved-state, web-data, logs, launch-item,
+#            helper
+#   scope    user            the logged-in user can remove it; goes to the Trash
+#            administrator   macOS must authenticate an administrator first
+#   by_name  true also accepts an item named exactly like the app. Such a
+#            match is never selected by default. Leave it out where items are
+#            named only after identifiers.
+
+[[location]]
+folder = "~/Library/Application Support"
+kind = "support"
+scope = "user"
+by_name = true
+
+[[location]]
+folder = "~/Library/Containers"
+kind = "container"
+scope = "user"
+
+[[location]]
+folder = "~/Library/Group Containers"
+kind = "container"
+scope = "user"
+
+[[location]]
+folder = "~/Library/Application Scripts"
+kind = "container"
+scope = "user"
+
+[[location]]
+folder = "~/Library/Caches"
+kind = "caches"
+scope = "user"
+by_name = true
+
+[[location]]
+folder = "~/Library/HTTPStorages"
+kind = "web-data"
+scope = "user"
+
+[[location]]
+folder = "~/Library/WebKit"
+kind = "web-data"
+scope = "user"
+
+[[location]]
+folder = "~/Library/Cookies"
+kind = "web-data"
+scope = "user"
+
+[[location]]
+folder = "~/Library/Preferences"
+kind = "preferences"
+scope = "user"
+
+[[location]]
+folder = "~/Library/Preferences/ByHost"
+kind = "preferences"
+scope = "user"
+
+[[location]]
+folder = "~/Library/Saved Application State"
+kind = "saved-state"
+scope = "user"
+
+[[location]]
+folder = "~/Library/Logs"
+kind = "logs"
+scope = "user"
+by_name = true
+
+[[location]]
+folder = "~/Library/LaunchAgents"
+kind = "launch-item"
+scope = "user"
+
+[[location]]
+folder = "/Library/Application Support"
+kind = "support"
+scope = "administrator"
+by_name = true
+
+[[location]]
+folder = "/Library/Caches"
+kind = "caches"
+scope = "administrator"
+
+[[location]]
+folder = "/Library/Preferences"
+kind = "preferences"
+scope = "administrator"
+
+[[location]]
+folder = "/Library/Logs"
+kind = "logs"
+scope = "administrator"
+by_name = true
+
+[[location]]
+folder = "/Library/LaunchAgents"
+kind = "launch-item"
+scope = "administrator"
+
+[[location]]
+folder = "/Library/LaunchDaemons"
+kind = "launch-item"
+scope = "administrator"
+
+[[location]]
+folder = "/Library/PrivilegedHelperTools"
+kind = "helper"
+scope = "administrator"

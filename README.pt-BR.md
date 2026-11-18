@@ -14,7 +14,7 @@
 ![Rust 1.100](https://img.shields.io/badge/rust-1.100-2fe6ff)
 ![Estado: pré-lançamento](https://img.shields.io/badge/estado-pr%C3%A9--lan%C3%A7amento-ffb020)
 
-<img src="docs/assets/tour.gif" alt="Sequência com as sete telas do MacCleaner: painel, limpeza, duplicados, fotos parecidas, desenvolvedor, mapa do disco e monitor" width="900">
+<img src="docs/assets/tour.gif" alt="Sequência com as nove telas do MacCleaner: painel, limpeza, aplicativos, duplicados, fotos parecidas, desenvolvedor, Docker, mapa do disco e monitor" width="900">
 
 <sub>Capturas do próprio app, rodando com dados de demonstração. Veja em <a href="#estado-do-projeto">Estado do projeto</a> o que está pronto e o que ainda não foi verificado.</sub>
 
@@ -26,6 +26,8 @@ O MacCleaner descobre o que está enchendo o disco do seu Mac e ajuda a recupera
 
 - **Veja para onde foi o espaço.** Um mapa do disco, mostrando o que está neste Mac e o que está só no iCloud.
 - **Remova o que é seguro remover.** Caches, arquivos temporários, logs, arquivos duplicados, fotos parecidas e as pastas de build que projetos de código deixam para trás (`node_modules`, `target`, `bin`/`obj` e companhia).
+- **Desinstale um app junto com o que ele deixou.** O app, os caches, os ajustes e os dados privados dele, listados item por item antes de qualquer coisa sair.
+- **Limpe as sobras do Docker.** O cache de build, e as imagens, os containers parados e os volumes que nada usa.
 - **Acompanhe a máquina.** Processador, memória, disco e temperaturas, ao vivo.
 
 Ele é construído em torno de uma regra: **nada é apagado sem prévia e sem a sua confirmação**, e arquivos pessoais sempre vão para a Lixeira.
@@ -70,19 +72,23 @@ Três coisas que vale saber:
 
 ## Estado do projeto
 
-As sete telas estão prontas, e o app apaga de verdade o que você seleciona, sempre depois de uma prévia e de uma confirmação. Ainda não há uma versão estável. Ele é desenvolvido e testado em um único tipo de máquina: macOS 27 em Apple Silicon.
+As nove telas estão prontas, e o app apaga de verdade o que você seleciona, sempre depois de uma prévia e de uma confirmação. Ainda não há uma versão estável. Ele é desenvolvido e testado em um único tipo de máquina: macOS 27 em Apple Silicon.
 
 | Parte | O que faz | Estado |
 |---|---|---|
 | "Painel" | Medidores de disco, memória e temperatura, o espaço que as outras telas encontraram, as últimas remoções | Pronto |
 | "Limpeza" | Caches, temporários, logs, a Lixeira, sobras do Xcode e de gerenciadores de pacotes | Pronto |
 | "Limpeza", grupo "Sistema" | `/Library/Caches` e `/Library/Logs`, depois que o macOS autentica um administrador | Pronto, não verificado de ponta a ponta (veja abaixo) |
+| "Aplicativos" | Desinstala um app junto com o que ele deixou na Biblioteca; o que é seu vai para a Lixeira | Pronto, não verificado com um app de verdade (veja abaixo) |
+| "Aplicativos", grupo "Sistema" | Apps que a App Store ou um instalador colocou ali, e o que eles deixaram em `/Library`, depois que o macOS autentica um administrador | Pronto, não verificado de ponta a ponta (veja abaixo) |
 | "Duplicados" | Arquivos com conteúdo idêntico; as cópias a mais vão para a Lixeira | Pronto |
 | "Fotos" | Imagens soltas em pastas que parecem a mesma; as que sobram vão para a Lixeira | Pronto |
 | "Desenvolvedor" | Pastas de build e de dependências de projetos de código | Pronto |
+| "Docker" | O cache de build, as imagens, os containers parados e os volumes que nada usa, removidos pelo próprio Docker | Pronto, remoção não verificada em um Docker de verdade (veja abaixo) |
 | "Mapa do disco" | Mapa em blocos da pasta pessoal ou do disco inteiro, colorido por tipo ou por estado no iCloud | Pronto |
 | "Monitor" | Processador, memória, swap, disco, temperaturas e os programas mais ativos, ao vivo | Pronto |
 | `maccleaner-cli scan` | Mede uma pasta pelo terminal; somente leitura | Pronto |
+| `maccleaner-cli apps`, `maccleaner-cli docker` | Mostram o que essas duas telas encontrariam; somente leitura | Pronto |
 | `cargo xtask install` | Compila, assina e instala o `MacCleaner.app` | Pronto |
 
 ### Ainda não verificado
@@ -94,6 +100,8 @@ Estas partes estão escritas e cobertas por testes automáticos em pastas tempor
 - **Abrir com movimento reduzido.** O app lê a opção "Reduzir movimento" dos Ajustes do Sistema ao abrir; isso não foi testado com a opção ligada.
 - **Apagar dados pessoais reais pela interface.** A remoção foi exercitada apenas em pastas de teste.
 - **Outras versões do macOS e Macs com Intel.**
+- **Desinstalar um app de verdade.** A busca do que pertence a um app foi conferida com os apps da máquina de desenvolvimento, sem remover nada. A remoção rodou em pastas de teste, com um substituto da Lixeira, e a parte de administrador dela só no modo de simulação do auxiliar.
+- **Remover de um Docker de verdade.** A leitura do que o Docker guarda foi conferida em um Docker 24 real. A remoção rodou contra um programa substituto, que responde como o Docker. Não foi conferido se o Docker Desktop devolve ao macOS o espaço liberado.
 
 ### Limites conhecidos
 
@@ -102,6 +110,8 @@ Estas partes estão escritas e cobertas por testes automáticos em pastas tempor
 - O monitor não mostra a velocidade das ventoinhas.
 - Fotos dentro da biblioteca do app Fotos ficam de fora: a biblioteca nunca é lida nem alterada.
 - Clones e snapshots do APFS podem fazer o espaço realmente liberado ser menor que o estimado.
+- O desinstalador encontra o que leva o identificador ou o nome do app. O que um app guarda com outro nome fica.
+- O Docker é consultado pelo programa de linha de comando dele, procurado onde os instaladores o colocam. Outros motores de container não são suportados.
 - A interface existe só em português do Brasil, e as escolhas de aparência não são salvas entre uma abertura e outra.
 
 ## Telas
@@ -111,12 +121,14 @@ Capturas do app com dados de demonstração. O [guia de uso](docs/guide/usage.pt
 | Painel | Limpeza |
 |---|---|
 | ![Painel com medidores de disco, memória e temperatura, o espaço recuperável por origem e as últimas remoções](docs/assets/screens/dashboard.png) | ![Lista de limpeza com uma etiqueta de risco em cada regra e um grupo separado para as áreas de sistema](docs/assets/screens/cleanup.png) |
-| **Duplicados** | **Fotos parecidas** |
-| ![Grupos de arquivos idênticos com a cópia a manter marcada](docs/assets/screens/duplicates.png) | ![Grupos de fotos parecidas com miniaturas, uma foto de referência e o percentual de correspondência](docs/assets/screens/photos.png) |
-| **Desenvolvedor** | **Mapa do disco** |
-| ![Pastas de build e de dependências listadas por projeto e ecossistema](docs/assets/screens/developer.png) | ![Mapa em que cada bloco tem o tamanho do espaço que a pasta ocupa](docs/assets/screens/disk-map.png) |
-| **Monitor** | |
-| ![Traço do processador, barras por núcleo, memória, disco, temperaturas e os programas mais ativos](docs/assets/screens/monitor.png) | |
+| **Aplicativos** | **Duplicados** |
+| ![Apps instalados à esquerda e, à direita, os itens que pertencem ao app escolhido](docs/assets/screens/apps.png) | ![Grupos de arquivos idênticos com a cópia a manter marcada](docs/assets/screens/duplicates.png) |
+| **Fotos parecidas** | **Desenvolvedor** |
+| ![Grupos de fotos parecidas com miniaturas, uma foto de referência e o percentual de correspondência](docs/assets/screens/photos.png) | ![Pastas de build e de dependências listadas por projeto e ecossistema](docs/assets/screens/developer.png) |
+| **Docker** | **Mapa do disco** |
+| ![Quanto o Docker guarda de cada tipo e a lista do que nada está usando](docs/assets/screens/docker.png) | ![Mapa em que cada bloco tem o tamanho do espaço que a pasta ocupa](docs/assets/screens/disk-map.png) |
+| **Monitor** |  |
+| ![Traço do processador, barras por núcleo, memória, disco, temperaturas e os programas mais ativos](docs/assets/screens/monitor.png) |  |
 
 Três paletas, escolhidas pelo ícone de aparência na barra de status:
 
@@ -181,7 +193,7 @@ flowchart LR
 | `maccleaner-domain` | Regras sem acesso a disco: árvore de arquivos, política de exclusão, regras de limpeza, duplicados, semelhança de fotos, desenho do mapa, tamanhos |
 | `maccleaner-application` | Casos de uso e as portas de que eles precisam |
 | `maccleaner-infrastructure` | Adaptadores do macOS: disco, Lixeira, histórico, hash de conteúdo, miniaturas de imagens, leituras do sistema, permissões, elevação de privilégio |
-| `maccleaner-ui` | A interface em egui: tema, componentes, as sete telas |
+| `maccleaner-ui` | A interface em egui: tema, componentes, as nove telas |
 | `apps/desktop`, `apps/cli`, `apps/privileged-helper` | Binários que ligam tudo |
 | `xtask` | Tarefas do projeto: `check`, `bundle`, `install` |
 

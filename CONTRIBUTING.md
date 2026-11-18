@@ -56,7 +56,7 @@ Read [architecture](docs/architecture.md), [conventions](docs/conventions.md) an
 
 ## Adding a cleanup rule or an ecosystem
 
-What MacCleaner knows how to clean is data, not code. The two catalogs are in `crates/maccleaner-infrastructure/resources/` and are compiled into the binaries, so rebuild after changing them.
+What MacCleaner knows how to clean is data, not code. The three catalogs are in `crates/maccleaner-infrastructure/resources/` and are compiled into the binaries, so rebuild after changing them.
 
 ### A cleanup rule
 
@@ -110,6 +110,27 @@ An entry needs at least one marker and one folder. An ecosystem that is not in t
 
 When you add either kind of entry, update the tables in the usage guide, in both languages.
 
+### A folder where apps leave items (apps screen)
+
+Add an entry to `leftover_locations.toml`:
+
+```toml
+[[location]]
+folder = "~/Library/Application Support"
+kind = "support"
+scope = "user"
+by_name = true
+```
+
+| Field | Meaning |
+|---|---|
+| `folder` | The folder whose direct items are compared with the app being uninstalled. Absolute, or starting with `~/`. Each folder appears once. |
+| `kind` | What the items found there are, for the label in the list: `support`, `caches`, `preferences`, `container`, `saved-state`, `web-data`, `logs`, `launch-item` or `helper`. |
+| `scope` | `user`: goes to the Trash. `administrator`: removed for good by the privileged helper. |
+| `by_name` | Optional. `true` also accepts an item named exactly like the app. Such a match is never selected by default. Leave it out where items are named only after identifiers. |
+
+An item belongs to an app when its name is the bundle identifier of the app, alone or followed by a dot. That rule is code, not data: `LeftoverMatcher` in the domain. The privileged helper uses it to decide what root may remove, so a change to it, like an `administrator` folder, needs the same care as a change to deletion. Open an issue first.
+
 ## Commits and pull requests
 
 - Create a branch from `main`: `feat/disk-map`, `fix/scan-hard-links`, `docs/usage-guide`.
@@ -133,14 +154,16 @@ EFRAME_SCREENSHOT_TO=/tmp/maccleaner.png MACCLEANER_SCREEN=cleanup MACCLEANER_PA
 | Variable | Effect |
 |---|---|
 | `EFRAME_SCREENSHOT_TO` | The PNG file to save. |
-| `MACCLEANER_SCREEN` | The screen to show: `dashboard`, `cleanup`, `duplicates`, `photos`, `developer`, `disk_map` or `monitor`. |
+| `MACCLEANER_SCREEN` | The screen to show: `dashboard`, `cleanup`, `apps`, `duplicates`, `photos`, `developer`, `docker`, `disk_map` or `monitor`. |
 | `MACCLEANER_PALETTE` | `agency`, `terminal` or `tactical`. |
 | `MACCLEANER_ANALYZE=1` | Analyzes the cleanup rules first, so the cleanup screen opens filled in. |
 | `MACCLEANER_SCAN=<folder>` | Measures a folder first, so the disk map opens filled in. |
 | `MACCLEANER_DEV=<folder>` | Searches a folder for build folders first. |
 | `MACCLEANER_DUP=<folder>` | Searches a folder for duplicates first. |
 | `MACCLEANER_PHOTOS=<folder>` | Searches a folder for similar photos first. |
-| `MACCLEANER_DEMO=1` | Replaces the readings of the monitor with made-up ones. |
+| `MACCLEANER_APPS=<folder>` | Lists the apps of that folder instead of the installed ones, and examines the first one, so the apps screen opens filled in. |
+| `MACCLEANER_DOCKER=1` | Asks Docker first, so the Docker screen opens filled in. |
+| `MACCLEANER_DEMO=1` | Replaces the readings of the monitor with made-up ones, and what Docker holds too. |
 
 This build skips the start-up sequence and all motion, so the frame is still. It only reads: nothing is removed. Run it with `HOME` pointing at a demonstration folder to keep every personal path out of the picture.
 

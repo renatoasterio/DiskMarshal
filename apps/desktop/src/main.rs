@@ -4,16 +4,17 @@
 #![forbid(unsafe_code)]
 
 use std::env;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::sync::Arc;
 
 use anyhow::{Context as _, anyhow};
 use eframe::egui;
-use maccleaner_application::ports::MetricsProvider;
+use maccleaner_application::ports::{ContainerEngine, MetricsProvider};
+use maccleaner_infrastructure::bundles::{PlistAppBundleReader, application_folders};
 use maccleaner_infrastructure::catalog::TomlRuleCatalog;
 use maccleaner_infrastructure::filesystem::{
-    LstatFileInspector, ReaddirWalker, SafeFileRemover, StatfsVolumeStats,
+    LstatFileInspector, ReaddirFolderLister, ReaddirWalker, SafeFileRemover, StatfsVolumeStats,
     disable_dataless_materialization, icloud_sync_roots,
 };
 use maccleaner_infrastructure::hashing::Blake3ContentHasher;
@@ -22,9 +23,9 @@ use maccleaner_infrastructure::metrics::{SysinfoMetricsProvider, UnavailableMetr
 use maccleaner_infrastructure::permissions::FullDiskAccessProbe;
 use maccleaner_infrastructure::persistence::JsonlHistoryRepository;
 use maccleaner_infrastructure::privilege::OsascriptPrivilegedCleaner;
-use maccleaner_infrastructure::process::GitVersionControlProbe;
+use maccleaner_infrastructure::process::{DockerCliContainerEngine, GitVersionControlProbe};
 use maccleaner_infrastructure::system::{
-    LocaltimeWallClock, NativeFolderPicker, OpenCommandOpener,
+    LocaltimeWallClock, NativeFolderPicker, OpenCommandOpener, SysinfoRunningAppProbe,
 };
 use maccleaner_infrastructure::trash::NsFileManagerTrashBin;
 use maccleaner_ui::{MacCleanerUi, UiOptions, UiServices, WINDOW_SIZE};
@@ -88,6 +89,12 @@ impl DesktopApp {
             thumbnailer: Arc::new(ImageIoThumbnailer),
             privileged: Arc::new(OsascriptPrivilegedCleaner::beside_current_executable()),
             permissions: Arc::new(FullDiskAccessProbe::for_home(&home)),
+            bundles: Arc::new(PlistAppBundleReader::for_home(&home)),
+            running_apps: Arc::new(SysinfoRunningAppProbe),
+            folder_lister: Arc::new(ReaddirFolderLister),
+            container_engine: capture::container_engine().unwrap_or_else(|| docker(&home)),
+            application_folders: capture::application_folders()
+                .unwrap_or_else(|| application_folders(&home)),
             metrics: capture::metrics().unwrap_or_else(system_metrics),
             home,
         };
@@ -105,6 +112,11 @@ fn system_metrics() -> Arc<dyn MetricsProvider> {
     )
 }
 
+/// The Docker installed on this Mac, when there is one.
+fn docker(home: &Path) -> Arc<dyn ContainerEngine> {
+    Arc::new(DockerCliContainerEngine::for_home(home))
+}
+
 impl eframe::App for DesktopApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         self.interface.show(ui);
@@ -119,9 +131,10 @@ impl eframe::App for DesktopApp {
 /// as the user asked macOS for.
 #[cfg(not(feature = "capture"))]
 mod capture {
+    use std::path::PathBuf;
     use std::sync::Arc;
 
-    use maccleaner_application::ports::MetricsProvider;
+    use maccleaner_application::ports::{ContainerEngine, MetricsProvider};
     use maccleaner_infrastructure::system::prefers_reduced_motion;
     use maccleaner_ui::MotionPreference;
 
@@ -133,6 +146,16 @@ mod capture {
 
     /// The normal app always shows the readings of this machine.
     pub(super) fn metrics() -> Option<Arc<dyn MetricsProvider>> {
+        None
+    }
+
+    /// The normal app always asks the Docker of this machine.
+    pub(super) fn container_engine() -> Option<Arc<dyn ContainerEngine>> {
+        None
+    }
+
+    /// The normal app always lists the apps of this machine.
+    pub(super) fn application_folders() -> Option<Vec<PathBuf>> {
         None
     }
 
@@ -162,14 +185,21 @@ mod capture {
 /// `MACCLEANER_DUP` and `MACCLEANER_PHOTOS` each name a folder to search
 /// first for build folders, duplicates and similar photos, and
 /// `MACCLEANER_DEMO=1` replaces the readings of the monitor with made-up
-/// ones. Run with `HOME` pointing at a demonstration folder to keep every
-/// personal path out of the picture.
+/// ones, and what Docker holds too. `MACCLEANER_APPS=<folder>` lists the apps
+/// of that folder instead of the ones installed, and `MACCLEANER_DOCKER=1`
+/// asks Docker first. Run with `HOME` pointing at a demonstration folder to
+/// keep every personal path out of the picture.
 #[cfg(feature = "capture")]
 mod capture {
+    use std::path::PathBuf;
     use std::sync::Arc;
     use std::sync::atomic::{AtomicU32, Ordering};
+    use std::time::{SystemTime, UNIX_EPOCH};
 
-    use maccleaner_application::ports::MetricsProvider;
+    use maccleaner_application::ports::{ContainerEngine, EngineError, MetricsProvider};
+    use maccleaner_domain::docker::{
+        DockerInventory, DockerResource, EngineStatus, KindUsage, ResourceKind,
+    };
     use maccleaner_domain::monitoring::{ProcessUsage, SensorReading, SystemSnapshot};
     use maccleaner_domain::shared::ByteSize;
     use maccleaner_ui::{MotionPreference, Palette, Screen};
@@ -229,6 +259,97 @@ mod capture {
         }
     }
 
+    /// A made-up Docker for documentation screenshots, so they show no image
+    /// or volume of the machine that takes them.
+    struct DemoEngine;
+
+    impl DemoEngine {
+        const VERSION: &'static str = "27.3.1";
+        const DAY: i64 = 86_400;
+
+        /// The moment of the capture. Ages are counted back from it, so a
+        /// resource made 150 days ago reads the same in every capture.
+        fn now() -> i64 {
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map_or(0, |elapsed| {
+                    i64::try_from(elapsed.as_secs()).unwrap_or(i64::MAX)
+                })
+        }
+
+        fn usage(kind: ResourceKind, counts: (u64, u64), megabytes: (u64, u64)) -> KindUsage {
+            KindUsage {
+                kind,
+                total_count: counts.0,
+                active_count: counts.1,
+                size: ByteSize::from_bytes(megabytes.0 * 1_000_000),
+                reclaimable: ByteSize::from_bytes(megabytes.1 * 1_000_000),
+            }
+        }
+
+        fn unused(kind: ResourceKind, name: &str, megabytes: u64, days: i64) -> DockerResource {
+            DockerResource {
+                kind,
+                reference: format!("demo-{name}-{megabytes}"),
+                name: name.to_owned(),
+                size: ByteSize::from_bytes(megabytes * 1_000_000),
+                created_unix_seconds: (days > 0).then(|| Self::now() - days * Self::DAY),
+            }
+        }
+    }
+
+    impl ContainerEngine for DemoEngine {
+        fn status(&self) -> EngineStatus {
+            EngineStatus::Running {
+                version: Self::VERSION.to_owned(),
+            }
+        }
+
+        fn inventory(&self) -> Result<DockerInventory, EngineError> {
+            use ResourceKind::{BuildCache, Container, Image, Volume};
+            Ok(DockerInventory {
+                engine_version: Self::VERSION.to_owned(),
+                usage: vec![
+                    Self::usage(Image, (31, 12), (14_200, 5_400)),
+                    Self::usage(Container, (17, 5), (82, 50)),
+                    Self::usage(Volume, (28, 9), (2_600, 570)),
+                    Self::usage(BuildCache, (212, 0), (8_400, 8_400)),
+                ],
+                unused: vec![
+                    Self::unused(BuildCache, "", 8_400, 0),
+                    Self::unused(Image, "portal-web:dev", 1_400, 150),
+                    Self::unused(Image, "", 900, 95),
+                    Self::unused(Image, "", 600, 160),
+                    Self::unused(Image, "postgres:14", 420, 400),
+                    Self::unused(Image, "node:18-alpine", 170, 240),
+                    Self::unused(Container, "api-faturamento-db-1", 31, 210),
+                    Self::unused(Container, "etl-relatorios-run-3f2a", 4, 270),
+                    Self::unused(Volume, "api-faturamento_pgdata", 480, 0),
+                    Self::unused(Volume, "4f1c9e07a27b", 83, 0),
+                ],
+            })
+        }
+
+        fn disk_usage(&self) -> Result<ByteSize, EngineError> {
+            Ok(self.inventory()?.size())
+        }
+
+        fn remove(&self, _resource: &DockerResource) -> Result<(), EngineError> {
+            Err(EngineError::Failed("demonstration".to_owned()))
+        }
+    }
+
+    /// With `MACCLEANER_DEMO` set, the Docker screen shows a made-up Docker.
+    pub(super) fn container_engine() -> Option<Arc<dyn ContainerEngine>> {
+        std::env::var_os("MACCLEANER_DEMO")
+            .map(|_| Arc::new(DemoEngine) as Arc<dyn ContainerEngine>)
+    }
+
+    /// With `MACCLEANER_APPS` set, the apps of that folder are the ones listed.
+    pub(super) fn application_folders() -> Option<Vec<PathBuf>> {
+        std::env::var_os("MACCLEANER_APPS").map(|folder| vec![PathBuf::from(folder)])
+    }
+
     /// With `MACCLEANER_DEMO` set, the monitor shows made-up readings.
     pub(super) fn metrics() -> Option<Arc<dyn MetricsProvider>> {
         std::env::var_os("MACCLEANER_DEMO")
@@ -262,6 +383,8 @@ mod capture {
             preload_duplicates: std::env::var_os("MACCLEANER_DUP").map(std::path::PathBuf::from),
             preload_monitor: true,
             preload_photos: std::env::var_os("MACCLEANER_PHOTOS").map(std::path::PathBuf::from),
+            preload_apps: std::env::var_os("MACCLEANER_APPS").is_some(),
+            preload_docker: std::env::var_os("MACCLEANER_DOCKER").is_some(),
         }
     }
 }

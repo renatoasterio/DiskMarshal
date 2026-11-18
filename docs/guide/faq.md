@@ -102,6 +102,18 @@ Yes, as long as the project still has the file that describes it (`package.json`
 
 The code is open, so anyone can check what it does. It never deletes without a preview, never touches the inside of your Photos library, and never sends anything over the network.
 
+### Why does the uninstaller leave some files of an app behind?
+
+It removes what carries the identifier of the app or its name, in the Library folders where apps keep their things. A document the app saved in your folders is yours and stays. So does a folder named after the maker of the app, which other apps of that maker may share. Items marked "Revisar" are found too, but wait for you to select them.
+
+### Why can I not select an app, or some of its items?
+
+There are two reasons. The app is open: it is marked "aberto" in the list, so quit it and click it again. Or the item needs an administrator and you are running from the source code: the "Sistema" group then shows "só no app instalado · cargo xtask install".
+
+### Why did cleaning Docker not free space on my Mac right away?
+
+The space is freed inside Docker. Docker Desktop keeps everything in one large file on the Mac, and that file may not shrink at once. The result dialog shows what Docker freed inside itself. Whether and when Docker Desktop gives that space back to macOS was not checked by this project.
+
 ### How do I uninstall it?
 
 Move `/Applications/MacCleaner.app` to the Trash. The removal history is in `~/Library/Application Support/MacCleaner/`; delete that folder if you do not want to keep it. If you no longer need the source, move the `MacCleaner` project folder to the Trash too.

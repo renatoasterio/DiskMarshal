@@ -55,6 +55,15 @@ impl DeletionReport {
         self.outcomes.push(outcome);
     }
 
+    /// Adds one outcome, writing it to the history first when it removed
+    /// something. A removal the history could not keep is counted.
+    pub fn record_in_history(&mut self, outcome: DeletionOutcome, history: &dyn HistoryRepository) {
+        if outcome.is_removed() && history.append(&outcome).is_err() {
+            self.unrecorded += 1;
+        }
+        self.record(outcome);
+    }
+
     /// Adds everything another report holds to this one.
     pub fn absorb(&mut self, other: Self) {
         self.outcomes.extend(other.outcomes);
@@ -98,10 +107,7 @@ impl<'a> DeleteItems<'a> {
         let mut report = DeletionReport::default();
         for request in requests {
             let outcome = self.process(request, &roots, mode);
-            if outcome.is_removed() && self.ports.history.append(&outcome).is_err() {
-                report.unrecorded += 1;
-            }
-            report.record(outcome);
+            report.record_in_history(outcome, self.ports.history);
         }
         report
     }

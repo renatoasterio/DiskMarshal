@@ -5,9 +5,11 @@
 
 #![forbid(unsafe_code)]
 
+pub mod applications;
 pub mod cleanup;
 pub mod deletion;
 pub mod dev_artifacts;
+pub mod docker;
 pub mod duplicates;
 pub mod monitoring;
 pub mod photos;

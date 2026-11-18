@@ -31,6 +31,20 @@ pub enum ApplicationError {
     #[error("rule not allowed here: {0}")]
     RuleNotAllowed(String),
 
+    /// An uninstall named an app that is not installed, or that is installed
+    /// more than once, so it is not known which one is meant.
+    #[error("no single installed app has the identifier {0}")]
+    AppNotFound(String),
+
+    /// An uninstall named an app that is open. It would recreate its files.
+    #[error("the app {0} is running")]
+    AppRunning(String),
+
+    /// An uninstall asked for an item that does not belong to the app, or
+    /// that may not be removed with the privileges of the caller.
+    #[error("item not allowed here: {}", .0.display())]
+    ItemNotAllowed(PathBuf),
+
     /// The operating system refused an operation on `path`.
     #[error("i/o failure at {}: {source}", .path.display())]
     Io {

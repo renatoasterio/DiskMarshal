@@ -2,6 +2,7 @@
 //! the helper once, through `osascript`.
 
 use std::env;
+use std::ffi::OsString;
 use std::fs;
 use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
@@ -10,15 +11,18 @@ use std::process::{Command, Stdio};
 use maccleaner_application::ports::{PrivilegeError, PrivilegedCleaner};
 use maccleaner_domain::deletion::DeletionOutcome;
 
-use crate::privilege::helper_protocol::{HELPER_NAME, decode_outcomes, is_rule_id};
+use crate::privilege::helper_protocol::{
+    HELPER_NAME, UNINSTALL_FLAG, decode_outcomes, is_bundle_id, is_item_path, is_rule_id,
+};
 
 /// Absolute paths, so a different program earlier in `PATH` can never run.
 const OSASCRIPT: &str = "/usr/bin/osascript";
 const CODESIGN: &str = "/usr/bin/codesign";
 
 /// The whole script, one statement per line. It never changes: the dialog
-/// text, the helper and the rule ids arrive as arguments, and each word of
-/// the command is quoted by AppleScript itself before the shell sees it.
+/// text, the helper and what the helper is asked arrive as arguments, and
+/// each word of the command is quoted by AppleScript itself before the shell
+/// sees it.
 const SCRIPT: [&str; 7] = [
     "on run argv",
     "set command to \"\"",
@@ -66,14 +70,12 @@ impl OsascriptPrivilegedCleaner {
     }
 }
 
-impl PrivilegedCleaner for OsascriptPrivilegedCleaner {
-    fn is_available(&self) -> bool {
-        self.helper.is_some()
-    }
-
-    fn clean(
+impl OsascriptPrivilegedCleaner {
+    /// Asks macOS to authenticate the user and to run the helper once with
+    /// `arguments`, and returns what the helper reports.
+    fn run_helper(
         &self,
-        rule_ids: &[String],
+        arguments: &[OsString],
         prompt: &str,
     ) -> Result<Vec<DeletionOutcome>, PrivilegeError> {
         let unavailable = |reason: &str| PrivilegeError::Unavailable(reason.to_owned());
@@ -88,9 +90,6 @@ impl PrivilegedCleaner for OsascriptPrivilegedCleaner {
         if !has_valid_signature(helper) {
             return Err(unavailable("the app's signature is not valid"));
         }
-        if rule_ids.is_empty() || !rule_ids.iter().all(|id| is_rule_id(id)) {
-            return Err(PrivilegeError::Failed("invalid rule id".to_owned()));
-        }
 
         let mut command = Command::new(OSASCRIPT);
         for line in SCRIPT {
@@ -99,7 +98,7 @@ impl PrivilegedCleaner for OsascriptPrivilegedCleaner {
         let output = command
             .arg(prompt)
             .arg(helper)
-            .args(rule_ids)
+            .args(arguments)
             .env_clear()
             .stdin(Stdio::null())
             .output()
@@ -114,6 +113,47 @@ impl PrivilegedCleaner for OsascriptPrivilegedCleaner {
             });
         }
         decode_outcomes(&String::from_utf8_lossy(&output.stdout)).map_err(PrivilegeError::Failed)
+    }
+}
+
+impl PrivilegedCleaner for OsascriptPrivilegedCleaner {
+    fn is_available(&self) -> bool {
+        self.helper.is_some()
+    }
+
+    fn clean(
+        &self,
+        rule_ids: &[String],
+        prompt: &str,
+    ) -> Result<Vec<DeletionOutcome>, PrivilegeError> {
+        // Checked before the user is asked to authenticate for nothing.
+        if rule_ids.is_empty() || !rule_ids.iter().all(|id| is_rule_id(id)) {
+            return Err(PrivilegeError::Failed("invalid rule id".to_owned()));
+        }
+        let arguments: Vec<OsString> = rule_ids.iter().map(OsString::from).collect();
+        self.run_helper(&arguments, prompt)
+    }
+
+    fn uninstall(
+        &self,
+        bundle_id: &str,
+        items: &[PathBuf],
+        prompt: &str,
+    ) -> Result<Vec<DeletionOutcome>, PrivilegeError> {
+        let are_items_valid = !items.is_empty()
+            && items
+                .iter()
+                .all(|item| item.to_str().is_some_and(is_item_path));
+        if !(is_bundle_id(bundle_id) && are_items_valid) {
+            return Err(PrivilegeError::Failed(
+                "invalid uninstall request".to_owned(),
+            ));
+        }
+        let arguments: Vec<OsString> = [OsString::from(UNINSTALL_FLAG), OsString::from(bundle_id)]
+            .into_iter()
+            .chain(items.iter().map(OsString::from))
+            .collect();
+        self.run_helper(&arguments, prompt)
     }
 }
 
@@ -164,7 +204,7 @@ fn bundle_of(program: &Path) -> Option<&Path> {
 mod tests {
     use std::fs;
     use std::os::unix::fs::PermissionsExt;
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
 
     use maccleaner_application::ports::{PrivilegeError, PrivilegedCleaner};
     use maccleaner_test_support::TempTree;
@@ -221,6 +261,42 @@ mod tests {
                 Err(PrivilegeError::Failed(_))
             ));
         }
+    }
+
+    #[test]
+    fn refuses_an_uninstall_before_asking_for_authentication() {
+        let fixture = TempTree::new().unwrap();
+        let cleaner = OsascriptPrivilegedCleaner::new(Some(program(&fixture, "helper", 0o755)));
+        let app = PathBuf::from("/Applications/Editor.app");
+
+        for (bundle_id, items) in [
+            ("com.vendor.editor", vec![]),
+            ("--force", vec![app.clone()]),
+            (
+                "com.vendor.editor",
+                vec![PathBuf::from("relative/Editor.app")],
+            ),
+            (
+                "com.vendor.editor",
+                vec![app, PathBuf::from("/Library/../etc")],
+            ),
+        ] {
+            assert!(
+                matches!(
+                    cleaner.uninstall(bundle_id, &items, "prompt"),
+                    Err(PrivilegeError::Failed(_))
+                ),
+                "{bundle_id} {items:?}"
+            );
+        }
+        assert!(matches!(
+            OsascriptPrivilegedCleaner::new(None).uninstall(
+                "com.vendor.editor",
+                &[PathBuf::from("/Applications/Editor.app")],
+                "prompt"
+            ),
+            Err(PrivilegeError::Unavailable(_))
+        ));
     }
 
     #[test]

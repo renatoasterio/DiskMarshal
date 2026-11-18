@@ -203,6 +203,7 @@ fn recoverable_panel(
             pt_br::DASH_ROW_DEVELOPER,
             recoverable.developer,
         ),
+        (Screen::Docker, pt_br::DASH_ROW_DOCKER, recoverable.docker),
         (
             Screen::Duplicates,
             pt_br::DASH_ROW_DUPLICATES,

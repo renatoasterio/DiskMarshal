@@ -30,10 +30,7 @@ impl<'a> CleanSystemAreas<'a> {
     ) -> Result<DeletionReport, PrivilegeError> {
         let mut report = DeletionReport::default();
         for outcome in self.cleaner.clean(rule_ids, prompt)? {
-            if outcome.is_removed() && self.history.append(&outcome).is_err() {
-                report.unrecorded += 1;
-            }
-            report.record(outcome);
+            report.record_in_history(outcome, self.history);
         }
         Ok(report)
     }
@@ -62,6 +59,15 @@ mod tests {
         fn clean(
             &self,
             _rule_ids: &[String],
+            _prompt: &str,
+        ) -> Result<Vec<DeletionOutcome>, PrivilegeError> {
+            self.0.clone()
+        }
+
+        fn uninstall(
+            &self,
+            _bundle_id: &str,
+            _items: &[PathBuf],
             _prompt: &str,
         ) -> Result<Vec<DeletionOutcome>, PrivilegeError> {
             self.0.clone()

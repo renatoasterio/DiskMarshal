@@ -1,9 +1,12 @@
 //! What the app and the privileged helper say to each other.
 //!
-//! The app passes rule ids on the command line, never paths or commands. The
+//! The app asks on the command line, in one of two forms: the ids of the
+//! administrator rules to clean, or the identifier of an app to uninstall
+//! followed by the items of it to remove. Neither form carries a command,
+//! and the items only choose among what the helper finds by itself. The
 //! helper answers with one line of JSON listing what happened to each item.
 
-use std::path::PathBuf;
+use std::path::{Component, Path, PathBuf};
 
 use maccleaner_domain::deletion::{DeletionOutcome, DeletionStatus, SkipReason};
 use maccleaner_domain::shared::ByteSize;
@@ -13,16 +16,40 @@ use serde::{Deserialize, Serialize};
 pub const HELPER_NAME: &str = "maccleaner-privileged-helper";
 /// Argument that makes the helper check everything and remove nothing.
 pub const DRY_RUN_FLAG: &str = "--dry-run";
+/// Argument that starts an uninstall: the bundle identifier follows it, then
+/// the items to remove.
+pub const UNINSTALL_FLAG: &str = "--uninstall";
+
 /// Most rules one request may name.
 const MAX_RULES: usize = 16;
 /// Longest rule id accepted.
 const MAX_ID_LENGTH: usize = 64;
+/// Longest bundle identifier accepted, the limit Apple sets for them.
+const MAX_BUNDLE_ID_LENGTH: usize = 155;
+/// Most items one uninstall may name.
+const MAX_ITEMS: usize = 64;
+/// Longest item path accepted, the limit macOS sets for paths.
+const MAX_PATH_LENGTH: usize = 1_024;
+
+/// The one thing a request asks the helper to do.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum HelperTask {
+    /// Clean the administrator rules with these ids.
+    CleanRules(Vec<String>),
+    /// Remove items of one app.
+    Uninstall {
+        /// Bundle identifier of the app.
+        bundle_id: String,
+        /// The items to remove, each an absolute path.
+        items: Vec<PathBuf>,
+    },
+}
 
 /// What the helper is asked to do.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HelperRequest {
-    /// The administrator rules to clean.
-    pub rule_ids: Vec<String>,
+    /// What to do.
+    pub task: HelperTask,
     /// Whether to check everything and remove nothing.
     pub is_dry_run: bool,
 }
@@ -32,28 +59,62 @@ impl HelperRequest {
     ///
     /// # Errors
     ///
-    /// Fails, naming nothing the caller sent, when there is no rule, there
-    /// are too many, or an argument is not a rule id or the dry-run flag.
-    /// Anything shaped like a path or an option is refused.
+    /// Fails, naming nothing the caller sent, when the arguments are not
+    /// one of the two forms. For a cleanup: at least one rule id, none
+    /// repeated, nothing shaped like a path or an option. For an uninstall:
+    /// a bundle identifier and at least one absolute, plain path.
     pub fn parse(arguments: impl IntoIterator<Item = String>) -> Result<Self, &'static str> {
-        let mut request = Self {
-            rule_ids: Vec::new(),
-            is_dry_run: false,
-        };
+        let mut is_dry_run = false;
+        let mut words = Vec::new();
         for argument in arguments {
             if argument == DRY_RUN_FLAG {
-                request.is_dry_run = true;
-            } else if is_rule_id(&argument) && !request.rule_ids.contains(&argument) {
-                request.rule_ids.push(argument);
+                is_dry_run = true;
             } else {
-                return Err("argument is not a rule id");
+                words.push(argument);
             }
         }
-        match request.rule_ids.len() {
+        let task = match words.split_first() {
+            Some((flag, details)) if flag == UNINSTALL_FLAG => Self::uninstall(details)?,
+            _ => Self::clean_rules(words)?,
+        };
+        Ok(Self { task, is_dry_run })
+    }
+
+    fn clean_rules(words: Vec<String>) -> Result<HelperTask, &'static str> {
+        let mut rule_ids: Vec<String> = Vec::new();
+        for word in words {
+            if !is_rule_id(&word) || rule_ids.contains(&word) {
+                return Err("argument is not a rule id");
+            }
+            rule_ids.push(word);
+        }
+        match rule_ids.len() {
             0 => Err("no rule to clean"),
             count if count > MAX_RULES => Err("too many rules"),
-            _ => Ok(request),
+            _ => Ok(HelperTask::CleanRules(rule_ids)),
         }
+    }
+
+    fn uninstall(details: &[String]) -> Result<HelperTask, &'static str> {
+        let Some((bundle_id, items)) = details.split_first() else {
+            return Err("no app to uninstall");
+        };
+        if !is_bundle_id(bundle_id) {
+            return Err("argument is not a bundle identifier");
+        }
+        if items.is_empty() {
+            return Err("no item to remove");
+        }
+        if items.len() > MAX_ITEMS {
+            return Err("too many items");
+        }
+        if !items.iter().all(|item| is_item_path(item)) {
+            return Err("argument is not an item path");
+        }
+        Ok(HelperTask::Uninstall {
+            bundle_id: bundle_id.clone(),
+            items: items.iter().map(PathBuf::from).collect(),
+        })
     }
 }
 
@@ -67,6 +128,33 @@ pub(crate) fn is_rule_id(text: &str) -> bool {
         && text
             .split('-')
             .all(|word| !word.is_empty() && word.chars().all(is_word_character))
+}
+
+/// A bundle identifier is letters, digits, dots, hyphens and underscores,
+/// starting with a letter or a digit, such as `com.vendor.editor`. Nothing
+/// that could be read as an option or as a path fits.
+#[must_use]
+pub(crate) fn is_bundle_id(text: &str) -> bool {
+    let is_allowed =
+        |character: char| character.is_ascii_alphanumeric() || matches!(character, '.' | '-' | '_');
+    text.len() <= MAX_BUNDLE_ID_LENGTH
+        && text.starts_with(|first: char| first.is_ascii_alphanumeric())
+        && text.chars().all(is_allowed)
+}
+
+/// An item path is absolute, names something below the root folder, and has
+/// no `.` or `..` in it and no character that is not printed.
+#[must_use]
+pub(crate) fn is_item_path(text: &str) -> bool {
+    let path = Path::new(text);
+    let mut components = path.components();
+    text.len() <= MAX_PATH_LENGTH
+        && !text.chars().any(char::is_control)
+        && components.next() == Some(Component::RootDir)
+        && components.clone().next().is_some()
+        && components.all(|component| matches!(component, Component::Normal(_)))
+        // `Path` drops a `.` in the middle, so the text is checked too.
+        && !text.split('/').any(|name| name == ".")
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -169,7 +257,9 @@ mod tests {
     };
     use maccleaner_domain::shared::ByteSize;
 
-    use super::{DRY_RUN_FLAG, HelperRequest, decode_outcomes, encode_outcomes};
+    use super::{
+        DRY_RUN_FLAG, HelperRequest, HelperTask, UNINSTALL_FLAG, decode_outcomes, encode_outcomes,
+    };
 
     fn arguments(list: &[&str]) -> Vec<String> {
         list.iter().map(|argument| (*argument).to_owned()).collect()
@@ -180,8 +270,85 @@ mod tests {
         let request =
             HelperRequest::parse(arguments(&["system-caches", DRY_RUN_FLAG, "system-logs"]))
                 .unwrap();
-        assert_eq!(request.rule_ids, ["system-caches", "system-logs"]);
+        assert_eq!(
+            request.task,
+            HelperTask::CleanRules(vec!["system-caches".to_owned(), "system-logs".to_owned()])
+        );
         assert!(request.is_dry_run);
+    }
+
+    #[test]
+    fn reads_an_uninstall_with_the_app_and_its_items() {
+        let request = HelperRequest::parse(arguments(&[
+            UNINSTALL_FLAG,
+            "com.vendor.Editor-2",
+            "/Applications/Editor Pro.app",
+            "/Library/LaunchDaemons/com.vendor.Editor-2.plist",
+        ]))
+        .unwrap();
+
+        assert_eq!(
+            request.task,
+            HelperTask::Uninstall {
+                bundle_id: "com.vendor.Editor-2".to_owned(),
+                items: vec![
+                    PathBuf::from("/Applications/Editor Pro.app"),
+                    PathBuf::from("/Library/LaunchDaemons/com.vendor.Editor-2.plist"),
+                ],
+            }
+        );
+        assert!(!request.is_dry_run);
+    }
+
+    #[test]
+    fn refuses_an_uninstall_that_is_not_an_identifier_and_plain_absolute_paths() {
+        let uninstall = |details: &[&str]| {
+            let mut words = vec![UNINSTALL_FLAG];
+            words.extend(details);
+            HelperRequest::parse(arguments(&words))
+        };
+        let app = "/Applications/Editor.app";
+
+        assert!(uninstall(&["com.vendor.editor", app]).is_ok());
+        assert!(uninstall(&[]).is_err(), "no app");
+        assert!(uninstall(&["com.vendor.editor"]).is_err(), "no item");
+        for bad_identifier in [
+            "",
+            "-x",
+            ".hidden",
+            "com vendor",
+            "com/vendor",
+            "a;b",
+            "$(id)",
+        ] {
+            assert!(
+                uninstall(&[bad_identifier, app]).is_err(),
+                "{bad_identifier:?}"
+            );
+        }
+        for bad_item in [
+            "",
+            "/",
+            "Applications/Editor.app",
+            "/Applications/../etc",
+            "/Applications/./Editor.app",
+            "/Applications/Editor.app\n/etc",
+            "--force",
+        ] {
+            assert!(
+                uninstall(&["com.vendor.editor", bad_item]).is_err(),
+                "{bad_item:?}"
+            );
+        }
+        let long = format!("/{}", "a".repeat(1_100));
+        assert!(uninstall(&["com.vendor.editor", &long]).is_err());
+        let many: Vec<String> = (0..65).map(|index| format!("/Library/x/{index}")).collect();
+        let many: Vec<&str> = many.iter().map(String::as_str).collect();
+        assert!(uninstall(&[&["com.vendor.editor"], many.as_slice()].concat()).is_err());
+        assert!(
+            HelperRequest::parse(arguments(&["system-caches", UNINSTALL_FLAG])).is_err(),
+            "the two forms do not mix"
+        );
     }
 
     #[test]

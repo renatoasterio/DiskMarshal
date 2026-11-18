@@ -16,10 +16,10 @@ use maccleaner_domain::scan::{CloudState, EntryKind, FileEntry, FileTree, NodeId
 use maccleaner_domain::shared::ByteSize;
 use rayon::prelude::*;
 
+use crate::filesystem::STAT_BLOCK_BYTES;
+
 /// `st_flags` bit macOS sets on items whose content exists only in the cloud.
 const SF_DATALESS: u32 = 0x4000_0000;
-/// Unit of `st_blocks`, fixed by POSIX regardless of the volume's block size.
-const STAT_BLOCK_BYTES: u64 = 512;
 
 /// Walks a folder with one `readdir` per folder and one `lstat` per item,
 /// spreading sibling folders over the rayon thread pool.

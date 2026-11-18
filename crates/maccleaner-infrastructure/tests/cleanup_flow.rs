@@ -9,6 +9,7 @@ use maccleaner_application::ApplicationError;
 use maccleaner_application::ports::{RuleCatalog, TrashBin};
 use maccleaner_application::progress::{CancellationToken, NoProgress};
 use maccleaner_application::use_cases::{DeleteItems, DeletionPorts, ExecutionMode, PlanCleanup};
+use maccleaner_domain::applications::LeftoverLocation;
 use maccleaner_domain::cleanup::{CleanupRule, PrivilegeScope, RiskLevel};
 use maccleaner_domain::deletion::{DeletionMethod, DeletionStatus, ProtectedPaths};
 use maccleaner_domain::dev_artifacts::ArtifactRule;
@@ -25,6 +26,10 @@ impl RuleCatalog for OneRule {
     }
 
     fn artifact_rules(&self) -> Result<Vec<ArtifactRule>, ApplicationError> {
+        Ok(Vec::new())
+    }
+
+    fn leftover_locations(&self) -> Result<Vec<LeftoverLocation>, ApplicationError> {
         Ok(Vec::new())
     }
 }

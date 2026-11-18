@@ -16,6 +16,7 @@ mod line_plot;
 mod progress_panel;
 mod radar;
 mod radial_gauge;
+mod readout;
 mod removal_flow;
 mod segmented_bar;
 mod selection_row;
@@ -36,6 +37,9 @@ pub(crate) use line_plot::line_plot;
 pub(crate) use progress_panel::{ProgressPanel, progress_panel};
 pub(crate) use radar::radar;
 pub(crate) use radial_gauge::{RadialGauge, radial_gauge};
-pub(crate) use removal_flow::{ConfirmText, RemovalEvent, RemovalFlow};
+pub(crate) use readout::readout;
+pub(crate) use removal_flow::{
+    ConfirmText, RemovalEvent, RemovalFlow, RemovalResult, delete_items,
+};
 pub(crate) use segmented_bar::{paint as paint_segmented_bar, segmented_bar};
 pub(crate) use selection_row::{SelectionRow, selection_row};

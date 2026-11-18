@@ -1,6 +1,6 @@
 //! Drawing of the cleanup screen.
 
-use egui::{Color32, RichText, ScrollArea, Ui};
+use egui::{RichText, ScrollArea, Ui};
 use maccleaner_domain::cleanup::{CleanupFinding, PrivilegeScope, RiskLevel};
 
 use super::view_model::{CleanupViewModel, Selection};
@@ -9,7 +9,7 @@ use crate::components::{
     hud_button, selection_row,
 };
 use crate::i18n::pt_br;
-use crate::screens::ScreenContext;
+use crate::screens::{ScreenContext, risk_badge};
 use crate::theme::{FONT_SIZE_DATA, SPACE_2, SPACE_3, Tokens};
 
 /// Space kept under the lists for the footer.
@@ -194,13 +194,6 @@ fn group(
             }
         }
     });
-}
-
-fn risk_badge(tokens: &Tokens, risk: RiskLevel) -> (&'static str, Color32) {
-    match risk {
-        RiskLevel::Safe => (pt_br::RISK_SAFE, tokens.color_ok),
-        RiskLevel::Review => (pt_br::RISK_REVIEW, tokens.color_warn),
-    }
 }
 
 fn confirm_lines(selection: &Selection) -> Vec<String> {

@@ -26,6 +26,10 @@ struct Cli {
 enum Command {
     /// Mede uma pasta e lista os maiores itens
     Scan(commands::scan::ScanArguments),
+    /// Lista os apps instalados, ou o que desinstalar um deles removeria
+    Apps(commands::apps::AppsArguments),
+    /// Mostra o que o Docker guarda e o que nada está usando
+    Docker,
 }
 
 fn main() -> ExitCode {
@@ -46,5 +50,7 @@ fn run() -> anyhow::Result<()> {
         .context("não foi possível impedir downloads do iCloud; nada foi lido")?;
     match cli.command {
         Command::Scan(arguments) => commands::scan::run(&arguments),
+        Command::Apps(arguments) => commands::apps::run(&arguments),
+        Command::Docker => commands::docker::run(),
     }
 }

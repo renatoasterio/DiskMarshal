@@ -3,6 +3,7 @@
 //! This is the only library crate allowed to contain `unsafe` code. Every
 //! `unsafe` block lives in a small module and carries a `SAFETY:` comment.
 
+pub mod bundles;
 pub mod catalog;
 pub mod filesystem;
 pub mod hashing;

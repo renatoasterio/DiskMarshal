@@ -34,8 +34,8 @@ them to the use cases; none of them holds rules of its own.
 | Binary | Path | What it wires |
 |---|---|---|
 | `maccleaner` | `apps/desktop` | Every adapter into `UiServices`, then opens the window. The only binary that depends on `maccleaner-ui`. |
-| `maccleaner-cli` | `apps/cli` | The disk walker into `ScanDisk`. Read-only. |
-| `maccleaner-privileged-helper` | `apps/privileged-helper` | The catalog, the walker, the inspector and the remover into `CleanRules`, for administrator rules only. Runs once, as root, started by macOS after it authenticates the user. See [security.md](security.md#privileged-helper). |
+| `maccleaner-cli` | `apps/cli` | The adapters that only read into `ScanDisk`, `ListInstalledApps`, `PlanUninstall` and `InspectDocker`. It never removes anything. |
+| `maccleaner-privileged-helper` | `apps/privileged-helper` | The catalog, the walker, the inspector and the remover into `CleanRules`, for administrator rules only, and into `RemoveAppItems`, for the system items of an app being uninstalled. Runs once, as root, started by macOS after it authenticates the user. See [security.md](security.md#privileged-helper). |
 
 The helper has no Trash and keeps no history: it plugs in `NoTrashBin` and
 `NoHistory` (`apps/privileged-helper/src/unused_ports.rs`). The app records
@@ -55,6 +55,8 @@ looks for the helper.
 | `deletion` | `ProtectedPaths` (the path policy), `DeletionRequest`, `ItemFingerprint`, `DeletionOutcome`, `HistoryEntry` |
 | `cleanup` | `CleanupRule`, `RiskLevel`, `PrivilegeScope`, `CleanupPlan` |
 | `dev_artifacts` | `ArtifactRule`, `Ecosystem`, `ProjectArtifact`, `find_artifacts` |
+| `applications` | `InstalledApp`, `LeftoverLocation`, `LeftoverKind`, `LeftoverMatcher` (the rule that says an item belongs to an app), `UninstallPlan` |
+| `docker` | `DockerInventory`, `KindUsage`, `DockerResource`, `ResourceKind`, `EngineStatus` |
 | `duplicates` | `DuplicateGroup`, `ContentHash`, `candidates_by_size` |
 | `photos` | `PhotoSignature`, `SimilarityTolerance`, `SimilarityGroup`, `Thumbnail`, `photo_candidates` |
 | `monitoring` | `SystemSnapshot`, `SensorReading`, `ThermalLevel`, `VolumeUsage`, `summarize_sensors` |
@@ -72,9 +74,15 @@ Use cases, in `src/use_cases/`:
 | `FindDevArtifacts` | Finds build and dependency folders of code projects. |
 | `FindDuplicates` | Finds files with identical content. |
 | `FindSimilarPhotos` | Finds image files that look the same. |
-| `DeleteItems` | Removes approved items. The only code path that deletes. |
+| `DeleteItems` | Removes approved items. The only code path that deletes files. |
 | `CleanRules` | Analyzes and cleans rules named by id, all of one privilege scope, with no preview. Chains `PlanCleanup` and `DeleteItems`. This is what the privileged helper runs. |
 | `CleanSystemAreas` | Asks the `PrivilegedCleaner` port to clean administrator rules and records the result in the history. This is what the app runs. |
+| `ListInstalledApps` | Lists the app bundles in the applications folders, with their size and whether they are open. |
+| `PlanUninstall` | Finds what belongs to one app: the bundle and what it left in the library folders. Removes nothing. |
+| `RemoveAppItems` | Finds an app by its identifier, plans its uninstall again and removes the requested items that its own plan also holds, for good. This is what the privileged helper runs for an uninstall. |
+| `UninstallSystemItems` | Asks the `PrivilegedCleaner` port to remove the system items of an app and records the result in the history. This is what the app runs. |
+| `InspectDocker` | Asks Docker what it holds and what of it nothing uses. Removes nothing. |
+| `PruneDocker` | Asks Docker to remove approved resources, records them in the history and measures what Docker freed. |
 
 Ports, in `src/ports/`, with the adapter that implements each one:
 
@@ -96,28 +104,38 @@ Ports, in `src/ports/`, with the adapter that implements each one:
 | `ExternalOpener` | `OpenCommandOpener` | `system` |
 | `FolderPicker` | `NativeFolderPicker` | `system` |
 | `WallClock` | `LocaltimeWallClock` | `system` |
+| `AppBundleReader` | `PlistAppBundleReader` | `bundles` |
+| `RunningAppProbe` | `SysinfoRunningAppProbe` | `system` |
+| `FolderLister` | `ReaddirFolderLister` | `filesystem` |
+| `ContainerEngine` | `DockerCliContainerEngine` | `process` |
 
 ### `maccleaner-infrastructure`
 
-One module per technology: `catalog`, `filesystem`, `hashing`, `imaging`,
+One module per technology: `bundles`, `catalog`, `filesystem`, `hashing`, `imaging`,
 `metrics`, `permissions`, `persistence`, `privilege`, `process`, `system`,
 `trash`. Besides the adapters above:
 
+- `bundles` exports `application_folders`, the folders where apps are
+  installed.
 - `filesystem` exports `disable_dataless_materialization`, the process-wide
   policy against iCloud downloads, and `icloud_sync_roots`.
 - `privilege` exports the protocol between the app and the helper
-  (`HelperRequest`, `encode_outcomes`, `decode_outcomes`): rule ids on the
-  command line one way, one line of JSON the other way.
+  (`HelperRequest`, `HelperTask`, `encode_outcomes`, `decode_outcomes`): on the
+  command line one way, either rule ids or an app identifier followed by its
+  items; one line of JSON the other way.
 - `system` exports `prefers_reduced_motion`, which reads the "Reduce motion"
   switch of System Settings.
-- `resources/` holds the two rule catalogs, compiled into the binaries.
+- `process` holds `bounded_command`, which every adapter that runs another
+  program with a time limit goes through.
+- `resources/` holds the three catalogs, compiled into the binaries: cleanup
+  rules, build-artifact rules and the folders where apps leave their items.
 
 ### `maccleaner-ui`
 
 | Module | Holds |
 |---|---|
 | `app` | The window frame: status bar, navigation rail, work area, overlays. `UiServices` lists every port the interface uses. |
-| `screens` | One folder per screen, each with a `view` (drawing) and a `view_model` (state and logic): `dashboard`, `cleanup`, `duplicates`, `photos`, `developer`, `disk_map`, `monitor`. `group_review` is shared by duplicates and photos. |
+| `screens` | One folder per screen, each with a `view` (drawing) and a `view_model` (state and logic): `dashboard`, `cleanup`, `apps`, `duplicates`, `photos`, `developer`, `docker`, `disk_map`, `monitor`. `group_review` is shared by duplicates and photos. |
 | `components` | Pieces reused by the screens: panels, buttons, selection rows, gauges, the removal flow, dialogs. |
 | `tasks` | Work that runs off the interface thread: `Task`, `Search`, `Feed`. |
 | `theme`, `effects`, `animation` | Tokens, palettes, fonts, glow, grid, motion levels. |
@@ -154,14 +172,25 @@ Every screen that removes uses the same component,
    and to run the helper, which executes `CleanRules`.
 5. The flow shows the `DeletionReport`.
 
+Two screens run something else in steps 3 and 4, through the same component:
+
+- The apps screen runs the administrator part first, with
+  `UninstallSystemItems`, and only then `DeleteItems`. When the user closes
+  the authentication dialog, nothing at all has been removed.
+- The Docker screen has no files to delete. It runs `PruneDocker`, which asks
+  Docker to remove each approved resource.
+
 ## Rules that hold everywhere
 
 - **One deletion path.** Every removal goes through the `DeleteItems` use case.
-  No other code deletes files. The helper reaches it through `CleanRules`.
+  No other code deletes files. The helper reaches it through `CleanRules` and
+  `RemoveAppItems`. What Docker holds is not files: `PruneDocker` asks Docker
+  to remove it.
 - **Cloud-only content is never read.** The first thing each binary does is
   call `disable_dataless_materialization`, so a scan cannot start an iCloud
   download. See [security.md](security.md).
-- **Catalogs are data.** Cleanup rules and build-artifact rules live in TOML
+- **Catalogs are data.** Cleanup rules, build-artifact rules and the folders
+  where apps leave their items live in TOML
   under `crates/maccleaner-infrastructure/resources/`, not in code.
 - **`unsafe` stays in `infrastructure`.** The other library crates and every
   binary declare `#![forbid(unsafe_code)]`.

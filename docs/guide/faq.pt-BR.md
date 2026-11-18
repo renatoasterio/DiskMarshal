@@ -102,6 +102,18 @@ Sim, desde que o projeto ainda tenha o arquivo que o descreve (`package.json`, `
 
 O código é aberto, então qualquer pessoa pode conferir o que ele faz. Ele nunca apaga sem prévia, nunca mexe no interior da sua biblioteca do Fotos e nunca envia nada pela rede.
 
+### Por que o desinstalador deixa alguns arquivos de um app?
+
+Ele remove o que leva o identificador do app ou o nome dele, nas pastas da Biblioteca onde os apps guardam suas coisas. Um documento que o app salvou nas suas pastas é seu e fica. Uma pasta com o nome do fabricante do app também fica, porque outros apps do mesmo fabricante podem usá-la. Os itens com "Revisar" também são encontrados, mas esperam você selecionar.
+
+### Por que não consigo selecionar um app, ou alguns itens dele?
+
+Há dois motivos. O app está aberto: ele aparece marcado com "aberto" na lista, então feche o app e clique nele de novo. Ou o item precisa de administrador e você está rodando a partir do código-fonte: o grupo "Sistema" mostra então "só no app instalado · cargo xtask install".
+
+### Por que limpar o Docker não liberou espaço no meu Mac na hora?
+
+O espaço é liberado dentro do Docker. O Docker Desktop guarda tudo em um único arquivo grande no Mac, e esse arquivo pode não diminuir na hora. O diálogo de resultado mostra o que o Docker liberou dentro dele. Se e quando o Docker Desktop devolve esse espaço ao macOS não foi conferido por este projeto.
+
 ### Como desinstalo?
 
 Mova o `/Applications/MacCleaner.app` para a Lixeira. O histórico de remoções fica em `~/Library/Application Support/MacCleaner/`; apague essa pasta se não quiser guardá-lo. Se não precisar mais do código, mova também a pasta `MacCleaner` do projeto para a Lixeira.

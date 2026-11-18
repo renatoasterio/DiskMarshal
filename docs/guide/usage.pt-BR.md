@@ -13,7 +13,7 @@ Como usar cada tela do MacCleaner e a ferramenta de linha de comando. Se ainda n
 | Área | O que mostra |
 |---|---|
 | **Barra de status** (em cima) | O nome do app, o espaço livre no disco de inicialização, a hora e o ícone de aparência. |
-| **Trilho de navegação** (à esquerda) | As sete telas, cada uma com a sua tecla numérica. A que está acesa é onde você está. |
+| **Trilho de navegação** (à esquerda) | As nove telas, cada uma com a sua tecla numérica. A que está acesa é onde você está. |
 | **Medidor do disco** (embaixo, à esquerda) | "Disco de inicialização": quão cheio ele está. Fica âmbar e mostra "crítico" quando há menos de 10% livre. |
 | **Área de trabalho** (à direita) | O título e uma descrição de uma linha da tela atual, e depois o conteúdo. |
 
@@ -21,7 +21,7 @@ Como usar cada tela do MacCleaner e a ferramenta de linha de comando. Se ainda n
 
 | Tecla | Ação |
 |---|---|
-| `1` a `7` | Ir para uma tela, na ordem do trilho |
+| `1` a `9` | Ir para uma tela, na ordem do trilho |
 | `Esc` | Fechar o painel de aparência |
 | `Command + Q` | Sair |
 
@@ -72,7 +72,7 @@ Se você clicar no botão de ação sem nada selecionado, a tela mostra "Selecio
 
 O [guia de segurança](safety.pt-BR.md) explica as regras por trás desses passos.
 
-## As sete telas
+## As nove telas
 
 ### 1. "Painel"
 
@@ -92,6 +92,7 @@ As linhas de "Espaço recuperável":
 | Linha | Vem da tela |
 |---|---|
 | "Caches e temporários" | "Limpeza" |
+| "Resíduos do Docker" | "Docker": o que o próprio Docker diz que remover tudo o que está sem uso liberaria |
 | "Projetos de código" | "Desenvolvedor" |
 | "Arquivos duplicados" | "Duplicados" |
 | "Fotos parecidas" | "Fotos" |
@@ -159,7 +160,57 @@ O que saber antes de usar:
 - **Não foi verificado de ponta a ponta.** O auxiliar é coberto por testes automáticos em pastas temporárias, mas o diálogo do macOS e uma limpeza real de `/Library/Caches` e `/Library/Logs` não foram exercitados pelos testes do projeto. Veja o [guia de segurança](safety.pt-BR.md#áreas-de-administrador).
 - Itens que o próprio macOS protege (Proteção da Integridade do Sistema, SIP) não podem ser removidos nem por um administrador. Eles aparecem como deixados como estavam.
 
-### 3. "Duplicados"
+### 3. "Aplicativos"
+
+Desinstala um app junto com o que ele deixou nas pastas da Biblioteca: os caches, os ajustes, as janelas salvas, o contêiner privado dele. O app chama esta tela de "Desinstalar aplicativos".
+
+![A tela de aplicativos: à esquerda os apps instalados e, à direita, os itens que pertencem ao app escolhido, cada um com uma etiqueta e um tamanho](../assets/screens/apps.png)
+
+Passo a passo:
+
+1. Pressione `3`. Na primeira vez, o app mede o que está instalado. Aparece "Medindo aplicativos".
+2. Encontre o app na lista "Instalados", que mostra os maiores primeiro. Digite parte do nome em "Buscar pelo nome" para reduzir a lista. Um cadeado antes do nome quer dizer que a App Store ou um instalador colocou o app ali, então removê-lo exige um administrador.
+3. Clique no app. O lado direito mostra o identificador, a versão e tudo o que foi encontrado e pertence a ele.
+4. Confira o que está selecionado. **Os itens com a etiqueta "Seguro" já vêm selecionados. Os itens com "Revisar" esperam por você.**
+5. Clique em **"Desinstalar"**, leia o diálogo e clique em **"Desinstalar"** de novo para autorizar.
+
+Os itens vêm em dois grupos:
+
+| Grupo | O que há nele | Para onde vai |
+|---|---|---|
+| "Conta do usuário" | O app, quando foi você quem instalou, e o que ele deixou na sua Biblioteca | Para a Lixeira. Dá para recuperar de lá. |
+| "Sistema" | O app, quando a App Store ou um instalador o colocou ali, e o que ele deixou em `/Library` | Apagado de vez, depois que o macOS pede o Touch ID ou a senha. Um administrador não tem a sua Lixeira para onde mandar. |
+
+Como um item é reconhecido como sendo do app:
+
+- **"Seguro":** o item tem exatamente o nome do identificador do app, como `com.vendor.editor`, `com.vendor.editor.plist` ou `com.vendor.editor.savedState`. Um contêiner compartilhado que leva o identificador, como `group.com.vendor.editor`, também conta.
+- **"Revisar":** o nome só começa com o identificador (`com.vendor.editor.helper`), ou o item é uma pasta com o nome do app (`Application Support/Editor`). Outra coisa pode estar usando esse nome, então esses nunca vêm selecionados.
+
+O que esta tela não faz:
+
+- **Um app que está aberto não pode ser desinstalado.** Ele aparece marcado com "aberto" na lista, e nada dele pode ser selecionado. Feche o app e clique nele de novo. Ele é conferido mais uma vez logo antes da remoção.
+- **Quando há outra cópia do mesmo app instalada, só o app em si é oferecido.** As duas cópias dividem os mesmos dados.
+- **Quando o app em si não pode ser removido aqui, nada vem selecionado.** Remover só o que o app deixou apenas o deixaria como novo.
+- **Os apps que são do macOS não aparecem.** Eles ficam numa parte do disco que não pode ser alterada.
+- **Ela encontra o que leva o identificador ou o nome do app, não tudo o que o app já gravou.** Um documento que o app salvou em outro lugar, ou uma pasta com o nome do fabricante, fica.
+
+Onde ela procura:
+
+| Tipo mostrado | Pastas |
+|---|---|
+| "Dados do app" | `~/Library/Application Support`, `/Library/Application Support` |
+| "Contêiner" | `~/Library/Containers`, `~/Library/Group Containers`, `~/Library/Application Scripts` |
+| "Caches" | `~/Library/Caches`, `/Library/Caches` |
+| "Dados web" | `~/Library/HTTPStorages`, `~/Library/WebKit`, `~/Library/Cookies` |
+| "Preferências" | `~/Library/Preferences`, `~/Library/Preferences/ByHost`, `/Library/Preferences` |
+| "Estado salvo" | `~/Library/Saved Application State` |
+| "Logs" | `~/Library/Logs`, `/Library/Logs` |
+| "Serviço" | `~/Library/LaunchAgents`, `/Library/LaunchAgents`, `/Library/LaunchDaemons` |
+| "Auxiliar" | `/Library/PrivilegedHelperTools` |
+
+Como o grupo "Sistema" da limpeza, o grupo "Sistema" daqui precisa do app instalado. Sem ele, o grupo mostra "só no app instalado · cargo xtask install" e os itens não podem ser selecionados.
+
+### 4. "Duplicados"
 
 Arquivos com exatamente o mesmo conteúdo, guardados mais de uma vez.
 
@@ -167,7 +218,7 @@ Arquivos com exatamente o mesmo conteúdo, guardados mais de uma vez.
 
 Passo a passo:
 
-1. Pressione `3`.
+1. Pressione `4`.
 2. Escolha o "Tamanho mínimo": "1 MB", "10 MB" ou "100 MB". Arquivos menores são ignorados. Um mínimo maior deixa a busca mais rápida.
 3. Clique em **"Escolher pasta"** e escolha uma pasta, ou clique em **"Pasta pessoal"** para procurar na sua pasta pessoal inteira.
 4. Espere o "Procurando duplicados". "Cancelar" interrompe a busca.
@@ -187,7 +238,7 @@ São mostrados no máximo 100 grupos, primeiro os que liberam mais espaço. Quan
 
 Depois do resultado, "Procurar de novo" repete a busca na mesma pasta, e "Escolher pasta" começa em outra.
 
-### 4. "Fotos"
+### 5. "Fotos"
 
 Fotos que parecem a mesma, ainda que os arquivos sejam diferentes: uma cópia redimensionada, a mesma imagem salva em outro formato, fotos tiradas em sequência.
 
@@ -195,7 +246,7 @@ Fotos que parecem a mesma, ainda que os arquivos sejam diferentes: uma cópia re
 
 Passo a passo:
 
-1. Pressione `4`.
+1. Pressione `5`.
 2. Escolha o nível de "Semelhança":
 
    | Nível | O que reúne |
@@ -230,7 +281,7 @@ Como as fotos são comparadas: cada imagem é reduzida a uma pequena assinatura,
 
 São mostrados no máximo 60 grupos, primeiro os que liberam mais espaço. Uma imagem que não pode ser desenhada mostra "sem prévia".
 
-### 5. "Desenvolvedor"
+### 6. "Desenvolvedor"
 
 Para quem escreve código: as pastas de build e de dependências que as ferramentas recriam sozinhas, como `node_modules`, `target` e `bin`/`obj`. Se você não escreve código, pode ignorar esta tela.
 
@@ -238,7 +289,7 @@ Para quem escreve código: as pastas de build e de dependências que as ferramen
 
 Passo a passo:
 
-1. Pressione `5`.
+1. Pressione `6`.
 2. Clique em **"Escolher pasta"** e escolha a pasta onde ficam os seus projetos, ou clique em **"Pasta pessoal"** para procurar na sua pasta pessoal.
 3. Espere o "Procurando projetos".
 4. Leia a lista "Pastas recriáveis". Cada linha é `projeto › pasta`, com o ecossistema, quando o projeto foi alterado pela última vez ("alterado há 2 meses"), uma etiqueta e o tamanho. Os botões acima da lista ("Todos", "Node", "Rust"...) filtram por ecossistema.
@@ -273,7 +324,41 @@ As pastas "Revisar" têm nomes comuns, que um projeto pode usar para conteúdo d
 
 Quando você procura na pasta pessoal, as pastas Biblioteca, Aplicativos, Imagens, Filmes, Música e a Lixeira são puladas: não guardam projetos de código e são lentas de ler.
 
-### 6. "Mapa do disco"
+### 7. "Docker"
+
+Para quem usa o Docker: o que o Docker guarda e nenhum container usa. O app chama esta tela de "Resíduos do Docker". Se você não usa o Docker, pode ignorá-la.
+
+![A tela do Docker: quatro painéis com quanto o Docker guarda de cada tipo e, abaixo deles, a lista do que nada está usando](../assets/screens/docker.png)
+
+Passo a passo:
+
+1. Pressione `7`. O app pergunta ao Docker o que ele guarda. Aparece "Perguntando ao Docker". Com muitas imagens e volumes, isso leva alguns segundos.
+2. Leia os quatro painéis do topo: "Imagens", "Containers", "Volumes" e "Cache de build". Cada um mostra quanto espaço aquele tipo ocupa, quantos existem e a parte que nada usa ("sem uso").
+3. Leia a lista "Sem uso". Cada linha tem um nome, o que é, há quanto tempo foi criado, uma etiqueta e um tamanho. Os filtros acima da lista separam por tipo.
+4. Confira o que está selecionado. **Só o cache de build e as imagens sem nome já vêm selecionados.** Os dois são sobras de builds, e o próximo build refaz.
+5. Clique em **"Limpar selecionados"**, leia o diálogo e clique em **"Autorizar limpeza"**.
+
+**Essa remoção é permanente, e é o próprio Docker quem a faz.** O que o Docker guarda não é feito de arquivos que o app alcance, então nada vai para a Lixeira.
+
+O que entra na lista:
+
+| Tipo | Entra quando | Etiqueta |
+|---|---|---|
+| "Cache de build" | Existe algum. Ele é removido inteiro. | "Seguro" |
+| "Imagem" sem nome | Nenhum container a usa | "Seguro" |
+| "Imagem" com nome | Nenhum container a usa, rodando ou parado | "Revisar": uma imagem que você construiu pode não existir em nenhum outro lugar |
+| "Container" | Está parado | "Revisar": o que ele gravou enquanto rodava se perde |
+| "Volume" | Nenhum container o usa | "Revisar": um volume pode guardar um banco de dados |
+
+O que vale saber:
+
+- **O que está em uso nunca entra na lista.** Se algo passar a ser usado depois que a lista foi feita, o Docker se recusa a remover e o item fica. O diálogo de resultado conta esses casos.
+- **O total diz "até".** As imagens dividem partes entre si, então remover duas pode liberar menos do que a soma dos tamanhos. O diálogo de resultado mostra o que o Docker liberou de verdade, medido antes e depois.
+- **"Docker não encontrado"** quer dizer que nenhum programa do Docker foi achado neste Mac. **"Docker parado"** quer dizer que ele está instalado, mas fechado: abra o Docker, espere ele iniciar e clique em "Verificar de novo". O app não abre o Docker por você.
+- **"Medir de novo"** pergunta ao Docker outra vez.
+- **O espaço é liberado dentro do Docker.** O Docker Desktop guarda tudo em um único arquivo grande no Mac, e esse arquivo pode não diminuir na hora.
+
+### 8. "Mapa do disco"
 
 Um mapa do que ocupa o disco. Cada bloco tem o tamanho do espaço que ocupa. O app chama a tela de "Mapa de setores". Esta tela só lê: nada pode ser apagado por ela.
 
@@ -281,7 +366,7 @@ Um mapa do que ocupa o disco. Cada bloco tem o tamanho do espaço que ocupa. O a
 
 Passo a passo:
 
-1. Pressione `6`.
+1. Pressione `8`.
 2. Clique em **"Pasta pessoal"** para medir a sua pasta pessoal, ou em **"Disco inteiro"** para medir o disco de inicialização. O macOS pode pedir permissão para ler Documentos, Mesa e Downloads.
 3. Espere o "Varrendo". A nota "iCloud: sem downloads" lembra que nada está sendo baixado. "Cancelar" interrompe a varredura.
 4. **Passe o cursor sobre um bloco** para ver a ficha dele: "Tamanho" (o tamanho e a fatia do mapa), "Itens", "iCloud" (onde o conteúdo está) e "Tipo".
@@ -306,7 +391,7 @@ Vale saber:
 - Apps, bibliotecas do Fotos e outros pacotes aparecem como um bloco lacrado.
 - "Disco inteiro" deixa duas coisas de fora de propósito: outros discos conectados ao Mac e o volume interno que o macOS mostra duas vezes, o que contaria cada arquivo em dobro.
 
-### 7. "Monitor"
+### 9. "Monitor"
 
 A máquina, ao vivo. O app chama esta tela de "Telemetria".
 
@@ -406,6 +491,28 @@ cargo run --release -p maccleaner-cli -- scan /
 ```
 
 Demora mais e precisa do Acesso Total ao Disco para ficar completo. Duas coisas ficam de fora de propósito: outros discos conectados ao Mac e o volume interno que o macOS mostra duas vezes, o que contaria cada arquivo em dobro.
+
+### Prévia das telas de aplicativos e do Docker
+
+Mais dois comandos imprimem o que as telas "Aplicativos" e "Docker" encontrariam. Como o `scan`, eles não removem nada.
+
+```bash
+cargo run --release -p maccleaner-cli -- apps
+```
+
+Lista os apps instalados, do maior para o menor, com a versão e quem pode remover cada um: "usuário" (você) ou "admin" (um administrador).
+
+```bash
+cargo run --release -p maccleaner-cli -- apps Docker
+```
+
+Com o nome de um app, mostra o que a desinstalação dele removeria: cada item com o tipo, a etiqueta e o tamanho.
+
+```bash
+cargo run --release -p maccleaner-cli -- docker
+```
+
+Mostra quanto o Docker guarda de cada tipo e lista o que nada está usando.
 
 ## A seguir
 

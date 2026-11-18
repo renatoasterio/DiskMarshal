@@ -1,18 +1,17 @@
 //! Version control probe that asks `git`.
 
-use std::io::Read as _;
 use std::path::Path;
-use std::process::{Child, Command, Stdio};
-use std::thread;
-use std::time::{Duration, Instant};
+use std::process::Command;
+use std::time::Duration;
 
 use maccleaner_application::ports::VersionControlProbe;
+
+use crate::process::bounded_command::{Stdout, run_bounded};
 
 /// Absolute path, so a different `git` earlier in `PATH` can never run instead.
 const GIT: &str = "/usr/bin/git";
 /// Longest a single question to git may take.
 const TIMEOUT: Duration = Duration::from_secs(5);
-const POLL_INTERVAL: Duration = Duration::from_millis(5);
 /// Exit code of `git ls-files --error-unmatch` when nothing tracked matches.
 const NOTHING_TRACKED: i32 = 1;
 /// What git says when the folder is not inside a repository at all.
@@ -28,7 +27,8 @@ pub struct GitVersionControlProbe;
 
 impl VersionControlProbe for GitVersionControlProbe {
     fn has_tracked_files(&self, project: &Path, folder: &str) -> bool {
-        let child = Command::new(GIT)
+        let mut command = Command::new(GIT);
+        command
             .arg("-C")
             .arg(project)
             .args(["ls-files", "--error-unmatch", "--"])
@@ -36,48 +36,16 @@ impl VersionControlProbe for GitVersionControlProbe {
             .env_clear()
             // A fixed language keeps the message this probe looks for stable.
             .env("LC_ALL", "C")
-            .env("GIT_OPTIONAL_LOCKS", "0")
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::piped())
-            .spawn();
-        let Ok(mut child) = child else { return true };
-        let Some(code) = wait(&mut child) else {
+            .env("GIT_OPTIONAL_LOCKS", "0");
+        let Ok(output) = run_bounded(&mut command, Stdout::Discard, TIMEOUT) else {
             return true;
         };
-        match code {
-            0 => true,
-            NOTHING_TRACKED => false,
-            _ => !error_output(&mut child).contains(NOT_A_REPOSITORY),
+        match output.code {
+            Some(0) | None => true,
+            Some(NOTHING_TRACKED) => false,
+            Some(_) => !String::from_utf8_lossy(&output.stderr).contains(NOT_A_REPOSITORY),
         }
     }
-}
-
-/// Waits for the program up to the time limit. Returns its exit code, or
-/// `None` when it had to be stopped or ended without one.
-fn wait(child: &mut Child) -> Option<i32> {
-    let deadline = Instant::now() + TIMEOUT;
-    loop {
-        match child.try_wait() {
-            Ok(Some(status)) => return status.code(),
-            Ok(None) if Instant::now() < deadline => thread::sleep(POLL_INTERVAL),
-            Ok(None) | Err(_) => {
-                // Stopping it is all that is left to do; the answer is already "unknown".
-                let _ = child.kill();
-                let _ = child.wait();
-                return None;
-            }
-        }
-    }
-}
-
-fn error_output(child: &mut Child) -> String {
-    let mut text = String::new();
-    if let Some(mut stream) = child.stderr.take() {
-        // An unreadable message leaves the text empty, which reads as "unknown".
-        let _ = stream.read_to_string(&mut text);
-    }
-    text
 }
 
 #[cfg(test)]

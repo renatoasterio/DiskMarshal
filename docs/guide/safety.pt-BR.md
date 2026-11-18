@@ -26,9 +26,16 @@ Antes de remover qualquer coisa, o MacCleaner lista exatamente o que vai sair e 
 | Caches, temporários, logs, resultado de compilações do Xcode, caches de gerenciadores de pacotes | "Limpeza" | Removidos na hora | Não, mas os apps e as ferramentas recriam quando precisam. |
 | Caches e logs do sistema (`/Library/Caches`, `/Library/Logs`) | "Limpeza", grupo "Sistema" | Removidos na hora | Não, mas o sistema e os apps recriam quando precisam. |
 | Pastas de build e dependências (`node_modules`, `target`, `bin`/`obj`) | "Desenvolvedor" | Removidas na hora | Não, mas suas ferramentas recriam na próxima instalação ou compilação. |
+| Um app que você mesmo instalou, e o que ele deixou na sua Biblioteca | "Aplicativos" | A Lixeira | Sim, do mesmo jeito. |
+| Um app que a App Store ou um instalador colocou ali, e o que ele deixou em `/Library` | "Aplicativos", grupo "Sistema" | Removidos na hora | Não. O app pode ser instalado de novo. O que ele guardava em `/Library` não volta. |
+| Cache de build, imagens, containers parados e volumes do Docker | "Docker" | Removidos na hora, pelo próprio Docker | O cache de build e as imagens voltam com um novo build ou download. **O conteúdo de um container ou de um volume não volta.** |
 | O que já está na Lixeira | "Limpeza", regra "Lixeira" | Removido na hora | **Não.** Essa regra esvazia a Lixeira. |
 
-Com uma exceção, só é removido de vez o que pode ser recriado. A exceção é a regra "Lixeira": ela esvazia a Lixeira, e isso não tem volta. Ela tem a etiqueta "Revisar" e nunca vem selecionada: só roda se você mesmo selecionar.
+Só é removido de vez o que pode ser recriado, com três exceções, e cada uma depende de uma escolha sua:
+
+- **A regra "Lixeira"** esvazia a Lixeira, e isso não tem volta. Ela tem a etiqueta "Revisar" e nunca vem selecionada.
+- **Um container ou um volume do Docker** guarda conteúdo que não existe em nenhum outro lugar. Os dois têm a etiqueta "Revisar" e nunca vêm selecionados.
+- **A parte de administrador de uma desinstalação.** Foi você quem escolheu desinstalar aquele app, e o que ele guardava em `/Library` sai junto, de vez.
 
 O espaço do que foi para a Lixeira só é liberado quando você a esvazia.
 
@@ -66,7 +73,9 @@ Se uma remoção aconteceu mas não pôde ser gravada no histórico, o diálogo 
 
 ## Um único caminho de exclusão para tudo
 
-Toda tela que remove alguma coisa usa o mesmo trecho de código para isso, e esse código aplica as cinco regras acima. Não existe um segundo jeito, mais rápido, de apagar escondido em algum canto. O auxiliar que limpa as áreas de sistema usa esse mesmo código.
+Toda tela que remove alguma coisa usa o mesmo trecho de código para isso, e esse código aplica as cinco regras acima. Não existe um segundo jeito, mais rápido, de apagar escondido em algum canto. O auxiliar que limpa as áreas de sistema e remove os itens de sistema de um app desinstalado usa esse mesmo código.
+
+Uma coisa não tem como passar por ele: o que o Docker guarda. Isso não é feito de arquivos que o app alcance, então é o próprio Docker quem remove, um item por vez, e ele recusa o que estiver em uso. O MacCleaner nunca força o Docker a remover nada.
 
 ## O que cada tela preserva para você
 
@@ -74,6 +83,8 @@ Toda tela que remove alguma coisa usa o mesmo trecho de código para isso, e ess
 - **"Fotos":** ao menos uma foto de cada grupo sempre fica. Por padrão, o maior arquivo é mantido. A biblioteca do app Fotos nunca é lida nem alterada.
 - **"Desenvolvedor":** uma pasta só é oferecida quando o arquivo que identifica o projeto está ao lado dela e o git não tem nenhum arquivo versionado dentro dela. Nenhum código-fonte é removido.
 - **"Limpeza":** uma regra remove o conteúdo das pastas dela, nunca as pastas. As regras marcadas com "Revisar" e o grupo "Sistema" inteiro nunca vêm selecionados.
+- **"Aplicativos":** um app que está aberto é recusado. Só são encontrados os itens que levam o nome do app, e só os que batem exatamente vêm selecionados. Quando há outra cópia do app instalada, os dados ficam.
+- **"Docker":** o que um container usa nunca entra na lista, e o Docker recusa o que tiver passado a ser usado nesse meio-tempo. Imagens com nome, containers e volumes nunca vêm selecionados.
 
 ## Arquivos do iCloud não são baixados
 
@@ -113,6 +124,15 @@ O que você precisa saber:
 - **Precisa do app instalado** (`cargo xtask install`), porque é lá que o auxiliar fica.
 - **Um risco conhecido e aceito:** um programa malicioso que já esteja rodando na sua conta de usuário poderia tentar trocar o auxiliar no instante entre a conferência e a execução. Isso é considerado aceitável para uso pessoal. Os detalhes estão na [política de segurança](../security.md#privileged-helper) (em inglês).
 
+### Desinstalar um app que precisa de administrador
+
+Um app que a App Store ou um instalador colocou no Mac pertence ao sistema, e o que ele deixou em `/Library` também. Remover isso funciona do mesmo jeito: o macOS autentica você e depois roda o auxiliar uma vez.
+
+- **O auxiliar recebe qual é o app, pelo identificador, e quais itens.** Então ele mesmo encontra o app e o que pertence a ele, e só remove um item quando a busca dele também o encontrou. Um item que não é do app interrompe tudo antes de qualquer coisa ser tocada.
+- **Ele recusa um app que está aberto,** e um identificador que dois apps instalados dividem.
+- **Esses itens são removidos de vez.** O auxiliar roda como administrador e não alcança a sua Lixeira.
+- **Se você fechar o diálogo de autenticação, nada é removido,** nem a parte que não precisa de administrador. Essa parte só começa depois que a parte de administrador deu certo.
+
 ## O que não foi testado
 
 Dito com clareza, para você decidir o quanto de cuidado tomar:
@@ -122,6 +142,9 @@ Dito com clareza, para você decidir o quanto de cuidado tomar:
 - Abrir o app com "Reduzir movimento" ligado nos Ajustes do Sistema.
 - Remover dados pessoais reais pela interface. Isso foi exercitado apenas em pastas de teste.
 - Versões do macOS diferentes da 27, e Macs com Intel.
+- Desinstalar um app de verdade pela interface. A busca do que pertence a um app foi conferida com apps reais, sem remover nada; a remoção rodou em pastas de teste, e a parte de administrador dela só no modo de simulação do auxiliar.
+- Remover qualquer coisa de um Docker de verdade. A leitura do que o Docker guarda foi conferida em um Docker real; a remoção rodou contra um programa substituto, que responde como o Docker.
+- Se o Docker Desktop devolve ao macOS o espaço liberado.
 
 ## Limites conhecidos
 
@@ -130,6 +153,8 @@ Dito com clareza, para você decidir o quanto de cuidado tomar:
 - **Fotos dentro da biblioteca do app Fotos ficam de fora.** Para essas, use o app Fotos.
 - **O espaço realmente liberado pode ser menor que o estimado.** O formato de disco do Mac (APFS) pode guardar duas cópias de um arquivo como uma só, e pode manter versões antigas em snapshots. Remover um arquivo cujo conteúdo ainda é usado em outro lugar libera menos que o tamanho dele.
 - **Itens na Lixeira continuam ocupando espaço** até você esvaziá-la.
+- **O desinstalador encontra o que leva o nome do app.** Dados guardados com outro nome ficam. E um app que declare o identificador de outro app teria os itens desse outro listados como seus, então leia a lista antes de confirmar.
+- **O Docker é consultado só pelo programa dele.** Outros motores de container não são procurados.
 
 ## Se algo der errado
 
@@ -144,5 +169,7 @@ As regras acima são impostas no código e cobertas por testes:
 - Regras de caminho: [`protected_paths.rs`](../../crates/maccleaner-domain/src/deletion/protected_paths.rs)
 - O único caminho do código que apaga: [`delete_items.rs`](../../crates/maccleaner-application/src/use_cases/delete_items.rs)
 - O auxiliar que limpa as áreas de sistema: [`apps/privileged-helper/src/main.rs`](../../apps/privileged-helper/src/main.rs)
+- Como um item é ligado a um app: [`leftover_matcher.rs`](../../crates/maccleaner-domain/src/applications/leftover_matcher.rs)
+- O que é pedido ao Docker: [`docker_cli_container_engine.rs`](../../crates/maccleaner-infrastructure/src/process/docker_cli_container_engine.rs)
 - Como o app pede ao macOS que o rode: [`osascript_privileged_cleaner.rs`](../../crates/maccleaner-infrastructure/src/privilege/osascript_privileged_cleaner.rs)
 - A política completa para quem contribui (em inglês): [docs/security.md](../security.md)

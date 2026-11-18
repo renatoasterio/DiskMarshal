@@ -6,7 +6,6 @@
 use std::path::PathBuf;
 
 use egui::{Context, RichText, Ui};
-use maccleaner_application::ports::PrivilegeError;
 use maccleaner_application::use_cases::{
     CleanSystemAreas, DeleteItems, DeletionPorts, DeletionReport, ExecutionMode,
 };
@@ -31,12 +30,37 @@ pub(crate) enum RemovalFlow {
 }
 
 /// What a removal did.
-#[derive(Default)]
 pub(crate) struct RemovalResult {
     report: DeletionReport,
-    /// Why the system areas were not cleaned, when they were asked for and
-    /// were not.
-    system_failure: Option<PrivilegeError>,
+    /// What the user must know besides the totals, such as why the items
+    /// that need an administrator were left.
+    warnings: Vec<String>,
+    /// What is said about the items that were left as they were.
+    skipped_explanation: &'static str,
+}
+
+impl Default for RemovalResult {
+    fn default() -> Self {
+        Self::new(DeletionReport::default(), Vec::new())
+    }
+}
+
+impl RemovalResult {
+    /// The result of a removal, with what the user must know besides it.
+    pub(crate) fn new(report: DeletionReport, warnings: Vec<String>) -> Self {
+        Self {
+            report,
+            warnings,
+            skipped_explanation: pt_br::ITEMS_SKIPPED,
+        }
+    }
+
+    /// Changes what is said about the items that were left as they were,
+    /// for a removal where macOS is not who refuses.
+    pub(crate) fn explaining_skipped(mut self, explanation: &'static str) -> Self {
+        self.skipped_explanation = explanation;
+        self
+    }
 }
 
 /// What the confirmation dialog says.
@@ -89,30 +113,29 @@ impl RemovalFlow {
         system_rules: Vec<String>,
     ) {
         let services = services.clone();
-        *self = Self::Running(Task::spawn(ctx, move |_, _| {
-            let policy = ProtectedPaths::new(&services.home);
-            let ports = DeletionPorts {
-                inspector: services.inspector.as_ref(),
-                remover: services.remover.as_ref(),
-                trash_bin: services.trash_bin.as_ref(),
-                history: services.history.as_ref(),
-            };
-            let mut report =
-                DeleteItems::new(&policy, ports).execute(&requests, &roots, ExecutionMode::Real);
-            let mut system_failure = None;
+        self.start_work(ctx, move || {
+            let mut report = delete_items(&services, &requests, &roots);
+            let mut warnings = Vec::new();
             if !system_rules.is_empty() {
                 let cleaner =
                     CleanSystemAreas::new(services.privileged.as_ref(), services.history.as_ref());
                 match cleaner.execute(&system_rules, pt_br::ADMIN_PROMPT) {
                     Ok(cleaned) => report.absorb(cleaned),
-                    Err(error) => system_failure = Some(error),
+                    Err(error) => warnings.push(pt_br::privilege_error(&error)),
                 }
             }
-            RemovalResult {
-                report,
-                system_failure,
-            }
-        }));
+            RemovalResult::new(report, warnings)
+        });
+    }
+
+    /// Runs `work` in the background as the removal of this flow. A screen
+    /// whose removal is not made of files alone uses this.
+    pub(crate) fn start_work(
+        &mut self,
+        ctx: &Context,
+        work: impl FnOnce() -> RemovalResult + Send + 'static,
+    ) {
+        *self = Self::Running(Task::spawn(ctx, move |_, _| work()));
     }
 
     /// Draws the dialog of the current step, if any.
@@ -173,11 +196,11 @@ impl RemovalFlow {
             }
             Self::Done(result) => {
                 let closed = dialog(ctx, tokens, pt_br::DONE_TITLE, |ui| {
-                    summary(ui, tokens, &result.report);
-                    if let Some(failure) = &result.system_failure {
+                    summary(ui, tokens, result);
+                    for warning in &result.warnings {
                         ui.add_space(SPACE_2);
                         ui.label(
-                            RichText::new(pt_br::privilege_error(failure))
+                            RichText::new(warning)
                                 .size(FONT_SIZE_SMALL)
                                 .color(tokens.color_warn),
                         );
@@ -195,8 +218,27 @@ impl RemovalFlow {
     }
 }
 
+/// Removes `requests` through the one use case that deletes files. Every
+/// item goes through the deletion policy again right before it is touched,
+/// and nothing outside `roots` can be removed.
+pub(crate) fn delete_items(
+    services: &UiServices,
+    requests: &[DeletionRequest],
+    roots: &[PathBuf],
+) -> DeletionReport {
+    let policy = ProtectedPaths::new(&services.home);
+    let ports = DeletionPorts {
+        inspector: services.inspector.as_ref(),
+        remover: services.remover.as_ref(),
+        trash_bin: services.trash_bin.as_ref(),
+        history: services.history.as_ref(),
+    };
+    DeleteItems::new(&policy, ports).execute(requests, roots, ExecutionMode::Real)
+}
+
 /// Says plainly what a removal did, including what it left untouched.
-fn summary(ui: &mut Ui, tokens: &Tokens, report: &DeletionReport) {
+fn summary(ui: &mut Ui, tokens: &Tokens, result: &RemovalResult) {
+    let report = &result.report;
     let removed = report
         .outcomes
         .iter()
@@ -235,7 +277,7 @@ fn summary(ui: &mut Ui, tokens: &Tokens, report: &DeletionReport) {
         bullet(ui, tokens, pt_br::TRASH_FREES_LATER);
     }
     for (amount, explanation) in [
-        (skipped, pt_br::ITEMS_SKIPPED),
+        (skipped, result.skipped_explanation),
         (report.unrecorded, pt_br::ITEMS_UNRECORDED),
     ] {
         if amount > 0 {

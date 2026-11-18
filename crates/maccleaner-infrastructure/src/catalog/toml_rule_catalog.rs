@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 
 use maccleaner_application::ApplicationError;
 use maccleaner_application::ports::RuleCatalog;
+use maccleaner_domain::applications::{LeftoverKind, LeftoverLocation};
 use maccleaner_domain::cleanup::{CleanupRule, PrivilegeScope, RiskLevel};
 use maccleaner_domain::deletion::DeletionMethod;
 use maccleaner_domain::dev_artifacts::{ArtifactFolder, ArtifactRule, Ecosystem};
@@ -13,6 +14,7 @@ use serde::Deserialize;
 
 const CLEANUP_RULES: &str = include_str!("../../resources/cleanup_rules.toml");
 const ARTIFACT_RULES: &str = include_str!("../../resources/artifact_rules.toml");
+const LEFTOVER_LOCATIONS: &str = include_str!("../../resources/leftover_locations.toml");
 const HOME_PREFIX: &str = "~/";
 const TEMPORARY_FOLDER: &str = "$TMPDIR";
 
@@ -48,6 +50,15 @@ enum RiskEntry {
 enum ScopeEntry {
     User,
     Administrator,
+}
+
+impl From<ScopeEntry> for PrivilegeScope {
+    fn from(entry: ScopeEntry) -> Self {
+        match entry {
+            ScopeEntry::User => Self::User,
+            ScopeEntry::Administrator => Self::Administrator,
+        }
+    }
 }
 
 #[derive(Deserialize, Clone, Copy)]
@@ -87,6 +98,52 @@ enum EcosystemEntry {
     Go,
     Php,
     Terraform,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct LeftoverFile {
+    location: Vec<LocationEntry>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct LocationEntry {
+    folder: String,
+    kind: KindEntry,
+    scope: ScopeEntry,
+    #[serde(default)]
+    by_name: bool,
+}
+
+#[derive(Deserialize, Clone, Copy)]
+#[serde(rename_all = "kebab-case")]
+enum KindEntry {
+    Support,
+    Caches,
+    Preferences,
+    Container,
+    SavedState,
+    WebData,
+    Logs,
+    LaunchItem,
+    Helper,
+}
+
+impl From<KindEntry> for LeftoverKind {
+    fn from(entry: KindEntry) -> Self {
+        match entry {
+            KindEntry::Support => Self::Support,
+            KindEntry::Caches => Self::Caches,
+            KindEntry::Preferences => Self::Preferences,
+            KindEntry::Container => Self::Container,
+            KindEntry::SavedState => Self::SavedState,
+            KindEntry::WebData => Self::WebData,
+            KindEntry::Logs => Self::Logs,
+            KindEntry::LaunchItem => Self::LaunchItem,
+            KindEntry::Helper => Self::Helper,
+        }
+    }
 }
 
 /// Reads the catalog of code projects.
@@ -177,10 +234,7 @@ impl TomlRuleCatalog {
                     RiskEntry::Safe => RiskLevel::Safe,
                     RiskEntry::Review => RiskLevel::Review,
                 },
-                scope: match entry.scope {
-                    ScopeEntry::User => PrivilegeScope::User,
-                    ScopeEntry::Administrator => PrivilegeScope::Administrator,
-                },
+                scope: entry.scope.into(),
                 method: match entry.method {
                     MethodEntry::Permanent => DeletionMethod::Permanent,
                     MethodEntry::Trash => DeletionMethod::Trash,
@@ -189,6 +243,29 @@ impl TomlRuleCatalog {
             });
         }
         Ok(rules)
+    }
+
+    /// Reads the catalog of the folders where apps leave their items.
+    fn parse_leftover_locations(&self, source: &str) -> Result<Vec<LeftoverLocation>, String> {
+        let file: LeftoverFile = toml::from_str(source).map_err(|error| error.to_string())?;
+        let mut seen = HashSet::new();
+        file.location
+            .into_iter()
+            .map(|entry| {
+                let folder = self
+                    .expand(&entry.folder, "leftover location")?
+                    .ok_or_else(|| format!("`{}` is not a folder of this user", entry.folder))?;
+                if !seen.insert(folder.clone()) {
+                    return Err(format!("folder `{}` appears twice", entry.folder));
+                }
+                Ok(LeftoverLocation {
+                    folder,
+                    kind: entry.kind.into(),
+                    scope: entry.scope.into(),
+                    is_matched_by_name: entry.by_name,
+                })
+            })
+            .collect()
     }
 
     /// Makes a folder of the catalog absolute. `Ok(None)` drops a folder that
@@ -218,6 +295,11 @@ impl RuleCatalog for TomlRuleCatalog {
     fn artifact_rules(&self) -> Result<Vec<ArtifactRule>, ApplicationError> {
         parse_artifact_rules(ARTIFACT_RULES).map_err(ApplicationError::InvalidCatalog)
     }
+
+    fn leftover_locations(&self) -> Result<Vec<LeftoverLocation>, ApplicationError> {
+        self.parse_leftover_locations(LEFTOVER_LOCATIONS)
+            .map_err(ApplicationError::InvalidCatalog)
+    }
 }
 
 #[cfg(test)]
@@ -225,6 +307,7 @@ mod tests {
     use std::path::{Path, PathBuf};
 
     use maccleaner_application::ports::RuleCatalog;
+    use maccleaner_domain::applications::LeftoverKind;
     use maccleaner_domain::cleanup::{PrivilegeScope, RiskLevel};
     use maccleaner_domain::deletion::{DeletionMethod, ProtectedPaths};
 
@@ -398,5 +481,66 @@ mod tests {
             ))
             .is_err()
         );
+    }
+
+    #[test]
+    fn the_embedded_leftover_catalog_is_valid_and_fully_absolute() {
+        let locations = catalog().leftover_locations().unwrap();
+
+        assert!(locations.len() >= 15);
+        assert!(locations.iter().all(|found| found.folder.is_absolute()));
+        let facts = |folder: &str| {
+            let found = locations
+                .iter()
+                .find(|found| found.folder == Path::new(folder))
+                .unwrap();
+            (found.kind, found.scope, found.is_matched_by_name)
+        };
+        assert_eq!(
+            facts("/Users/tester/Library/Application Support"),
+            (LeftoverKind::Support, PrivilegeScope::User, true)
+        );
+        assert_eq!(
+            facts("/Users/tester/Library/Preferences"),
+            (LeftoverKind::Preferences, PrivilegeScope::User, false)
+        );
+        assert_eq!(
+            facts("/Library/LaunchDaemons"),
+            (
+                LeftoverKind::LaunchItem,
+                PrivilegeScope::Administrator,
+                false
+            )
+        );
+    }
+
+    #[test]
+    fn an_item_of_an_app_in_any_leftover_folder_is_allowed_by_the_deletion_policy() {
+        let policy = ProtectedPaths::new(Path::new(HOME));
+        for location in catalog().leftover_locations().unwrap() {
+            let item = location.folder.join("com.vendor.editor");
+            assert_eq!(
+                policy.check(&item, std::slice::from_ref(&location.folder)),
+                Ok(()),
+                "{}",
+                location.folder.display()
+            );
+        }
+    }
+
+    #[test]
+    fn a_leftover_folder_listed_twice_or_described_wrongly_is_rejected() {
+        let location = |extra: &str| {
+            format!(
+                "[[location]]\nfolder = \"~/Library/Caches\"\nkind = \"caches\"\nscope = \"user\"\n{extra}\n"
+            )
+        };
+        let parse = |source: &str| catalog().parse_leftover_locations(source);
+
+        assert!(parse(&location("")).is_ok());
+        assert!(parse(&format!("{}{}", location(""), location(""))).is_err());
+        assert!(parse(&location("surprise = 1")).is_err());
+        assert!(parse(&location("").replace("\"caches\"", "\"sofa\"")).is_err());
+        assert!(parse(&location("").replace("~/Library", "Library")).is_err());
     }
 }

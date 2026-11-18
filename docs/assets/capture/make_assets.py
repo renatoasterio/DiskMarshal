@@ -9,8 +9,8 @@ the documentation; it is not part of MacCleaner.
 How it works: the app is built in its development capture mode, which saves
 one frame to a PNG and exits. Each shot runs it with HOME pointing at a
 demonstration home folder created here, so the pictures show made-up caches,
-projects, duplicates and photos, and no path or program of the machine that
-takes them. Nothing in the real home folder is read or changed. The window of
+apps, projects, duplicates and photos, a made-up Docker, and no path or
+program of the machine that takes them. Nothing in the real home folder is read or changed. The window of
 the app flashes on screen for a moment at each shot.
 
 Pass --work-dir to choose where the demonstration folder is created; by
@@ -32,7 +32,7 @@ from PIL import Image, ImageDraw
 REPOSITORY = pathlib.Path(__file__).resolve().parents[3]
 ASSETS = REPOSITORY / "docs" / "assets"
 BINARY = REPOSITORY / "target" / "debug" / "maccleaner"
-SCREENS = ["dashboard", "cleanup", "duplicates", "photos", "developer", "disk_map", "monitor"]
+SCREENS = ["dashboard", "cleanup", "apps", "duplicates", "photos", "developer", "docker", "disk_map", "monitor"]
 PALETTES = ["agency", "terminal", "tactical"]
 SHOT_WIDTH = 1280
 TOUR_WIDTH = 900
@@ -144,8 +144,40 @@ def save_photo(home, image, relative, **options):
     image.save(path, **options)
 
 
+def app(home, name, identifier, version, megabytes):
+    """Creates an app bundle with the description every app carries."""
+    bundle = f"Applications/{name}.app/Contents"
+    description = home / bundle / "Info.plist"
+    description.parent.mkdir(parents=True, exist_ok=True)
+    description.write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n<plist version="1.0"><dict>\n'
+        f"<key>CFBundleIdentifier</key><string>{identifier}</string>\n"
+        f"<key>CFBundleShortVersionString</key><string>{version}</string>\n"
+        "</dict></plist>\n"
+    )
+    write(home, f"{bundle}/MacOS/programa", megabytes)
+
+
+def build_demo_apps(home):
+    """Apps to uninstall. The largest is the one the apps screen examines."""
+    app(home, "Editor Exemplo", "com.exemplo.editor", "4.2", 62)
+    app(home, "Navegador Exemplo", "com.exemplo.navegador", "128.0", 48)
+    app(home, "Planilhas Exemplo", "com.exemplo.planilhas", "11.3", 37)
+    app(home, "Música Exemplo", "com.exemplo.musica", "2.9", 21)
+    app(home, "Conversa Exemplo", "com.exemplo.conversa", "7.1", 16)
+    app(home, "Notas Exemplo", "com.exemplo.notas", "1.8", 9)
+    # What the editor left behind, besides its cache.
+    write(home, "Library/Application Support/Editor Exemplo/projetos.db", 9.4)
+    write(home, "Library/Containers/com.exemplo.editor/Data/documentos.db", 5.2)
+    write(home, "Library/HTTPStorages/com.exemplo.editor/httpstorages.sqlite", 0.4)
+    write(home, "Library/Preferences/com.exemplo.editor.plist", 0.004)
+    write(home, "Library/Preferences/com.exemplo.editor.ajudante.plist", 0.002)
+    write(home, "Library/Saved Application State/com.exemplo.editor.savedState/janelas.data", 0.06)
+
+
 def build_demo_home(home):
     random.seed(7)
+    build_demo_apps(home)
     for app, megabytes in [("com.exemplo.navegador", 26), ("com.exemplo.editor", 14), ("com.exemplo.musica", 8)]:
         for index in range(4):
             write(home, f"Library/Caches/{app}/cache-{index}.bin", megabytes / 4)
@@ -229,7 +261,12 @@ def capture(home, screen, palette, target):
         "MACCLEANER_DEV": str(home / "Projetos"),
         "MACCLEANER_DUP": str(home),
         "MACCLEANER_PHOTOS": str(home / "Imagens"),
+        "MACCLEANER_APPS": str(home / "Applications"),
     }
+    # The made-up Docker is asked only for its own screen: next to a small
+    # demonstration home, its gigabytes would be all the dashboard shows.
+    if screen == "docker":
+        environment["MACCLEANER_DOCKER"] = "1"
     subprocess.run([str(BINARY)], env=environment, check=True, capture_output=True, timeout=180)
     return Image.open(target).convert("RGB")
 

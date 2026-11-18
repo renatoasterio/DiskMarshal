@@ -14,7 +14,7 @@ English · [Português](README.pt-BR.md)
 ![Rust 1.100](https://img.shields.io/badge/rust-1.100-2fe6ff)
 ![Status: pre-release](https://img.shields.io/badge/status-pre--release-ffb020)
 
-<img src="docs/assets/tour.gif" alt="Slideshow of the seven MacCleaner screens: dashboard, cleanup, duplicates, similar photos, developer, disk map and monitor" width="900">
+<img src="docs/assets/tour.gif" alt="Slideshow of the nine MacCleaner screens: dashboard, cleanup, apps, duplicates, similar photos, developer, Docker, disk map and monitor" width="900">
 
 <sub>Screenshots of the app itself, running on demonstration data. The interface is in Brazilian Portuguese. See <a href="#project-status">Project status</a> for what is built and what has not been verified yet.</sub>
 
@@ -26,6 +26,8 @@ MacCleaner finds what is filling your Mac's disk and helps you get the space bac
 
 - **See where the space went.** A map of the disk, including what is on this Mac and what is only in iCloud.
 - **Remove what is safe to remove.** Caches, temporary files, logs, duplicate files, similar photos, and the build folders code projects leave behind (`node_modules`, `target`, `bin`/`obj` and friends).
+- **Uninstall an app with what it left behind.** The app, its caches, its settings and its private data, listed item by item before anything goes.
+- **Clean up after Docker.** The build cache, and the images, stopped containers and volumes that nothing uses.
 - **Watch the machine.** Processor, memory, disk and temperatures, live.
 
 It is built around one rule: **nothing is deleted without a preview and your confirmation**, and personal files always go to the Trash.
@@ -70,19 +72,23 @@ Three things worth knowing:
 
 ## Project status
 
-All seven screens are built, and the app really deletes what you select, always after a preview and a confirmation. There is no stable release yet. It is developed and tested on one kind of machine: macOS 27 on Apple Silicon.
+All nine screens are built, and the app really deletes what you select, always after a preview and a confirmation. There is no stable release yet. It is developed and tested on one kind of machine: macOS 27 on Apple Silicon.
 
 | Part | What it does | State |
 |---|---|---|
 | "Painel" (dashboard) | Disk, memory and temperature gauges, the space the other screens found, the latest removals | Built |
 | "Limpeza" (cleanup) | Caches, temporary files, logs, the Trash, Xcode and package manager leftovers | Built |
 | "Limpeza", group "Sistema" | `/Library/Caches` and `/Library/Logs`, after macOS authenticates an administrator | Built, not verified end to end (see below) |
+| "Aplicativos" (apps) | Uninstalls an app with what it left in the Library; what is yours goes to the Trash | Built, not verified on a real app (see below) |
+| "Aplicativos", group "Sistema" | Apps the App Store or an installer put there, and what they left in `/Library`, after macOS authenticates an administrator | Built, not verified end to end (see below) |
 | "Duplicados" (duplicates) | Files with identical content; the extra copies go to the Trash | Built |
 | "Fotos" (similar photos) | Loose image files that look the same; the extra ones go to the Trash | Built |
 | "Desenvolvedor" (developer) | Build and dependency folders of code projects | Built |
+| "Docker" | The build cache, images, stopped containers and volumes that nothing uses, removed by Docker itself | Built, removal not verified on a real Docker (see below) |
 | "Mapa do disco" (disk map) | Treemap of the home folder or the whole disk, colored by type or by iCloud state | Built |
 | "Monitor" | Processor, memory, swap, disk, temperatures and the busiest programs, live | Built |
 | `maccleaner-cli scan` | Measures a folder from the terminal; read-only | Built |
+| `maccleaner-cli apps`, `maccleaner-cli docker` | Show what those two screens would find; read-only | Built |
 | `cargo xtask install` | Builds, signs and installs `MacCleaner.app` | Built |
 
 ### Not verified yet
@@ -94,6 +100,8 @@ These parts are written and covered by automated tests on temporary folders, but
 - **Starting with reduced motion.** The app reads the "Reduce motion" switch of System Settings when it opens; this was not tested with the switch on.
 - **Deleting real personal data from the interface.** Removal was exercised on test folders only.
 - **Other macOS versions and Intel Macs.**
+- **Uninstalling a real app.** Finding what belongs to an app was checked against the apps of the development machine, without removing anything. The removal ran on test folders, with a stand-in for the Trash, and its administrator part only in the helper's simulation mode.
+- **Removing from a real Docker.** Reading what Docker holds was checked against a real Docker 24. The removal ran against a stand-in program that answers like Docker. Whether Docker Desktop gives the freed space back to macOS was not checked.
 
 ### Known limits
 
@@ -102,6 +110,8 @@ These parts are written and covered by automated tests on temporary folders, but
 - The monitor shows no fan speeds.
 - Photos inside the Photos app library are out of scope: the library is never read or changed.
 - APFS clones and snapshots can make the space really freed smaller than the estimate.
+- The uninstaller finds what carries the identifier or the name of the app. What an app keeps under another name stays.
+- Docker is asked through its own command line program, looked for where its installers put it. Other container engines are not supported.
 - The interface exists only in Brazilian Portuguese, and the appearance choices are not saved between runs.
 
 ## Screens
@@ -111,12 +121,14 @@ Screenshots of the app with demonstration data. The [usage guide](docs/guide/usa
 | Dashboard ("Painel") | Cleanup ("Limpeza") |
 |---|---|
 | ![Dashboard with disk, memory and temperature gauges, the recoverable space by source and the latest removals](docs/assets/screens/dashboard.png) | ![Cleanup list with a risk badge on each rule and a separate group for system areas](docs/assets/screens/cleanup.png) |
-| **Duplicates ("Duplicados")** | **Similar photos ("Fotos")** |
-| ![Groups of identical files with the copy to keep marked](docs/assets/screens/duplicates.png) | ![Groups of similar photos with thumbnails, a reference photo and a match percentage](docs/assets/screens/photos.png) |
-| **Developer ("Desenvolvedor")** | **Disk map ("Mapa do disco")** |
-| ![Build and dependency folders listed by project and ecosystem](docs/assets/screens/developer.png) | ![Treemap where each block is as large as the space the folder uses](docs/assets/screens/disk-map.png) |
-| **Monitor** | |
-| ![Processor trace, per-core bars, memory, disk, temperatures and the busiest programs](docs/assets/screens/monitor.png) | |
+| **Apps ("Aplicativos")** | **Duplicates ("Duplicados")** |
+| ![Installed apps on the left and, on the right, the items that belong to the chosen app](docs/assets/screens/apps.png) | ![Groups of identical files with the copy to keep marked](docs/assets/screens/duplicates.png) |
+| **Similar photos ("Fotos")** | **Developer ("Desenvolvedor")** |
+| ![Groups of similar photos with thumbnails, a reference photo and a match percentage](docs/assets/screens/photos.png) | ![Build and dependency folders listed by project and ecosystem](docs/assets/screens/developer.png) |
+| **Docker** | **Disk map ("Mapa do disco")** |
+| ![How much Docker holds of each kind and the list of what nothing uses](docs/assets/screens/docker.png) | ![Treemap where each block is as large as the space the folder uses](docs/assets/screens/disk-map.png) |
+| **Monitor** |  |
+| ![Processor trace, per-core bars, memory, disk, temperatures and the busiest programs](docs/assets/screens/monitor.png) |  |
 
 Three palettes, chosen from the appearance icon in the status bar:
 
@@ -181,7 +193,7 @@ flowchart LR
 | `maccleaner-domain` | Rules with no I/O: file tree, deletion policy, cleanup rules, duplicates, photo similarity, treemap layout, sizes |
 | `maccleaner-application` | Use cases and the ports they need |
 | `maccleaner-infrastructure` | macOS adapters: disk, Trash, history, hashing, image thumbnails, system readings, permissions, privilege elevation |
-| `maccleaner-ui` | The egui interface: theme, components, the seven screens |
+| `maccleaner-ui` | The egui interface: theme, components, the nine screens |
 | `apps/desktop`, `apps/cli`, `apps/privileged-helper` | Binaries that wire everything together |
 | `xtask` | Project tasks: `check`, `bundle`, `install` |
 

@@ -13,6 +13,7 @@ blake3.workspace = true
 libc.workspace = true
 maccleaner-application.workspace = true
 maccleaner-domain.workspace = true
+plist.workspace = true
 rayon.workspace = true
 rfd.workspace = true
 serde.workspace = true

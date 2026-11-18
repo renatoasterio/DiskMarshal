@@ -25,6 +25,7 @@ pub(crate) enum DashboardAction {
 pub(crate) struct Recoverable {
     pub cleanup: Option<ByteSize>,
     pub developer: Option<ByteSize>,
+    pub docker: Option<ByteSize>,
     pub duplicates: Option<ByteSize>,
     pub photos: Option<ByteSize>,
     /// Whether the cleanup analysis is running right now.
@@ -34,10 +35,16 @@ pub(crate) struct Recoverable {
 impl Recoverable {
     /// The sum of what has been found. `None` when nothing was analyzed.
     pub(crate) fn total(&self) -> Option<ByteSize> {
-        let found: Vec<ByteSize> = [self.cleanup, self.developer, self.duplicates, self.photos]
-            .into_iter()
-            .flatten()
-            .collect();
+        let found: Vec<ByteSize> = [
+            self.cleanup,
+            self.developer,
+            self.docker,
+            self.duplicates,
+            self.photos,
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
         (!found.is_empty()).then(|| found.into_iter().sum())
     }
 }

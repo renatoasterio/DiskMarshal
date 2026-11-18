@@ -1,9 +1,11 @@
-//! The seven screens. Each lives in its own folder as a view and a view model.
+//! The screens. Each lives in its own folder as a view and a view model.
 
+mod apps;
 mod cleanup;
 mod dashboard;
 mod developer;
 mod disk_map;
+mod docker;
 mod duplicates;
 mod group_review;
 mod monitor;
@@ -11,11 +13,13 @@ mod photos;
 
 use std::path::Path;
 
-use egui::Ui;
+use egui::{Color32, Ui};
 use maccleaner_application::ports::FileSystemWalker;
+use maccleaner_domain::cleanup::RiskLevel;
 
 use crate::app::UiServices;
 use crate::components::AppearanceSettings;
+use crate::i18n::pt_br;
 use crate::navigation::Screen;
 use crate::theme::Tokens;
 
@@ -31,6 +35,8 @@ pub(crate) struct ScreenContext<'a> {
 /// The state of every screen, kept while the user moves between them.
 #[derive(Default)]
 pub(crate) struct Screens {
+    apps: apps::AppsViewModel,
+    docker: docker::DockerViewModel,
     cleanup: cleanup::CleanupViewModel,
     dashboard: dashboard::DashboardViewModel,
     developer: developer::DeveloperViewModel,
@@ -53,6 +59,8 @@ impl Screens {
         match screen {
             Screen::Dashboard => return self.show_dashboard(ui, context),
             Screen::Cleanup => cleanup::show(&mut self.cleanup, ui, context),
+            Screen::Apps => apps::show(&mut self.apps, ui, context),
+            Screen::Docker => docker::show(&mut self.docker, ui, context),
             Screen::Developer => developer::show(&mut self.developer, ui, context),
             Screen::DiskMap => disk_map::show(&mut self.disk_map, ui, context),
             Screen::Duplicates => duplicates::show(&mut self.duplicates, ui, context),
@@ -68,6 +76,7 @@ impl Screens {
         let recoverable = dashboard::Recoverable {
             cleanup: self.cleanup.recoverable(),
             developer: self.developer.recoverable(),
+            docker: self.docker.recoverable(),
             duplicates: self.duplicates.recoverable(),
             photos: self.photos.recoverable(),
             is_analyzing: self.cleanup.progress().is_some(),
@@ -105,6 +114,18 @@ impl Screens {
         self.developer.search_now(services, root);
     }
 
+    /// Lists the installed apps and examines the first one before the first
+    /// frame, so that screen opens filled in.
+    pub(crate) fn preload_apps(&mut self, services: &UiServices) {
+        self.apps.list_now(services);
+    }
+
+    /// Asks Docker what it holds before the first frame, so that screen
+    /// opens filled in.
+    pub(crate) fn preload_docker(&mut self, services: &UiServices) {
+        self.docker.inspect_now(services);
+    }
+
     /// Searches `root` for duplicates before the first frame, so that screen
     /// opens filled in.
     pub(crate) fn preload_duplicates(&mut self, services: &UiServices, root: &Path) {
@@ -125,6 +146,14 @@ impl Screens {
     /// Measures `root` before the first frame, so the disk map opens filled in.
     pub(crate) fn preload_scan(&mut self, walker: &dyn FileSystemWalker, root: &Path) {
         self.disk_map.scan_now(walker, root);
+    }
+}
+
+/// The label and the color of the badge that says how careful to be.
+pub(crate) fn risk_badge(tokens: &Tokens, risk: RiskLevel) -> (&'static str, Color32) {
+    match risk {
+        RiskLevel::Safe => (pt_br::RISK_SAFE, tokens.color_ok),
+        RiskLevel::Review => (pt_br::RISK_REVIEW, tokens.color_warn),
     }
 }
 

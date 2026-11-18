@@ -11,7 +11,7 @@ use crate::components::{
     chip, hud_button, progress_panel, selection_row,
 };
 use crate::i18n::pt_br;
-use crate::screens::{ScreenContext, display_path};
+use crate::screens::{ScreenContext, display_path, risk_badge};
 use crate::theme::{FONT_SIZE_SMALL, SPACE_2, SPACE_3};
 
 /// Space kept under the list for the footer.
@@ -70,10 +70,7 @@ pub(crate) fn show(model: &mut DeveloperViewModel, ui: &mut Ui, context: &Screen
                         );
                     }
                     for row in &rows {
-                        let (badge, color) = match row.risk {
-                            RiskLevel::Safe => (pt_br::RISK_SAFE, tokens.color_ok),
-                            RiskLevel::Review => (pt_br::RISK_REVIEW, tokens.color_warn),
-                        };
+                        let (badge, color) = risk_badge(tokens, row.risk);
                         let clicked = selection_row(
                             ui,
                             tokens,

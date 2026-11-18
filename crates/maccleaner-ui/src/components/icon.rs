@@ -17,12 +17,16 @@ enum IconShape {
 pub(crate) enum Icon {
     Dashboard,
     Cleanup,
+    Apps,
     Duplicates,
     Photos,
     Developer,
+    Docker,
     DiskMap,
     Monitor,
     Sliders,
+    /// Marks what needs an administrator.
+    Lock,
 }
 
 impl Icon {
@@ -69,6 +73,20 @@ impl Icon {
                 Line(&[[18.0, 6.0], [15.0, 9.0]]),
                 Line(&[[9.0, 15.0], [6.0, 18.0]]),
             ],
+            Self::Apps => &[
+                Rect([4.0, 4.0, 6.0, 6.0]),
+                Rect([14.0, 4.0, 6.0, 6.0]),
+                Rect([4.0, 14.0, 6.0, 6.0]),
+                Line(&[[14.5, 14.5], [19.5, 19.5]]),
+                Line(&[[19.5, 14.5], [14.5, 19.5]]),
+            ],
+            Self::Docker => &[
+                Line(&[[3.0, 18.0], [21.0, 18.0]]),
+                Rect([5.0, 12.0, 4.0, 5.0]),
+                Rect([10.0, 12.0, 4.0, 5.0]),
+                Rect([15.0, 12.0, 4.0, 5.0]),
+                Rect([10.0, 6.0, 4.0, 5.0]),
+            ],
             Self::Duplicates => &[
                 Rect([8.0, 8.0, 12.0, 12.0]),
                 Line(&[
@@ -110,6 +128,18 @@ impl Icon {
                 [16.0, 12.0],
                 [22.0, 12.0],
             ])],
+            Self::Lock => &[
+                Rect([5.0, 11.0, 14.0, 10.0]),
+                Line(&[
+                    [8.0, 11.0],
+                    [8.0, 7.5],
+                    [9.5, 4.5],
+                    [12.0, 3.5],
+                    [14.5, 4.5],
+                    [16.0, 7.5],
+                    [16.0, 11.0],
+                ]),
+            ],
             Self::Sliders => &[
                 Line(&[[3.0, 6.0], [12.0, 6.0]]),
                 Line(&[[17.0, 6.0], [21.0, 6.0]]),

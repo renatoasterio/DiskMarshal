@@ -29,6 +29,10 @@ that single request. Apple's guidance accepts this for limited-audience tools.
 The helper accepts rule identifiers only, never paths or commands, and
 re-applies the domain deletion policy.
 
+[0003](0003-uninstall-through-the-privileged-helper.md) later added a second
+form of request, for uninstalling an app. It keeps the same principle: the
+helper works out by itself what may be removed.
+
 ## How it was implemented
 
 The decision stands. Two details differ from what was first written here:

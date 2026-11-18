@@ -1,7 +1,9 @@
 //! Brazilian Portuguese texts.
 
 use maccleaner_application::ApplicationError;
-use maccleaner_application::ports::PrivilegeError;
+use maccleaner_application::ports::{EngineError, PrivilegeError};
+use maccleaner_domain::applications::LeftoverKind;
+use maccleaner_domain::docker::ResourceKind;
 use maccleaner_domain::photos::SimilarityTolerance;
 use maccleaner_domain::scan::{CloudState, FileCategory};
 
@@ -12,17 +14,21 @@ pub(crate) const BRAND: &str = "MACCLEANER";
 // Navigation
 pub(crate) const SCREEN_DASHBOARD: &str = "Painel";
 pub(crate) const SCREEN_CLEANUP: &str = "Limpeza";
+pub(crate) const SCREEN_APPS: &str = "Aplicativos";
 pub(crate) const SCREEN_DUPLICATES: &str = "Duplicados";
 pub(crate) const SCREEN_PHOTOS: &str = "Fotos";
 pub(crate) const SCREEN_DEVELOPER: &str = "Desenvolvedor";
+pub(crate) const SCREEN_DOCKER: &str = "Docker";
 pub(crate) const SCREEN_DISK_MAP: &str = "Mapa do disco";
 pub(crate) const SCREEN_MONITOR: &str = "Monitor";
 
 pub(crate) const TITLE_DASHBOARD: &str = "Central de operações";
 pub(crate) const TITLE_CLEANUP: &str = "Limpeza";
+pub(crate) const TITLE_APPS: &str = "Desinstalar aplicativos";
 pub(crate) const TITLE_DUPLICATES: &str = "Arquivos duplicados";
 pub(crate) const TITLE_PHOTOS: &str = "Fotos parecidas";
 pub(crate) const TITLE_DEVELOPER: &str = "Artefatos de build";
+pub(crate) const TITLE_DOCKER: &str = "Resíduos do Docker";
 pub(crate) const TITLE_DISK_MAP: &str = "Mapa de setores";
 pub(crate) const TITLE_MONITOR: &str = "Telemetria";
 
@@ -30,6 +36,9 @@ pub(crate) const SUBTITLE_DASHBOARD: &str =
     "Visão geral do disco, da memória e do que pode ser recuperado";
 pub(crate) const SUBTITLE_CLEANUP: &str =
     "Caches, temporários e logs · prévia antes de qualquer exclusão";
+pub(crate) const SUBTITLE_APPS: &str =
+    "O app e tudo o que ele deixou na Biblioteca · prévia item por item antes de remover";
+pub(crate) const SUBTITLE_DOCKER: &str = "Imagens sem uso, containers parados, volumes órfãos e cache de build · o que está em uso não entra na lista";
 pub(crate) const SUBTITLE_DUPLICATES: &str =
     "Cópias confirmadas por conteúdo · uma cópia sempre fica";
 pub(crate) const SUBTITLE_PHOTOS: &str =
@@ -117,6 +126,145 @@ pub(crate) const CLEANUP_CONFIRM_TRASH: &str =
     "Xcode Archives vai para a Lixeira e pode ser recuperado";
 pub(crate) const CLEANUP_CONFIRM_RECHECK: &str =
     "As pastas em si ficam; só o conteúdo sai. Itens que mudarem até lá são pulados";
+
+// Apps
+pub(crate) const APPS_LISTING: &str = "Medindo aplicativos";
+pub(crate) const APPS_FAILED: &str = "Listagem interrompida";
+pub(crate) const APPS_CANCELLED: &str = "A listagem foi cancelada.";
+pub(crate) const APPS_PLAN_FAILED: &str = "Não foi possível examinar o app";
+pub(crate) const APPS_LIST_TITLE: &str = "Instalados";
+pub(crate) const APPS_COUNT: &str = "apps";
+pub(crate) const APPS_SEARCH_HINT: &str = "Buscar pelo nome";
+pub(crate) const APPS_NONE_MATCH: &str = "Nenhum app com esse nome.";
+pub(crate) const APPS_NONE_INSTALLED: &str = "Nenhum app encontrado nas pastas de aplicativos.";
+pub(crate) const APPS_VERSION: &str = "versão";
+pub(crate) const APPS_OPEN: &str = "Aberto";
+pub(crate) const APPS_CHOOSE_TITLE: &str = "Nenhum app escolhido";
+pub(crate) const APPS_CHOOSE_BODY: &str =
+    "Escolha um app na lista para ver o que a desinstalação remove.";
+pub(crate) const APPS_PLANNING: &str = "Procurando o que é do app";
+pub(crate) const APPS_OWNER_USER: &str = "instalado por você";
+pub(crate) const APPS_OWNER_SYSTEM: &str = "instalado pela App Store ou por um instalador";
+pub(crate) const APPS_OPEN_NOW: &str = "aberto agora";
+pub(crate) const APPS_IDENTIFIER: &str = "Identificador";
+pub(crate) const APPS_VERSION_LABEL: &str = "Versão";
+pub(crate) const APPS_FOUND: &str = "Encontrado";
+pub(crate) const APPS_OTHER_COPY: &str =
+    "Há outra cópia deste app instalada. Os dados são das duas, então só o app em si é oferecido.";
+pub(crate) const APPS_USER_META: &str = "vai para a Lixeira · pode ser recuperado";
+pub(crate) const APPS_ADMIN_META: &str = "pede Touch ID ou senha · apagado de vez";
+pub(crate) const APPS_ACTION: &str = "Desinstalar";
+pub(crate) const APPS_CHOOSE_FIRST: &str = "Escolha um app na lista.";
+pub(crate) const APPS_CONFIRM_TRASH: &str =
+    "Os itens da sua conta vão para a Lixeira e podem ser recuperados de lá";
+pub(crate) const APPS_CONFIRM_ADMIN: &str =
+    "Os itens de sistema pedem Touch ID ou senha e são apagados de vez";
+pub(crate) const APPS_CONFIRM_REVIEW: &str =
+    "Itens com o selo Revisar podem ser de outro app: confira antes";
+pub(crate) const APPS_ADMIN_PROMPT: &str = "O MacCleaner precisa de permissão de administrador para remover os itens de sistema do app que você está desinstalando.";
+
+/// What the confirmation of an uninstall says first.
+pub(crate) fn apps_confirm_body(name: &str) -> String {
+    format!("Os itens marcados de {name} saem deste Mac.")
+}
+
+/// Why an app that is open cannot be uninstalled.
+pub(crate) fn apps_running(name: &str) -> String {
+    format!("{name} está aberto. Feche o app para poder desinstalar.")
+}
+
+/// Why an uninstall that was authorized removed nothing.
+pub(crate) fn apps_opened_meanwhile(name: &str) -> String {
+    format!("Nada foi removido: {name} foi aberto. Feche o app e tente de novo.")
+}
+
+/// Name of a kind of item an uninstall removes.
+pub(crate) const fn leftover_kind(kind: LeftoverKind) -> &'static str {
+    match kind {
+        LeftoverKind::Application => "Aplicativo",
+        LeftoverKind::Support => "Dados do app",
+        LeftoverKind::Caches => "Caches",
+        LeftoverKind::Preferences => "Preferências",
+        LeftoverKind::Container => "Contêiner",
+        LeftoverKind::SavedState => "Estado salvo",
+        LeftoverKind::WebData => "Dados web",
+        LeftoverKind::Logs => "Logs",
+        LeftoverKind::LaunchItem => "Serviço",
+        LeftoverKind::Helper => "Auxiliar",
+    }
+}
+
+// Docker
+pub(crate) const DOCKER_INSPECTING: &str = "Perguntando ao Docker";
+pub(crate) const DOCKER_INSPECTING_BODY: &str =
+    "O Docker mede cada imagem e cada volume para responder. Com muitos, leva alguns segundos.";
+pub(crate) const DOCKER_MISSING_TITLE: &str = "Docker não encontrado";
+pub(crate) const DOCKER_MISSING_BODY: &str =
+    "Nenhuma instalação do Docker foi encontrada neste Mac, então não há o que limpar aqui.";
+pub(crate) const DOCKER_MISSING_NOTE: &str =
+    "Procurado em /usr/local/bin, /opt/homebrew/bin, Docker Desktop, OrbStack e Rancher Desktop.";
+pub(crate) const DOCKER_STOPPED_TITLE: &str = "Docker parado";
+pub(crate) const DOCKER_STOPPED_META: &str = "instalado · sem resposta";
+pub(crate) const DOCKER_STOPPED_BODY: &str = "O Docker está instalado, mas não está em execução. Imagens, volumes e cache ficam dentro dele: só dá para medir e limpar com ele aberto.";
+pub(crate) const DOCKER_STOPPED_NOTE: &str =
+    "Abra o Docker, espere ele terminar de iniciar e verifique de novo.";
+pub(crate) const DOCKER_FAILED_TITLE: &str = "O Docker não respondeu";
+pub(crate) const DOCKER_CHECK_AGAIN: &str = "Verificar de novo";
+pub(crate) const DOCKER_MEASURE_AGAIN: &str = "Medir de novo";
+pub(crate) const DOCKER_RUNNING: &str = "em execução";
+pub(crate) const DOCKER_UNUSED: &str = "sem uso";
+pub(crate) const DOCKER_IN_USE: &str = "em uso";
+pub(crate) const DOCKER_RECORDS: &str = "registros";
+pub(crate) const DOCKER_LIST_TITLE: &str = "Sem uso";
+pub(crate) const DOCKER_LIST_META: &str = "o que está em uso não entra na lista";
+pub(crate) const DOCKER_NOTHING_UNUSED: &str =
+    "Nada sobrando: tudo o que o Docker guarda está em uso.";
+pub(crate) const DOCKER_NOTHING_OF_KIND: &str = "Nada sem uso deste tipo.";
+pub(crate) const DOCKER_UNNAMED: &str = "sem nome";
+pub(crate) const DOCKER_DETAIL_CACHE: &str = "refeito no próximo build";
+pub(crate) const DOCKER_DETAIL_LEFTOVER: &str = "sobra de build";
+pub(crate) const DOCKER_DETAIL_UNUSED: &str = "nenhum container usa";
+pub(crate) const DOCKER_DETAIL_STOPPED: &str = "parado";
+pub(crate) const DOCKER_DETAIL_VOLUME: &str = "pode guardar um banco de dados";
+pub(crate) const DOCKER_UP_TO: &str = "até";
+pub(crate) const DOCKER_CONFIRM_BODY: &str =
+    "Os itens marcados são apagados pelo próprio Docker, de forma permanente.";
+pub(crate) const DOCKER_CONFIRM_REBUILD: &str = "Imagens e cache voltam com um novo pull ou build";
+pub(crate) const DOCKER_CONFIRM_DATA: &str = "O conteúdo de volumes e containers não tem volta";
+pub(crate) const DOCKER_CONFIRM_IN_USE: &str =
+    "O que estiver em uso na hora é recusado pelo Docker e fica como está";
+pub(crate) const DOCKER_SKIPPED: &str =
+    "itens recusados pelo Docker: estavam em uso ou ele não respondeu";
+
+/// Name of one Docker resource of a kind.
+pub(crate) const fn docker_kind(kind: ResourceKind) -> &'static str {
+    match kind {
+        ResourceKind::BuildCache => "Cache de build",
+        ResourceKind::Image => "Imagem",
+        ResourceKind::Container => "Container",
+        ResourceKind::Volume => "Volume",
+    }
+}
+
+/// Name of everything Docker holds of a kind, and of what is counted.
+pub(crate) const fn docker_kind_plural(kind: ResourceKind) -> (&'static str, &'static str) {
+    match kind {
+        ResourceKind::BuildCache => ("Cache de build", DOCKER_RECORDS),
+        ResourceKind::Image => ("Imagens", "imagens"),
+        ResourceKind::Container => ("Containers", "containers"),
+        ResourceKind::Volume => ("Volumes", "volumes"),
+    }
+}
+
+/// Says why Docker could not be asked.
+pub(crate) fn engine_error(error: &EngineError) -> String {
+    match error {
+        EngineError::NotInstalled => DOCKER_MISSING_BODY.to_owned(),
+        EngineError::NotRunning => DOCKER_STOPPED_BODY.to_owned(),
+        EngineError::TimedOut => "O Docker demorou demais para responder.".to_owned(),
+        EngineError::Failed(reason) => format!("O Docker respondeu com um erro: {reason}"),
+    }
+}
 
 pub(crate) const ALL: &str = "Todos";
 pub(crate) const CHOOSE_FOLDER: &str = "Escolher pasta";
@@ -227,6 +375,7 @@ pub(crate) const DASH_CPU_USE: &str = "uso total";
 pub(crate) const DASH_RECOVERABLE: &str = "Espaço recuperável";
 pub(crate) const DASH_ROW_CLEANUP: &str = "Caches e temporários";
 pub(crate) const DASH_ROW_DEVELOPER: &str = "Projetos de código";
+pub(crate) const DASH_ROW_DOCKER: &str = "Resíduos do Docker";
 pub(crate) const DASH_ROW_DUPLICATES: &str = "Arquivos duplicados";
 pub(crate) const DASH_ROW_PHOTOS: &str = "Fotos parecidas";
 pub(crate) const DASH_NOT_ANALYZED: &str = "não analisado";
@@ -302,6 +451,15 @@ pub(crate) fn application_error(error: &ApplicationError) -> String {
         ApplicationError::RuleNotAllowed(rule) => {
             format!("A regra {rule} não pode ser executada aqui.")
         }
+        ApplicationError::AppNotFound(identifier) => {
+            format!("Nenhum app instalado tem o identificador {identifier}, ou há mais de um.")
+        }
+        ApplicationError::AppRunning(name) => {
+            format!("{name} está aberto. Feche o app e tente de novo.")
+        }
+        ApplicationError::ItemNotAllowed(path) => {
+            format!("Este item não pode ser removido aqui: {}", path.display())
+        }
         ApplicationError::Io { path, source } => {
             format!("O macOS recusou o acesso a {}: {source}", path.display())
         }
@@ -310,17 +468,22 @@ pub(crate) fn application_error(error: &ApplicationError) -> String {
 
 /// Says why the system areas were not cleaned.
 pub(crate) fn privilege_error(error: &PrivilegeError) -> String {
+    administrator_failure("As áreas de sistema não foram limpas", error)
+}
+
+/// Says why the system items of an app were not removed.
+pub(crate) fn uninstall_privilege_error(error: &PrivilegeError) -> String {
+    administrator_failure("Os itens de sistema não foram removidos", error)
+}
+
+/// Says, after `what` did not happen, why the administrator part failed.
+fn administrator_failure(what: &str, error: &PrivilegeError) -> String {
     match error {
-        PrivilegeError::Cancelled => {
-            "As áreas de sistema não foram limpas: a autenticação foi cancelada.".to_owned()
-        }
+        PrivilegeError::Cancelled => format!("{what}: a autenticação foi cancelada."),
         PrivilegeError::Unavailable(_) => {
-            "As áreas de sistema não foram limpas: esse recurso só existe no app instalado."
-                .to_owned()
+            format!("{what}: esse recurso só existe no app instalado.")
         }
-        PrivilegeError::Failed(reason) => {
-            format!("As áreas de sistema não foram limpas: {reason}")
-        }
+        PrivilegeError::Failed(reason) => format!("{what}: {reason}"),
     }
 }
 

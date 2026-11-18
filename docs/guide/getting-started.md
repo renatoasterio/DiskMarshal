@@ -141,7 +141,7 @@ Press `Command + Space`, type `MacCleaner` and press Return. You can also open i
 
 **What you should see:** a short start-up sequence (click to skip it), then the "Painel" (dashboard).
 
-![The MacCleaner dashboard: status bar on top, the seven screens on the left, gauges and the recoverable space on the right](../assets/screens/dashboard.png)
+![The MacCleaner dashboard: status bar on top, the nine screens on the left, gauges and the recoverable space on the right](../assets/screens/dashboard.png)
 
 *Screenshot of the app with demonstration data. Your numbers will be different, and "Espaço recuperável" (recoverable space) starts with "não analisado" (not analyzed) on every row.*
 

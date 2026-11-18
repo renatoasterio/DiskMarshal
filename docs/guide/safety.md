@@ -26,9 +26,16 @@ Before anything is removed, MacCleaner lists exactly what will go and how much s
 | Caches, temporary files, logs, Xcode build output, package manager caches | "Limpeza" | Removed at once | No, but apps and tools recreate them when needed. |
 | System caches and logs (`/Library/Caches`, `/Library/Logs`) | "Limpeza", group "Sistema" | Removed at once | No, but the system and apps recreate them when needed. |
 | Build and dependency folders (`node_modules`, `target`, `bin`/`obj`) | "Desenvolvedor" | Removed at once | No, but your tools recreate them the next time you install or build. |
+| An app you installed yourself, and what it left in your Library | "Aplicativos" | The Trash | Yes, the same way. |
+| An app the App Store or an installer put there, and what it left in `/Library` | "Aplicativos", group "Sistema" | Removed at once | No. The app can be installed again. What it kept in `/Library` cannot be brought back. |
+| Docker's build cache, images, stopped containers and volumes | "Docker" | Removed at once, by Docker itself | The build cache and images come back with a new build or download. **The content of a container or a volume does not.** |
 | What is already in the Trash | "Limpeza", rule "Lixeira" | Removed at once | **No.** This rule empties the Trash. |
 
-With one exception, only data that can be recreated is ever removed for good. The exception is the rule "Lixeira" (Trash): it empties the Trash, and that cannot be undone. It carries the badge "Revisar" and is never selected for you: it runs only if you select it yourself.
+Only data that can be recreated is removed for good, with three exceptions, and each one needs a choice of yours:
+
+- **The rule "Lixeira" (Trash)** empties the Trash, and that cannot be undone. It carries the badge "Revisar" and is never selected for you.
+- **A Docker container or volume** holds content that exists nowhere else. Both carry the badge "Revisar" and are never selected for you.
+- **The administrator part of an uninstall.** You chose to uninstall that app, and what it kept in `/Library` goes with it for good.
 
 Space sent to the Trash is only freed when you empty the Trash.
 
@@ -66,7 +73,9 @@ If a removal happened but could not be written to the history, the result dialog
 
 ## One deletion path for everything
 
-Every screen that removes something uses the same piece of code to do it, and that code applies all five rules above. There is no second, quicker way to delete hidden somewhere. The helper that cleans system areas uses that same code.
+Every screen that removes something uses the same piece of code to do it, and that code applies all five rules above. There is no second, quicker way to delete hidden somewhere. The helper that cleans system areas and removes the system items of an uninstalled app uses that same code.
+
+One thing cannot go through it: what Docker holds. Those are not files the app can reach, so Docker itself removes them, one at a time, and refuses anything that is in use. MacCleaner never forces Docker to remove something.
 
 ## What each screen keeps for you
 
@@ -74,6 +83,8 @@ Every screen that removes something uses the same piece of code to do it, and th
 - **"Fotos":** at least one photo of each group always stays. The largest file is kept by default. The library of the Photos app is never read or changed.
 - **"Desenvolvedor":** a folder is offered only when the file that identifies the project is beside it and git has no tracked files inside it. No source code is removed.
 - **"Limpeza":** a rule removes the content of its folders, never the folders. Rules marked "Revisar" (review) and the whole "Sistema" group are never selected for you.
+- **"Aplicativos":** an app that is open is refused. Only items named after the app are found, and only exact matches come selected. When another copy of the app is installed, its data stays.
+- **"Docker":** what a container uses is never listed, and Docker refuses what came into use in the meantime. Named images, containers and volumes are never selected for you.
 
 ## iCloud files are not downloaded
 
@@ -113,6 +124,15 @@ What you should know:
 - **It needs the installed app** (`cargo xtask install`), because that is where the helper lives.
 - **A known, accepted risk:** a malicious program already running in your user account could try to swap the helper in the instant between the check and its execution. This is considered acceptable for personal use. The details are in the [security policy](../security.md#privileged-helper).
 
+### Uninstalling an app that needs an administrator
+
+An app the App Store or an installer put on the Mac belongs to the system, and so does what it left in `/Library`. Removing those works the same way: macOS authenticates you, then runs the helper once.
+
+- **The helper is told which app, by its identifier, and which items.** It then finds the app and what belongs to it by itself, and removes an item only when its own search found it too. One item that is not the app's stops everything before anything is touched.
+- **It refuses an app that is open,** and an identifier that two installed apps share.
+- **These items are removed for good.** The helper runs as an administrator and cannot reach your Trash.
+- **If you close the authentication dialog, nothing at all is removed,** not even the part that needs no administrator. That part only starts after the administrator part worked.
+
 ## What has not been tested
 
 Said plainly, so you can decide how careful to be:
@@ -122,6 +142,9 @@ Said plainly, so you can decide how careful to be:
 - Starting the app with "Reduce motion" turned on in System Settings.
 - Removing real personal data from the interface. It was exercised on test folders only.
 - macOS versions other than 27, and Intel Macs.
+- Uninstalling a real app from the interface. Finding what belongs to an app was checked against real apps without removing anything; the removal ran on test folders, and its administrator part only in the helper's simulation mode.
+- Removing anything from a real Docker. Reading what Docker holds was checked on a real one; the removal ran against a stand-in program that answers like Docker.
+- Whether Docker Desktop gives the freed space back to macOS.
 
 ## Known limits
 
@@ -130,6 +153,8 @@ Said plainly, so you can decide how careful to be:
 - **Photos inside the library of the Photos app are out of scope.** Use the Photos app for those.
 - **The space really freed can be smaller than the estimate.** The disk format of the Mac (APFS) can store two copies of a file as one, and can keep old versions in snapshots. Removing a file whose content is still used elsewhere frees less than its size.
 - **Items in the Trash still take space** until you empty it.
+- **The uninstaller finds what is named after the app.** Data kept under another name stays. And an app that declares the identifier of another app would have that app's items listed as its own, so read the list before confirming.
+- **Docker is asked through its own program only.** Other container engines are not looked for.
 
 ## If something goes wrong
 
@@ -144,5 +169,7 @@ The rules above are enforced in code and covered by tests:
 - Path rules: [`protected_paths.rs`](../../crates/maccleaner-domain/src/deletion/protected_paths.rs)
 - The single code path that deletes: [`delete_items.rs`](../../crates/maccleaner-application/src/use_cases/delete_items.rs)
 - The helper that cleans system areas: [`apps/privileged-helper/src/main.rs`](../../apps/privileged-helper/src/main.rs)
+- How an item is matched to an app: [`leftover_matcher.rs`](../../crates/maccleaner-domain/src/applications/leftover_matcher.rs)
+- What Docker is asked to do: [`docker_cli_container_engine.rs`](../../crates/maccleaner-infrastructure/src/process/docker_cli_container_engine.rs)
 - How the app asks macOS to run it: [`osascript_privileged_cleaner.rs`](../../crates/maccleaner-infrastructure/src/privilege/osascript_privileged_cleaner.rs)
 - The full policy for contributors: [docs/security.md](../security.md)

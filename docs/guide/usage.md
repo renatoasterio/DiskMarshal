@@ -15,7 +15,7 @@ How to use each screen of MacCleaner, and its command line tool. If you have not
 | Area | What it shows |
 |---|---|
 | **Status bar** (top) | The app name, the free space on the startup disk, the time, and the appearance icon. |
-| **Navigation rail** (left) | The seven screens, each with its number key. The lit one is where you are. |
+| **Navigation rail** (left) | The nine screens, each with its number key. The lit one is where you are. |
 | **Disk gauge** (bottom left) | "Disco de inicialização" (startup disk): how full it is. It turns amber and says "crítico" (critical) when less than 10% is free. |
 | **Work area** (right) | The title and a one-line description of the current screen, then its content. |
 
@@ -23,7 +23,7 @@ How to use each screen of MacCleaner, and its command line tool. If you have not
 
 | Key | Action |
 |---|---|
-| `1` to `7` | Go to a screen, in the order of the rail |
+| `1` to `9` | Go to a screen, in the order of the rail |
 | `Esc` | Close the appearance panel |
 | `Command + Q` | Quit |
 
@@ -74,7 +74,7 @@ If you click the action button with nothing selected, the screen says "Selecione
 
 The [safety guide](safety.md) explains the rules behind these steps.
 
-## The seven screens
+## The nine screens
 
 ### 1. "Painel" (dashboard)
 
@@ -94,6 +94,7 @@ The rows of "Espaço recuperável":
 | Row | Comes from the screen |
 |---|---|
 | "Caches e temporários" (caches and temporary files) | "Limpeza" |
+| "Resíduos do Docker" (Docker leftovers) | "Docker": what Docker itself says removing everything unused would free |
 | "Projetos de código" (code projects) | "Desenvolvedor" |
 | "Arquivos duplicados" (duplicate files) | "Duplicados" |
 | "Fotos parecidas" (similar photos) | "Fotos" |
@@ -161,7 +162,57 @@ Things to know before using it:
 - **It has not been verified end to end.** The helper is covered by automated tests on temporary folders, but the macOS dialog and a real cleanup of `/Library/Caches` and `/Library/Logs` were not exercised by the project's tests. See the [safety guide](safety.md#administrator-areas).
 - Items that macOS itself protects (System Integrity Protection) cannot be removed even by an administrator. They are reported as left as they were.
 
-### 3. "Duplicados" (duplicates)
+### 3. "Aplicativos" (apps)
+
+Uninstalls an app together with what it left in the Library folders: its caches, its settings, its saved windows, its private container. The app calls this screen "Desinstalar aplicativos" (uninstall apps).
+
+![The apps screen: the installed apps on the left and, on the right, the items that belong to the chosen app, each with a badge and a size](../assets/screens/apps.png)
+
+Step by step:
+
+1. Press `3`. The first time, the app measures what is installed. You see "Medindo aplicativos" (measuring apps).
+2. Find the app in the list "Instalados" (installed), which shows the largest first. Type part of its name in "Buscar pelo nome" (search by name) to narrow the list. A padlock before the name means the App Store or an installer put the app there, so removing it needs an administrator.
+3. Click the app. The right side shows its identifier, its version and everything found that belongs to it.
+4. Check what is selected. **Items with the badge "Seguro" come already selected. Items with "Revisar" wait for you.**
+5. Click **"Desinstalar"** (uninstall), read the dialog, and click **"Desinstalar"** again to authorize.
+
+The items come in two groups:
+
+| Group | What is in it | Where it goes |
+|---|---|---|
+| "Conta do usuário" (user account) | The app, when you installed it yourself, and what it left in your Library | To the Trash. You can put it back from there. |
+| "Sistema" (system) | The app, when the App Store or an installer put it there, and what it left in `/Library` | Removed for good, after macOS asks for Touch ID or the password. An administrator has no Trash of yours to send it to. |
+
+How an item is recognized as the app's:
+
+- **"Seguro":** the item is named exactly after the identifier of the app, such as `com.vendor.editor`, `com.vendor.editor.plist` or `com.vendor.editor.savedState`. A shared container that carries the identifier, such as `group.com.vendor.editor`, counts too.
+- **"Revisar":** the name only starts with the identifier (`com.vendor.editor.helper`), or the item is a folder named like the app (`Application Support/Editor`). Something else could be using that name, so these are never selected for you.
+
+What this screen will not do:
+
+- **An app that is open cannot be uninstalled.** It is marked "aberto" (open) in the list, and nothing of it can be selected. Quit the app and click it again. It is checked once more right before the removal.
+- **When another copy of the same app is installed, only the app itself is offered.** The two copies share their data.
+- **When the app itself cannot be removed here, nothing comes selected.** Removing only what an app left would just reset it.
+- **Apps that belong to macOS are not listed.** They live in a part of the disk that cannot be changed.
+- **It finds what carries the identifier or the name of the app, not everything the app ever wrote.** A document the app saved somewhere else, or a folder named after its maker, stays.
+
+Where it looks:
+
+| Kind shown | Folders |
+|---|---|
+| "Dados do app" (app data) | `~/Library/Application Support`, `/Library/Application Support` |
+| "Contêiner" (container) | `~/Library/Containers`, `~/Library/Group Containers`, `~/Library/Application Scripts` |
+| "Caches" | `~/Library/Caches`, `/Library/Caches` |
+| "Dados web" (web data) | `~/Library/HTTPStorages`, `~/Library/WebKit`, `~/Library/Cookies` |
+| "Preferências" (settings) | `~/Library/Preferences`, `~/Library/Preferences/ByHost`, `/Library/Preferences` |
+| "Estado salvo" (saved state) | `~/Library/Saved Application State` |
+| "Logs" | `~/Library/Logs`, `/Library/Logs` |
+| "Serviço" (service) | `~/Library/LaunchAgents`, `/Library/LaunchAgents`, `/Library/LaunchDaemons` |
+| "Auxiliar" (helper) | `/Library/PrivilegedHelperTools` |
+
+Like the "Sistema" group of the cleanup, the "Sistema" group here needs the installed app. Without it, the group shows "só no app instalado · cargo xtask install" and its items cannot be selected.
+
+### 4. "Duplicados" (duplicates)
 
 Files with exactly the same content, stored more than once.
 
@@ -169,7 +220,7 @@ Files with exactly the same content, stored more than once.
 
 Step by step:
 
-1. Press `3`.
+1. Press `4`.
 2. Choose the "Tamanho mínimo" (minimum size): "1 MB", "10 MB" or "100 MB". Smaller files are ignored. A larger minimum makes the search faster.
 3. Click **"Escolher pasta"** (choose folder) and pick a folder, or click **"Pasta pessoal"** (home folder) to search your whole home folder.
 4. Wait for "Procurando duplicados" (searching for duplicates). "Cancelar" stops the search.
@@ -189,7 +240,7 @@ At most 100 groups are shown, the ones that free the most space first. When ther
 
 After the result, "Procurar de novo" (search again) repeats the search in the same folder, and "Escolher pasta" starts in another one.
 
-### 4. "Fotos" (similar photos)
+### 5. "Fotos" (similar photos)
 
 Photos that look the same even when the files are different: a resized copy, the same picture saved in another format, shots taken in a burst.
 
@@ -197,7 +248,7 @@ Photos that look the same even when the files are different: a resized copy, the
 
 Step by step:
 
-1. Press `4`.
+1. Press `5`.
 2. Choose the level of "Semelhança" (similarity):
 
    | Level | What it gathers |
@@ -232,7 +283,7 @@ How photos are matched: each image is reduced to a small signature made of its o
 
 At most 60 groups are shown, the ones that free the most space first. A picture that cannot be drawn shows "sem prévia" (no preview).
 
-### 5. "Desenvolvedor" (developer)
+### 6. "Desenvolvedor" (developer)
 
 For people who write code: the build and dependency folders that tools recreate by themselves, such as `node_modules`, `target` and `bin`/`obj`. If you do not write code, you can ignore this screen.
 
@@ -240,7 +291,7 @@ For people who write code: the build and dependency folders that tools recreate 
 
 Step by step:
 
-1. Press `5`.
+1. Press `6`.
 2. Click **"Escolher pasta"** and pick the folder where your projects live, or click **"Pasta pessoal"** to search your home folder.
 3. Wait for "Procurando projetos" (searching for projects).
 4. Read the list "Pastas recriáveis" (folders that can be recreated). Each row is `project › folder`, with the ecosystem, when the project was last changed ("alterado há 2 meses" means changed 2 months ago), a badge and the size. The chips above the list ("Todos", "Node", "Rust"...) filter by ecosystem.
@@ -275,7 +326,41 @@ What is recognized:
 
 When you search the home folder, the folders Library, Applications, Pictures, Movies, Music and the Trash are skipped: they hold no code projects and are slow to read.
 
-### 6. "Mapa do disco" (disk map)
+### 7. "Docker"
+
+For people who use Docker: what Docker holds that no container uses. The app calls this screen "Resíduos do Docker" (Docker leftovers). If you do not use Docker, you can ignore it.
+
+![The Docker screen: four panels with how much Docker holds of each kind and, below them, the list of what nothing uses](../assets/screens/docker.png)
+
+Step by step:
+
+1. Press `7`. The app asks Docker what it holds. You see "Perguntando ao Docker" (asking Docker). With many images and volumes, this takes some seconds.
+2. Read the four panels at the top: "Imagens" (images), "Containers", "Volumes" and "Cache de build" (build cache). Each one shows how much space that kind takes, how many there are, and the share that nothing uses ("sem uso").
+3. Read the list "Sem uso" (unused). Each row has a name, what it is, how long ago it was made, a badge and a size. The chips above the list filter by kind.
+4. Check what is selected. **Only the build cache and the images without a name come already selected.** Both are leftovers of builds, and the next build makes them again.
+5. Click **"Limpar selecionados"** (clean selected), read the dialog, and click **"Autorizar limpeza"** (authorize cleanup).
+
+**This removal is permanent, and Docker itself does it.** What Docker holds is not made of files the app can reach, so nothing goes to the Trash.
+
+What is listed:
+
+| Kind | Listed when | Badge |
+|---|---|---|
+| "Cache de build" | There is any. It is removed as a whole. | "Seguro" |
+| "Imagem" (image) without a name | No container uses it | "Seguro" |
+| "Imagem" with a name | No container uses it, running or stopped | "Revisar": an image you built may exist nowhere else |
+| "Container" | It is stopped | "Revisar": what it wrote while it ran is lost |
+| "Volume" | No container uses it | "Revisar": a volume may hold a database |
+
+Things to know:
+
+- **What is in use never enters the list.** If something comes into use after the list was made, Docker refuses to remove it and it stays. The result dialog counts those.
+- **The total says "até" (up to).** Images share parts, so removing two of them can free less than their sizes added up. The result dialog shows what Docker really freed, measured before and after.
+- **"Docker não encontrado" (Docker not found)** means no Docker program was found on this Mac. **"Docker parado" (Docker stopped)** means it is installed but closed: open Docker, wait for it to start, and click "Verificar de novo" (check again). The app does not start Docker for you.
+- **"Medir de novo" (measure again)** asks Docker again.
+- **The space is freed inside Docker.** Docker Desktop keeps everything in one large file on the Mac, and that file may not shrink at once.
+
+### 8. "Mapa do disco" (disk map)
 
 A map of what uses the disk. Each block is as large as the space it takes. The app calls it "Mapa de setores" (sector map). This screen only reads: nothing can be deleted from it.
 
@@ -283,7 +368,7 @@ A map of what uses the disk. Each block is as large as the space it takes. The a
 
 Step by step:
 
-1. Press `6`.
+1. Press `8`.
 2. Click **"Pasta pessoal"** to measure your home folder, or **"Disco inteiro"** (whole disk) to measure the startup disk. macOS may ask for permission to read Documents, Desktop and Downloads.
 3. Wait for "Varrendo" (scanning). The note "iCloud: sem downloads" reminds you that nothing is being downloaded. "Cancelar" stops the scan.
 4. **Move the pointer over a block** to see its card: "Tamanho" (size and share of the map), "Itens" (items), "iCloud" (where the content lives) and "Tipo" (type).
@@ -308,7 +393,7 @@ Good to know:
 - Apps, Photos libraries and other packages appear as one sealed block.
 - "Disco inteiro" leaves two things out on purpose: other disks connected to the Mac, and the internal volume macOS shows twice, which would count every file two times.
 
-### 7. "Monitor"
+### 9. "Monitor"
 
 The machine, live. The app calls this screen "Telemetria" (telemetry).
 
@@ -410,6 +495,28 @@ cargo run --release -p maccleaner-cli -- scan /
 ```
 
 This takes longer and needs Full Disk Access to be complete. Two things are left out on purpose: other disks connected to the Mac, and the internal volume macOS shows twice, which would count every file two times.
+
+### Previewing the apps and Docker screens
+
+Two more commands print what the "Aplicativos" and "Docker" screens would find. Like `scan`, they remove nothing.
+
+```bash
+cargo run --release -p maccleaner-cli -- apps
+```
+
+Lists the installed apps, largest first, with the version and who can remove each one: "usuário" (you) or "admin" (an administrator).
+
+```bash
+cargo run --release -p maccleaner-cli -- apps Docker
+```
+
+With the name of an app, shows what uninstalling it would remove: each item with its kind, its badge and its size.
+
+```bash
+cargo run --release -p maccleaner-cli -- docker
+```
+
+Shows how much Docker holds of each kind and lists what nothing uses.
 
 ## Next
 

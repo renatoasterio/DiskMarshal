@@ -10,9 +10,10 @@ use egui::{
     WidgetInfo, pos2, vec2,
 };
 use maccleaner_application::ports::{
-    AccessStatus, ContentHasher, ExternalOpener, FileInspector, FileRemover, FileSystemWalker,
-    FolderPicker, HistoryRepository, ImageThumbnailer, MetricsProvider, PermissionProbe,
-    PrivilegedCleaner, RuleCatalog, TrashBin, VersionControlProbe, VolumeStats, WallClock,
+    AccessStatus, AppBundleReader, ContainerEngine, ContentHasher, ExternalOpener, FileInspector,
+    FileRemover, FileSystemWalker, FolderLister, FolderPicker, HistoryRepository, ImageThumbnailer,
+    MetricsProvider, PermissionProbe, PrivilegedCleaner, RuleCatalog, RunningAppProbe, TrashBin,
+    VersionControlProbe, VolumeStats, WallClock,
 };
 use maccleaner_domain::monitoring::VolumeUsage;
 
@@ -97,6 +98,16 @@ pub struct UiServices {
     pub privileged: Arc<dyn PrivilegedCleaner>,
     /// Finds out which permissions the user gave the app.
     pub permissions: Arc<dyn PermissionProbe>,
+    /// Reads what an app bundle says about itself.
+    pub bundles: Arc<dyn AppBundleReader>,
+    /// Tells which programs are running.
+    pub running_apps: Arc<dyn RunningAppProbe>,
+    /// Lists what is directly inside a folder.
+    pub folder_lister: Arc<dyn FolderLister>,
+    /// Talks to the Docker engine installed on this Mac.
+    pub container_engine: Arc<dyn ContainerEngine>,
+    /// The folders where apps are installed.
+    pub application_folders: Vec<PathBuf>,
     /// The user's home folder.
     pub home: PathBuf,
 }
@@ -125,6 +136,10 @@ pub struct UiOptions {
     pub preload_monitor: bool,
     /// A folder to search for similar photos before the first frame.
     pub preload_photos: Option<PathBuf>,
+    /// Whether to list the installed apps before the first frame.
+    pub preload_apps: bool,
+    /// Whether to ask Docker what it holds before the first frame.
+    pub preload_docker: bool,
 }
 
 impl Default for UiOptions {
@@ -140,6 +155,8 @@ impl Default for UiOptions {
             preload_duplicates: None,
             preload_monitor: false,
             preload_photos: None,
+            preload_apps: false,
+            preload_docker: false,
         }
     }
 }
@@ -194,6 +211,12 @@ impl MacCleanerUi {
         }
         if let Some(root) = &options.preload_photos {
             screens.preload_photos(ctx, &services, root);
+        }
+        if options.preload_apps {
+            screens.preload_apps(&services);
+        }
+        if options.preload_docker {
+            screens.preload_docker(&services);
         }
         let now = ctx.input(|input| input.time);
         let plays_boot = options.shows_boot && options.motion.allows_ambient();
