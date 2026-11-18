@@ -93,13 +93,13 @@ pub(crate) fn show(model: &mut DeveloperViewModel, ui: &mut Ui, context: &Screen
         });
 
     let (count, size) = model.selection();
-    let summary = format!("{count} {} · {size}", pt_br::SELECTED);
+    let summary = format!("{} · {size}", pt_br::SELECTED.of(count));
     if action_footer(ui, tokens, &summary, model.notice(), pt_br::DEV_ACTION) {
         model.request_removal();
     }
 
     let lines = [
-        format!("{count} {} · {size}", pt_br::DEV_FOLDERS),
+        format!("{} · {size}", pt_br::DEV_FOLDERS.of(count)),
         pt_br::DEV_CONFIRM_SOURCE.to_owned(),
         pt_br::DEV_CONFIRM_RECREATE.to_owned(),
     ];

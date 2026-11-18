@@ -9,6 +9,8 @@ use diskmarshal_domain::scan::{CloudState, FileCategory};
 
 pub(crate) use diskmarshal_domain::shared::group_digits;
 
+use super::Counted;
+
 pub(crate) const BRAND: &str = "DISKMARSHAL";
 
 // Navigation
@@ -79,7 +81,7 @@ pub(crate) const BOOT_LINES: [(&str, &str); 4] = [
 pub(crate) const BOOT_SKIP_HINT: &str = "clique para pular";
 
 // Shared words
-pub(crate) const ITEMS: &str = "itens";
+pub(crate) const ITEMS: Counted = Counted::new("item", "itens");
 pub(crate) const CANCEL: &str = "Cancelar";
 pub(crate) const OPEN_FULL_DISK_ACCESS: &str = "Abrir ajustes de Acesso Total ao Disco";
 pub(crate) const FULL_DISK_ACCESS_MISSING: &str =
@@ -88,10 +90,10 @@ pub(crate) const SCAN_LOST: &str = "A varredura parou por um erro interno. Tente
 
 pub(crate) const TRY_AGAIN: &str = "Tentar de novo";
 pub(crate) const CLOSE: &str = "Fechar";
-pub(crate) const SELECTED: &str = "selecionados";
+pub(crate) const SELECTED: Counted = Counted::new("selecionado", "selecionados");
 pub(crate) const SELECT_SOMETHING: &str = "Selecione ao menos um item.";
 pub(crate) const EMPTY: &str = "vazio";
-pub(crate) const RULES: &str = "regras";
+pub(crate) const RULES: Counted = Counted::new("regra", "regras");
 pub(crate) const RISK_SAFE: &str = "Seguro";
 pub(crate) const RISK_REVIEW: &str = "Revisar";
 
@@ -101,11 +103,19 @@ pub(crate) const REMOVING_TITLE: &str = "Removendo";
 pub(crate) const REMOVING_BODY: &str = "Cada item é conferido de novo antes de ser removido.";
 pub(crate) const DONE_TITLE: &str = "Concluído";
 pub(crate) const FREED: &str = "liberados";
-pub(crate) const ITEMS_REMOVED: &str = "itens removidos · registrados no histórico";
+pub(crate) const ITEMS_REMOVED: Counted = Counted::new(
+    "item removido · registrado no histórico",
+    "itens removidos · registrados no histórico",
+);
 pub(crate) const SENT_TO_TRASH: &str = "enviados para a Lixeira";
-pub(crate) const ITEMS_SKIPPED: &str =
-    "itens deixados como estavam: mudaram, sumiram ou o macOS não permitiu";
-pub(crate) const ITEMS_UNRECORDED: &str = "remoções não puderam ser gravadas no histórico";
+pub(crate) const ITEMS_SKIPPED: Counted = Counted::new(
+    "item deixado como estava: mudou, sumiu ou o macOS não permitiu",
+    "itens deixados como estavam: mudaram, sumiram ou o macOS não permitiu",
+);
+pub(crate) const ITEMS_UNRECORDED: Counted = Counted::new(
+    "remoção não pôde ser gravada no histórico",
+    "remoções não puderam ser gravadas no histórico",
+);
 
 // Cleanup
 pub(crate) const CLEANUP_ANALYZING: &str = "Analisando";
@@ -130,7 +140,7 @@ pub(crate) const APPS_FAILED: &str = "Listagem interrompida";
 pub(crate) const APPS_CANCELLED: &str = "A listagem foi cancelada.";
 pub(crate) const APPS_PLAN_FAILED: &str = "Não foi possível examinar o app";
 pub(crate) const APPS_LIST_TITLE: &str = "Instalados";
-pub(crate) const APPS_COUNT: &str = "apps";
+pub(crate) const APPS_COUNT: Counted = Counted::new("app", "apps");
 pub(crate) const APPS_SEARCH_HINT: &str = "Buscar pelo nome";
 pub(crate) const APPS_NONE_MATCH: &str = "Nenhum app com esse nome.";
 pub(crate) const APPS_NONE_INSTALLED: &str = "Nenhum app encontrado nas pastas de aplicativos.";
@@ -208,7 +218,7 @@ pub(crate) const DOCKER_MEASURE_AGAIN: &str = "Medir de novo";
 pub(crate) const DOCKER_RUNNING: &str = "em execução";
 pub(crate) const DOCKER_UNUSED: &str = "sem uso";
 pub(crate) const DOCKER_IN_USE: &str = "em uso";
-pub(crate) const DOCKER_RECORDS: &str = "registros";
+pub(crate) const DOCKER_RECORDS: Counted = Counted::new("registro", "registros");
 pub(crate) const DOCKER_LIST_TITLE: &str = "Sem uso";
 pub(crate) const DOCKER_LIST_META: &str = "o que está em uso não entra na lista";
 pub(crate) const DOCKER_NOTHING_UNUSED: &str =
@@ -227,8 +237,10 @@ pub(crate) const DOCKER_CONFIRM_REBUILD: &str = "Imagens e cache voltam com um n
 pub(crate) const DOCKER_CONFIRM_DATA: &str = "O conteúdo de volumes e containers não tem volta";
 pub(crate) const DOCKER_CONFIRM_IN_USE: &str =
     "O que estiver em uso na hora é recusado pelo Docker e fica como está";
-pub(crate) const DOCKER_SKIPPED: &str =
-    "itens recusados pelo Docker: estavam em uso ou ele não respondeu";
+pub(crate) const DOCKER_SKIPPED: Counted = Counted::new(
+    "item recusado pelo Docker: estava em uso ou ele não respondeu",
+    "itens recusados pelo Docker: estavam em uso ou ele não respondeu",
+);
 
 /// Name of one Docker resource of a kind.
 pub(crate) const fn docker_kind(kind: ResourceKind) -> &'static str {
@@ -241,12 +253,12 @@ pub(crate) const fn docker_kind(kind: ResourceKind) -> &'static str {
 }
 
 /// Name of everything Docker holds of a kind, and of what is counted.
-pub(crate) const fn docker_kind_plural(kind: ResourceKind) -> (&'static str, &'static str) {
+pub(crate) const fn docker_kind_plural(kind: ResourceKind) -> (&'static str, Counted) {
     match kind {
         ResourceKind::BuildCache => ("Cache de build", DOCKER_RECORDS),
-        ResourceKind::Image => ("Imagens", "imagens"),
-        ResourceKind::Container => ("Containers", "containers"),
-        ResourceKind::Volume => ("Volumes", "volumes"),
+        ResourceKind::Image => ("Imagens", Counted::new("imagem", "imagens")),
+        ResourceKind::Container => ("Containers", Counted::new("container", "containers")),
+        ResourceKind::Volume => ("Volumes", Counted::new("volume", "volumes")),
     }
 }
 
@@ -274,7 +286,7 @@ pub(crate) const DEV_SEARCH_AGAIN: &str = "Procurar de novo";
 pub(crate) const DEV_TOUCHED: &str = "alterado";
 pub(crate) const DEV_ACTION: &str = "Excluir selecionados";
 pub(crate) const DEV_AUTHORIZE: &str = "Autorizar exclusão";
-pub(crate) const DEV_FOLDERS: &str = "pastas";
+pub(crate) const DEV_FOLDERS: Counted = Counted::new("pasta", "pastas");
 pub(crate) const DEV_CONFIRM_BODY: &str =
     "As pastas selecionadas serão apagadas de forma permanente.";
 pub(crate) const DEV_CONFIRM_SOURCE: &str = "Nenhum código-fonte é removido";
@@ -298,12 +310,14 @@ pub(crate) const DUP_NONE_BODY: &str =
     "Não há arquivos idênticos nesta pasta com o tamanho mínimo escolhido.";
 pub(crate) const DUP_KEEP: &str = "Manter";
 pub(crate) const DUP_KEEP_ONE: &str = "Ao menos uma cópia de cada arquivo precisa ficar.";
-pub(crate) const DUP_COPIES: &str = "cópias";
+pub(crate) const DUP_COPIES: Counted = Counted::new("cópia", "cópias");
 pub(crate) const DUP_EACH: &str = "cada";
-pub(crate) const DUP_FILES: &str = "arquivos";
+pub(crate) const DUP_FILES: Counted = Counted::new("arquivo", "arquivos");
 pub(crate) const DUP_MORE_PREFIX: &str = "Mais";
-pub(crate) const DUP_MORE_SUFFIX: &str =
-    "grupos menores não são mostrados. Remova os maiores e procure de novo.";
+pub(crate) const DUP_MORE_SUFFIX: Counted = Counted::new(
+    "grupo menor não é mostrado. Remova os maiores e procure de novo.",
+    "grupos menores não são mostrados. Remova os maiores e procure de novo.",
+);
 pub(crate) const DUP_CONFIRM_BODY: &str =
     "As cópias marcadas vão para a Lixeira e podem ser recuperadas.";
 pub(crate) const DUP_CONFIRM_KEEP: &str = "Uma cópia de cada arquivo é mantida";
@@ -316,20 +330,22 @@ pub(crate) const PHOTOS_TOLERANCE: &str = "Semelhança";
 pub(crate) const PHOTOS_SEARCHING: &str = "Procurando fotos parecidas";
 pub(crate) const PHOTOS_SEARCHING_META: &str = "medindo a pasta, depois lendo cada foto";
 pub(crate) const PHOTOS_NONE_TITLE: &str = "Nenhuma foto parecida";
-pub(crate) const PHOTOS_COMPARED: &str = "fotos comparadas.";
+pub(crate) const PHOTOS_COMPARED: Counted = Counted::new("foto comparada.", "fotos comparadas.");
 pub(crate) const PHOTOS_NONE_BODY: &str =
     "Nenhuma delas se parece com outra neste nível de semelhança.";
-pub(crate) const PHOTOS_GROUP: &str = "fotos parecidas";
+pub(crate) const PHOTOS_GROUP: Counted = Counted::new("foto parecida", "fotos parecidas");
 pub(crate) const PHOTOS_FREES: &str = "libera";
 pub(crate) const PHOTOS_REFERENCE: &str = "REFERÊNCIA";
 pub(crate) const PHOTOS_MATCH: &str = "MATCH";
 pub(crate) const PHOTOS_REMOVE: &str = "Remover";
 pub(crate) const PHOTOS_NO_PICTURE: &str = "sem prévia";
 pub(crate) const PHOTOS_KEEP_ONE: &str = "Ao menos uma foto de cada grupo precisa ficar.";
-pub(crate) const PHOTOS_MARKED: &str = "fotos marcadas";
-pub(crate) const PHOTOS_COUNT: &str = "fotos";
-pub(crate) const PHOTOS_MORE_SUFFIX: &str =
-    "grupos menores não são mostrados. Remova estes e procure de novo.";
+pub(crate) const PHOTOS_MARKED: Counted = Counted::new("foto marcada", "fotos marcadas");
+pub(crate) const PHOTOS_COUNT: Counted = Counted::new("foto", "fotos");
+pub(crate) const PHOTOS_MORE_SUFFIX: Counted = Counted::new(
+    "grupo menor não é mostrado. Remova estes e procure de novo.",
+    "grupos menores não são mostrados. Remova estes e procure de novo.",
+);
 pub(crate) const PHOTOS_CONFIRM_BODY: &str =
     "As fotos marcadas vão para a Lixeira e podem ser recuperadas de lá.";
 pub(crate) const PHOTOS_CONFIRM_KEEP: &str = "Ao menos uma foto de cada grupo é mantida";
@@ -348,7 +364,7 @@ pub(crate) const MONITOR_WAITING_TITLE: &str = "Aguardando leituras";
 pub(crate) const MONITOR_WAITING_BODY: &str = "A primeira leitura chega em cerca de um segundo. Se nada aparecer, o macOS não informou os dados do sistema.";
 pub(crate) const MONITOR_CPU: &str = "CPU";
 pub(crate) const MONITOR_PER_CORE: &str = "Núcleos";
-pub(crate) const MONITOR_CORES: &str = "núcleos";
+pub(crate) const MONITOR_CORES: Counted = Counted::new("núcleo", "núcleos");
 pub(crate) const MONITOR_MEMORY: &str = "Memória";
 pub(crate) const MONITOR_SWAP: &str = "Swap em uso";
 pub(crate) const MONITOR_FREE: &str = "Livre";
@@ -404,7 +420,8 @@ pub(crate) const MAP_CARD_CLOUD: &str = "iCloud";
 pub(crate) const MAP_CARD_TYPE: &str = "Tipo";
 pub(crate) const MAP_CARD_ENTER: &str = "clique: ampliar · direito: Finder";
 pub(crate) const MAP_CARD_REVEAL: &str = "clique direito: mostrar no Finder";
-pub(crate) const MAP_BLOCKED_FOLDERS: &str = "pastas sem acesso";
+pub(crate) const MAP_BLOCKED_FOLDERS: Counted =
+    Counted::new("pasta sem acesso", "pastas sem acesso");
 
 /// Name of a cloud state.
 pub(crate) const fn cloud_state(state: CloudState) -> &'static str {
@@ -523,17 +540,18 @@ fn administrator_failure(what: &str, error: &PrivilegeError) -> String {
 
 /// Says how long ago something happened: "hoje", "há 3 dias", "há 4 meses".
 pub(crate) fn age(seconds: i64) -> String {
-    const DAY: i64 = 86_400;
-    let days = seconds.max(0) / DAY;
-    let plural = |amount: i64, one: &str, many: &str| {
-        format!("há {amount} {}", if amount == 1 { one } else { many })
+    const DAY: u64 = 86_400;
+    const DAYS: Counted = Counted::new("dia", "dias");
+    const MONTHS: Counted = Counted::new("mês", "meses");
+    const YEARS: Counted = Counted::new("ano", "anos");
+    let days = seconds.max(0).unsigned_abs() / DAY;
+    let counted = match days {
+        0 => return "hoje".to_owned(),
+        1..=29 => DAYS.of(days),
+        30..=364 => MONTHS.of(days / 30),
+        _ => YEARS.of(days / 365),
     };
-    match days {
-        0 => "hoje".to_owned(),
-        1..=29 => plural(days, "dia", "dias"),
-        30..=364 => plural(days / 30, "mês", "meses"),
-        _ => plural(days / 365, "ano", "anos"),
-    }
+    format!("há {counted}")
 }
 
 #[cfg(test)]

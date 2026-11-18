@@ -109,9 +109,8 @@ pub(crate) fn show(model: &mut AppsViewModel, ui: &mut Ui, context: &ScreenConte
 
     let selection = model.selection();
     let summary = format!(
-        "{} {} · {}",
-        selection.items,
-        pt_br::SELECTED,
+        "{} · {}",
+        pt_br::SELECTED.of(selection.items),
         selection.reclaimable
     );
     let chosen = model.chosen_app().cloned();
@@ -149,7 +148,7 @@ fn app_list(
     bottom: f32,
 ) -> Option<PathBuf> {
     let (count, size) = model.totals();
-    let meta = format!("{count} {} · {size}", pt_br::APPS_COUNT);
+    let meta = format!("{} · {size}", pt_br::APPS_COUNT.of(count));
     let mut clicked = None;
     HudPanel::new(pt_br::APPS_LIST_TITLE)
         .meta(&meta)
@@ -367,9 +366,8 @@ fn app_facts(model: &AppsViewModel, ui: &mut Ui, tokens: &Tokens, app: &Installe
             key_value(ui, tokens, pt_br::APPS_VERSION_LABEL, version);
             let Some(plan) = model.plan() else { return };
             let found = format!(
-                "{} {} · {}",
-                plan.items.len(),
-                pt_br::ITEMS,
+                "{} · {}",
+                pt_br::ITEMS.of(plan.items.len()),
                 plan.reclaimable()
             );
             key_value(ui, tokens, pt_br::APPS_FOUND, &found);
@@ -455,9 +453,8 @@ fn group(
 
 fn confirm_lines(selection: &Selection, authentication: AuthenticationKind) -> Vec<String> {
     let mut lines = vec![format!(
-        "{} {} · {}",
-        selection.items,
-        pt_br::ITEMS,
+        "{} · {}",
+        pt_br::ITEMS.of(selection.items),
         selection.reclaimable
     )];
     for (applies, line) in [

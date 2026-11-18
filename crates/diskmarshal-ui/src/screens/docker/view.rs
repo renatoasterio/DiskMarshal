@@ -182,9 +182,8 @@ fn ready(
 
     let selection = model.selection();
     let summary = format!(
-        "{} {} · {} {}",
-        selection.items,
-        pt_br::SELECTED,
+        "{} · {} {}",
+        pt_br::SELECTED.of(selection.items),
         pt_br::DOCKER_UP_TO,
         selection.size
     );
@@ -220,11 +219,11 @@ fn usage_panel(ui: &mut Ui, tokens: &Tokens, kind: ResourceKind, usage: Option<&
             segmented_bar(ui, tokens, unused, USAGE_BAR_CELLS, tokens.color_warn);
             ui.add_space(SPACE_2);
             let counted = if kind == ResourceKind::BuildCache {
-                format!("{} {noun}", pt_br::group_digits(usage.total_count))
+                noun.of(usage.total_count)
             } else {
                 format!(
-                    "{} {noun} · {} {}",
-                    pt_br::group_digits(usage.total_count),
+                    "{} · {} {}",
+                    noun.of(usage.total_count),
                     pt_br::group_digits(usage.active_count),
                     pt_br::DOCKER_IN_USE
                 )
@@ -309,7 +308,7 @@ fn title(resource: &DockerResource, inventory: &DockerInventory) -> String {
         let records = inventory
             .usage_of(ResourceKind::BuildCache)
             .map_or(0, |usage| usage.total_count);
-        return format!("{} {}", pt_br::group_digits(records), pt_br::DOCKER_RECORDS);
+        return pt_br::DOCKER_RECORDS.of(records);
     }
     if resource.name.is_empty() {
         return format!("({})", pt_br::DOCKER_UNNAMED);
@@ -339,9 +338,8 @@ fn detail(resource: &DockerResource, now_unix_seconds: i64) -> String {
 fn confirm_lines(selection: &Selection) -> Vec<String> {
     let mut lines = vec![
         format!(
-            "{} {} · {} {}",
-            selection.items,
-            pt_br::ITEMS,
+            "{} · {} {}",
+            pt_br::ITEMS.of(selection.items),
             pt_br::DOCKER_UP_TO,
             selection.size
         ),

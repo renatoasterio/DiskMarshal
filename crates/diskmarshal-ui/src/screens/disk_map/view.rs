@@ -99,7 +99,7 @@ fn scanning(
     HudPanel::new(pt_br::MAP_SCANNING_TITLE)
         .meta(pt_br::MAP_SCANNING_META)
         .show(ui, tokens, |ui| {
-            let counted = format!("{} {} · {bytes}", pt_br::group_digits(items), pt_br::ITEMS);
+            let counted = format!("{} · {bytes}", pt_br::ITEMS.of(items));
             ui.label(
                 RichText::new(counted)
                     .size(FONT_SIZE_DATA + 5.0)
@@ -502,9 +502,8 @@ fn footer(model: &DiskMapViewModel, ui: &mut Ui, context: &ScreenContext<'_>) {
         let root = report.tree.root();
         let seconds = format!("{:.1}", report.elapsed.as_secs_f64()).replace('.', ",");
         let summary = format!(
-            "{} {} · {} · {seconds} s",
-            pt_br::group_digits(root.map_or(0, FileNode::item_count)),
-            pt_br::ITEMS,
+            "{} · {} · {seconds} s",
+            pt_br::ITEMS.of(root.map_or(0, FileNode::item_count)),
             root.map(|node| node.allocated_size().to_string())
                 .unwrap_or_default(),
         );
@@ -514,11 +513,7 @@ fn footer(model: &DiskMapViewModel, ui: &mut Ui, context: &ScreenContext<'_>) {
                 .color(tokens.color_text_muted),
         );
         if blocked > 0 {
-            let warning = format!(
-                "· {} {}",
-                pt_br::group_digits(blocked as u64),
-                pt_br::MAP_BLOCKED_FOLDERS
-            );
+            let warning = format!("· {}", pt_br::MAP_BLOCKED_FOLDERS.of(blocked));
             ui.label(
                 RichText::new(warning)
                     .size(FONT_SIZE_SMALL)

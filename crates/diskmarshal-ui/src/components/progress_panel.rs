@@ -27,9 +27,8 @@ pub(crate) fn progress_panel(ui: &mut Ui, tokens: &Tokens, panel: &ProgressPanel
     }
     frame.show(ui, tokens, |ui| {
         let counted = format!(
-            "{} {} · {}",
-            pt_br::group_digits(panel.progress.items_seen),
-            pt_br::ITEMS,
+            "{} · {}",
+            pt_br::ITEMS.of(panel.progress.items_seen),
             panel.progress.bytes_seen
         );
         ui.label(RichText::new(counted).size(FONT_SIZE_DATA + 5.0));

@@ -15,6 +15,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The number keys now go from 1 to 9: the screens after the cleanup moved one
   or two places to make room for the apps and Docker screens.
 
+### Fixed
+
+- A count of one is said in the singular. The screens said "1 regras",
+  "1 selecionados" and "1 itens"; they now say "1 regra", "1 selecionado" and
+  "1 item", and the same goes for every other counted word.
+
 ### Added
 
 - The fingerprint for administrator actions: on a Mac where the user turned

@@ -104,9 +104,9 @@ pub(crate) fn show(model: &mut DuplicatesViewModel, ui: &mut Ui, context: &Scree
             }
             if hidden > 0 {
                 let note = format!(
-                    "{} {hidden} {}",
+                    "{} {}",
                     pt_br::DUP_MORE_PREFIX,
-                    pt_br::DUP_MORE_SUFFIX
+                    pt_br::DUP_MORE_SUFFIX.of(hidden)
                 );
                 ui.label(
                     RichText::new(note)
@@ -117,7 +117,7 @@ pub(crate) fn show(model: &mut DuplicatesViewModel, ui: &mut Ui, context: &Scree
         });
 
     let (count, size) = model.review.selection();
-    let summary = format!("{count} {} · {size}", pt_br::SELECTED);
+    let summary = format!("{} · {size}", pt_br::SELECTED.of(count));
     if action_footer(
         ui,
         tokens,
@@ -129,7 +129,7 @@ pub(crate) fn show(model: &mut DuplicatesViewModel, ui: &mut Ui, context: &Scree
     }
 
     let lines = [
-        format!("{count} {} · {size}", pt_br::DUP_FILES),
+        format!("{} · {size}", pt_br::DUP_FILES.of(count)),
         pt_br::DUP_CONFIRM_KEEP.to_owned(),
         pt_br::TRASH_FREES_LATER.to_owned(),
     ];
@@ -242,9 +242,8 @@ fn groups(model: &DuplicatesViewModel, context: &ScreenContext<'_>) -> Vec<Group
             GroupData {
                 title: name,
                 meta: format!(
-                    "{} {} · {} {}",
-                    group.copies.len(),
-                    pt_br::DUP_COPIES,
+                    "{} · {} {}",
+                    pt_br::DUP_COPIES.of(group.copies.len()),
                     group.size,
                     pt_br::DUP_EACH
                 ),
