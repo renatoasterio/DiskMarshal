@@ -16,7 +16,7 @@ Saiba que o projeto é novo e não tem uma versão estável. Algumas coisas aind
 
 ### O que ainda não foi testado?
 
-- **Limpeza de sistema, de ponta a ponta.** O diálogo de autenticação do macOS e uma limpeza real de `/Library/Caches` e `/Library/Logs` não foram exercitados pelos testes do projeto. O auxiliar que faz isso é coberto por testes em pastas temporárias e pelo seu modo de simulação.
+- **Partes da limpeza de sistema.** A limpeza de `/Library/Logs` com a digital e a desinstalação de dois apps de verdade pelo diálogo de senha foram confirmadas à mão em um Mac. Uma limpeza real de `/Library/Caches`, a limpeza de sistema pelo diálogo de senha e o diálogo de senha que aparece depois de uma digital cancelada, não. O auxiliar que faz isso é coberto por testes em pastas temporárias e pelo seu modo de simulação.
 - **Um arquivo que está realmente só no iCloud.** A proteção contra downloads existe, mas não foi experimentada com um arquivo que esteja de fato só na nuvem.
 - **Abrir com movimento reduzido,** com a opção "Reduzir movimento" dos Ajustes do Sistema ligada.
 - **Apagar dados pessoais reais pela interface.** Isso foi exercitado apenas em pastas de teste.

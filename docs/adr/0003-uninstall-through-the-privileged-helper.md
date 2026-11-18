@@ -1,7 +1,7 @@
 # 0003 — Uninstall through the privileged helper, by identifier
 
-Status: accepted (2026-11-17) and implemented. Not run as root yet, and the
-authentication dialog was not exercised for it; see
+Status: accepted (2026-11-17) and implemented. Confirmed by hand on one Mac
+(2026-11-18) for two apps behind the password dialog; for what was not, see
 [security.md](../security.md#uninstalling-with-administrator-rights).
 
 ## Context

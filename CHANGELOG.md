@@ -37,8 +37,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Uninstall with macOS authentication: a bundle owned by root and what the app
   left in `/Library` are removed by `diskmarshal-privileged-helper`, which is
   told the app by its identifier and removes only the requested items that its
-  own analysis finds too. Not yet run as root or exercised against the real
-  dialog.
+  own analysis finds too. Confirmed by hand on one Mac for two apps behind the
+  password dialog; removing an app's items from `/Library` was not exercised
+  on the real thing.
 - Docker screen: finds out whether Docker is installed and running; shows how
   much it holds of images, containers, volumes and build cache; lists what no
   container uses. The build cache and images without a name come selected.
@@ -68,8 +69,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   to run `diskmarshal-privileged-helper` once. The helper accepts rule ids only,
   takes the folders from the catalog compiled into it, deletes through the same
   policy as the app, and has a simulation mode (`--dry-run`). The app never runs
-  as root and keeps no background service. Not yet exercised end to end against
-  the real dialog and folders.
+  as root and keeps no background service. Confirmed by hand on one Mac for
+  `/Library/Logs` with the fingerprint; a real cleanup of `/Library/Caches`
+  was not exercised.
 - Duplicates screen: search of a chosen folder or the home folder, with a minimum
   size of 1, 10 or 100 MB; files compared by size, then beginning and end, then
   whole content (BLAKE3); hard links not counted as copies; cloud-only files

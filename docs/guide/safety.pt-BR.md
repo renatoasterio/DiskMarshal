@@ -118,7 +118,7 @@ O que mantém isso restrito:
 
 O que você precisa saber:
 
-- **Esse caminho não foi verificado de ponta a ponta.** O auxiliar é coberto por testes automáticos em pastas temporárias e pelo seu modo de simulação, que confere tudo e não remove nada. O diálogo de autenticação do macOS e uma limpeza real de `/Library/Caches` e `/Library/Logs` não foram exercitados pelos testes do projeto.
+- **Esse caminho foi confirmado à mão em um único Mac.** Com o Touch ID ativado para o `sudo`, uma limpeza real de `/Library/Logs` pediu a digital, removeu os itens e os registrou no histórico; isso foi no macOS 27.2 em Apple Silicon. Uma limpeza real de `/Library/Caches` e o diálogo de senha para essa limpeza não foram exercitados. Os testes automáticos cobrem o auxiliar em pastas temporárias e o seu modo de simulação, que confere tudo e não remove nada; eles não têm como se autenticar.
 - **O auxiliar trabalha a partir do que ele mesmo encontra nas pastas,** não da lista que você viu na tela. Ele remove o que essas duas pastas contêm naquele momento, o que pode diferir um pouco da prévia.
 - **A digital é algo que você ativa.** Por padrão o macOS pede a senha. Ele aceita a digital depois que você ativa o Touch ID para o `sudo`, um ajuste do macOS que o DiskMarshal nunca muda por você. Quando a digital não passa, aparece o diálogo de senha.
 - **Precisa do app instalado** (`cargo xtask install`), porque é lá que o auxiliar fica.
@@ -137,12 +137,12 @@ Um app que a App Store ou um instalador colocou no Mac pertence ao sistema, e o 
 
 Dito com clareza, para você decidir o quanto de cuidado tomar:
 
-- O diálogo de autenticação do macOS e uma limpeza de sistema real, do começo ao fim (veja acima).
+- Uma limpeza real de `/Library/Caches`, e o diálogo de senha para a limpeza de sistema (veja acima o que foi confirmado à mão).
 - Um arquivo que esteja realmente só no iCloud.
 - Abrir o app com "Reduzir movimento" ligado nos Ajustes do Sistema.
 - Remover dados pessoais reais pela interface. Isso foi exercitado apenas em pastas de teste.
 - Versões do macOS diferentes da 27, e Macs com Intel.
-- Desinstalar um app de verdade pela interface. A busca do que pertence a um app foi conferida com apps reais, sem remover nada; a remoção rodou em pastas de teste, e a parte de administrador dela só no modo de simulação do auxiliar.
+- Desinstalar um app com a digital, e remover o que um app deixou em `/Library`. Dois apps de verdade foram desinstalados à mão pelo diálogo de senha, e nada deles foi removido de `/Library`; essa parte rodou em pastas de teste e no modo de simulação do auxiliar.
 - Remover qualquer coisa de um Docker de verdade. A leitura do que o Docker guarda foi conferida em um Docker real; a remoção rodou contra um programa substituto, que responde como o Docker.
 - Se o Docker Desktop devolve ao macOS o espaço liberado.
 

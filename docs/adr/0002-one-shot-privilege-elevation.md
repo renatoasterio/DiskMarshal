@@ -1,8 +1,8 @@
 # 0002 — One-shot privilege elevation
 
-Status: accepted (2026-11-17) and implemented. The macOS authentication dialog
-and a real system cleanup have not been exercised end to end yet; see
-[Not verified](#not-verified).
+Status: accepted (2026-11-17) and implemented. A real system cleanup with the
+fingerprint was confirmed by hand on one Mac (2026-11-18); see
+[Verification](#verification) for what was not.
 
 ## Context
 
@@ -84,13 +84,17 @@ The rest, as built:
   check and its execution. Distributing the app to others requires moving to
   a daemon registered with `SMAppService`.
 
-## Not verified
+## Verification
 
-- The macOS authentication dialog and a real cleanup of `/Library/Caches` and
-  `/Library/Logs` were not exercised end to end by the project's tests. The
-  helper is covered by tests on temporary folders and by its simulation mode.
-- The fingerprint path described under "Touch ID" below was not exercised
-  by the project's tests: it needs a finger on the sensor.
+- Confirmed by hand on one Mac (macOS 27.2 on Apple Silicon, 2026-11-18): with
+  Touch ID turned on for `sudo`, a cleanup of `/Library/Logs` asked for the
+  fingerprint, as described under "Touch ID" below, removed the items and
+  recorded them; and two apps were uninstalled behind the password dialog.
+- Not exercised on the real thing: a cleanup of `/Library/Caches`, the
+  password dialog for the system cleanup, and the password dialog that
+  follows a fingerprint that did not go through.
+- The project's tests cover the helper on temporary folders and its
+  simulation mode. They cannot authenticate.
 
 ## Touch ID
 

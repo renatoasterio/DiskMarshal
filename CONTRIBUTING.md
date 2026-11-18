@@ -7,7 +7,7 @@ Contribuições em português são bem-vindas: pode abrir issues e pull requests
 ## Ways to help
 
 - **Try it on your Mac and tell us how it went.** It is only tested on macOS 27 with Apple Silicon. A report from another macOS version or an Intel Mac is valuable, even when everything works.
-- **Verify what is not verified.** The README lists [what was not confirmed on the real thing](README.md#not-verified-yet): the system cleanup from the macOS dialog to the result, a file that is really cloud-only, a start with "Reduce motion" on. A careful report on any of these helps a lot.
+- **Verify what is not verified.** The README lists [what was not confirmed on the real thing](README.md#not-verified-yet): the parts of the system cleanup and of the uninstaller that were not confirmed by hand, a file that is really cloud-only, a start with "Reduce motion" on. A careful report on any of these helps a lot.
 - **Add a cleanup rule or a kind of project.** Both are entries in a TOML file. See [Adding a cleanup rule or an ecosystem](#adding-a-cleanup-rule-or-an-ecosystem).
 - **Translate the interface.** Every text lives in `crates/diskmarshal-ui/src/i18n/`.
 - **Improve the documentation.** If a step in a guide confused you, it will confuse someone else.
