@@ -52,7 +52,7 @@ pub(crate) fn show(model: &mut MonitorViewModel, ui: &mut Ui, context: &ScreenCo
                         );
                     });
             } else {
-                let cores = format!("{} {}", snapshot.core_usage.len(), pt_br::MONITOR_CORES);
+                let cores = pt_br::MONITOR_CORES.of(snapshot.core_usage.len());
                 HudPanel::new(pt_br::MONITOR_PER_CORE)
                     .meta(&cores)
                     .show(ui, tokens, |ui| {

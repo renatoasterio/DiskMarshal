@@ -37,9 +37,8 @@ pub(crate) fn show(model: &mut CleanupViewModel, ui: &mut Ui, context: &ScreenCo
     if let Some(progress) = model.progress() {
         HudPanel::new(pt_br::CLEANUP_ANALYZING).show(ui, tokens, |ui| {
             let counted = format!(
-                "{} {} · {}",
-                pt_br::group_digits(progress.items_seen),
-                pt_br::ITEMS,
+                "{} · {}",
+                pt_br::ITEMS.of(progress.items_seen),
                 progress.bytes_seen
             );
             ui.label(RichText::new(counted).size(FONT_SIZE_DATA + 5.0));
@@ -117,9 +116,8 @@ pub(crate) fn show(model: &mut CleanupViewModel, ui: &mut Ui, context: &ScreenCo
 
     let selection = model.selection();
     let summary = format!(
-        "{} {} · {}",
-        selection.rules,
-        pt_br::SELECTED,
+        "{} · {}",
+        pt_br::SELECTED.of(selection.rules),
         selection.reclaimable
     );
     if action_footer(ui, tokens, &summary, model.notice(), pt_br::CLEANUP_ACTION) {
@@ -199,11 +197,9 @@ fn group(
 
 fn confirm_lines(selection: &Selection, authentication: AuthenticationKind) -> Vec<String> {
     let mut lines = vec![format!(
-        "{} {} · {} {} · {}",
-        selection.rules,
-        pt_br::RULES,
-        pt_br::group_digits(selection.items as u64),
-        pt_br::ITEMS,
+        "{} · {} · {}",
+        pt_br::RULES.of(selection.rules),
+        pt_br::ITEMS.of(selection.items),
         selection.reclaimable
     )];
     if selection.uses_trash {

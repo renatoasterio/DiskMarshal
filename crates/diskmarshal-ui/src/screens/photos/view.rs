@@ -83,9 +83,8 @@ pub(crate) fn show(model: &mut PhotosViewModel, ui: &mut Ui, context: &ScreenCon
             if groups.is_empty() {
                 HudPanel::new(pt_br::PHOTOS_NONE_TITLE).show(ui, tokens, |ui| {
                     let body = format!(
-                        "{} {} {}",
-                        pt_br::group_digits(compared as u64),
-                        pt_br::PHOTOS_COMPARED,
+                        "{} {}",
+                        pt_br::PHOTOS_COMPARED.of(compared),
                         pt_br::PHOTOS_NONE_BODY
                     );
                     ui.label(RichText::new(body).color(tokens.color_text_secondary));
@@ -109,9 +108,9 @@ pub(crate) fn show(model: &mut PhotosViewModel, ui: &mut Ui, context: &ScreenCon
             }
             if hidden > 0 {
                 let note = format!(
-                    "{} {hidden} {}",
+                    "{} {}",
                     pt_br::DUP_MORE_PREFIX,
-                    pt_br::PHOTOS_MORE_SUFFIX
+                    pt_br::PHOTOS_MORE_SUFFIX.of(hidden)
                 );
                 ui.label(
                     RichText::new(note)
@@ -122,7 +121,7 @@ pub(crate) fn show(model: &mut PhotosViewModel, ui: &mut Ui, context: &ScreenCon
         });
 
     let (count, size) = model.review.selection();
-    let summary = format!("{count} {} · {size}", pt_br::PHOTOS_MARKED);
+    let summary = format!("{} · {size}", pt_br::PHOTOS_MARKED.of(count));
     if action_footer(
         ui,
         tokens,
@@ -134,7 +133,7 @@ pub(crate) fn show(model: &mut PhotosViewModel, ui: &mut Ui, context: &ScreenCon
     }
 
     let lines = [
-        format!("{count} {} · {size}", pt_br::PHOTOS_COUNT),
+        format!("{} · {size}", pt_br::PHOTOS_COUNT.of(count)),
         pt_br::PHOTOS_CONFIRM_KEEP.to_owned(),
         pt_br::TRASH_FREES_LATER.to_owned(),
     ];
@@ -238,7 +237,7 @@ fn groups(model: &PhotosViewModel, root: &Path, home: &Path) -> Vec<GroupData> {
         .iter()
         .take(MAX_GROUPS_SHOWN)
         .map(|found| GroupData {
-            title: format!("{} {}", found.group.photos.len(), pt_br::PHOTOS_GROUP),
+            title: pt_br::PHOTOS_GROUP.of(found.group.photos.len()),
             meta: format!("{} {}", pt_br::PHOTOS_FREES, found.group.reclaimable()),
             photos: found
                 .group

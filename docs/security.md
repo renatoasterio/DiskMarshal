@@ -221,10 +221,14 @@ In the helper, `RemoveAppItems` trusts none of it:
 6. The items are removed through `DeleteItems`, for good, with the
    fingerprints the helper just read and the same `ProtectedPaths` policy.
 
-Not verified: this path was exercised by tests on temporary folders
-(`tests/uninstall_flow.rs`, `privilege/helper_protocol.rs`) and with
-`--dry-run` against a real app, as an ordinary user. It was not run as root,
-and the authentication dialog was not exercised for it.
+Verified by hand, on one Mac (macOS 27.2 on Apple Silicon): two apps in
+`/Applications` were uninstalled behind the macOS password dialog, with the
+helper running as root; what they had left in the user's Library went to the
+Trash. Not verified: the same with the fingerprint, and the removal of items
+in `/Library`, where nothing of those two apps was removed. The tests
+exercise this path on temporary folders (`tests/uninstall_flow.rs`,
+`privilege/helper_protocol.rs`) and with `--dry-run` against a real app, as
+an ordinary user.
 
 Things that follow from this design:
 
@@ -237,13 +241,15 @@ Things that follow from this design:
 - `--dry-run` runs every check and removes nothing. It is how the helper can
   be exercised without changing the system.
 
-Not verified: the macOS authentication dialog and a real cleanup of
-`/Library/Caches` and `/Library/Logs` were not exercised end to end by the
-project's tests. The helper's logic is covered by tests on temporary folders
-(`tests/system_cleanup_flow.rs`, `privilege/helper_protocol.rs`) and by the
-simulation mode. The fingerprint path was not exercised either: the tests
-cover how the `sudo` configuration is read and how a run is interpreted, not a
-real authentication, which needs a finger on the sensor.
+Verified by hand, on one Mac (macOS 27.2 on Apple Silicon): with Touch ID turned
+on for `sudo`, a cleanup of `/Library/Logs` asked for the fingerprint, removed
+the items as root and recorded them in the history. Not verified: a real
+cleanup of `/Library/Caches`, the password dialog for this cleanup, and the
+password dialog that follows a fingerprint that did not go through. The tests
+cover the helper's logic on temporary folders
+(`tests/system_cleanup_flow.rs`, `privilege/helper_protocol.rs`), its
+simulation mode, how the `sudo` configuration is read and how a run is
+interpreted; they cannot authenticate.
 
 Known, accepted risk: an app is believed when it declares its bundle
 identifier. An app that declares the identifier of another app would have

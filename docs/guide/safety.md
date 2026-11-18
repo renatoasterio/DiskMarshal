@@ -118,7 +118,7 @@ What keeps this narrow:
 
 What you should know:
 
-- **This path has not been verified end to end.** The helper is covered by automated tests on temporary folders and by its simulation mode, which checks everything and removes nothing. The macOS authentication dialog and a real cleanup of `/Library/Caches` and `/Library/Logs` were not exercised by the project's tests.
+- **This path was confirmed by hand on one Mac only.** With Touch ID turned on for `sudo`, a real cleanup of `/Library/Logs` asked for the fingerprint, removed the items and recorded them in the history; that was on macOS 27.2 on Apple Silicon. A real cleanup of `/Library/Caches` and the password dialog for this cleanup were not exercised. The automated tests cover the helper on temporary folders and its simulation mode, which checks everything and removes nothing; they cannot authenticate.
 - **The helper works from its own fresh look at the folders,** not from the list you saw on screen. It removes what those two folders hold at that moment, which can differ a little from the preview.
 - **The fingerprint is something you turn on.** By default macOS asks for the password. It takes the fingerprint after you turn on Touch ID for `sudo`, a setting of macOS that DiskMarshal never changes for you. When the fingerprint does not go through, the password dialog appears.
 - **It needs the installed app** (`cargo xtask install`), because that is where the helper lives.
@@ -137,12 +137,12 @@ An app the App Store or an installer put on the Mac belongs to the system, and s
 
 Said plainly, so you can decide how careful to be:
 
-- The macOS authentication dialog and a real system cleanup, from start to finish (see above).
+- A real cleanup of `/Library/Caches`, and the password dialog for the system cleanup (see above for what was confirmed by hand).
 - A file that is really only in iCloud.
 - Starting the app with "Reduce motion" turned on in System Settings.
 - Removing real personal data from the interface. It was exercised on test folders only.
 - macOS versions other than 27, and Intel Macs.
-- Uninstalling a real app from the interface. Finding what belongs to an app was checked against real apps without removing anything; the removal ran on test folders, and its administrator part only in the helper's simulation mode.
+- Uninstalling an app with the fingerprint, and removing what an app left in `/Library`. Two real apps were uninstalled by hand behind the password dialog, and nothing of theirs was removed from `/Library`; that part ran on test folders and in the helper's simulation mode.
 - Removing anything from a real Docker. Reading what Docker holds was checked on a real one; the removal ran against a stand-in program that answers like Docker.
 - Whether Docker Desktop gives the freed space back to macOS.
 

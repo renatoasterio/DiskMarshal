@@ -13,7 +13,7 @@ use egui::{Context, RichText, Ui};
 
 use crate::app::UiServices;
 use crate::components::{ButtonKind, activity_bar, dialog, hud_button};
-use crate::i18n::pt_br;
+use crate::i18n::{Counted, pt_br};
 use crate::screens::ScreenContext;
 use crate::tasks::{Task, TaskPoll};
 use crate::theme::{FONT_SIZE_DATA, FONT_SIZE_SMALL, SPACE_2, SPACE_3, Tokens};
@@ -36,7 +36,7 @@ pub(crate) struct RemovalResult {
     /// that need an administrator were left.
     warnings: Vec<String>,
     /// What is said about the items that were left as they were.
-    skipped_explanation: &'static str,
+    skipped_explanation: Counted,
 }
 
 impl Default for RemovalResult {
@@ -57,7 +57,7 @@ impl RemovalResult {
 
     /// Changes what is said about the items that were left as they were,
     /// for a removal where macOS is not who refuses.
-    pub(crate) fn explaining_skipped(mut self, explanation: &'static str) -> Self {
+    pub(crate) fn explaining_skipped(mut self, explanation: Counted) -> Self {
         self.skipped_explanation = explanation;
         self
     }
@@ -262,12 +262,7 @@ fn summary(ui: &mut Ui, tokens: &Tokens, result: &RemovalResult) {
             .color(tokens.color_ok),
     );
     ui.add_space(SPACE_2);
-    let count = |value: usize| pt_br::group_digits(value as u64);
-    bullet(
-        ui,
-        tokens,
-        &format!("{} {}", count(removed), pt_br::ITEMS_REMOVED),
-    );
+    bullet(ui, tokens, &pt_br::ITEMS_REMOVED.of(removed));
     if !report.trashed.is_zero() {
         bullet(
             ui,
@@ -282,7 +277,7 @@ fn summary(ui: &mut Ui, tokens: &Tokens, result: &RemovalResult) {
     ] {
         if amount > 0 {
             ui.label(
-                RichText::new(format!("· {} {explanation}", count(amount)))
+                RichText::new(format!("· {}", explanation.of(amount)))
                     .size(FONT_SIZE_SMALL)
                     .color(tokens.color_warn),
             );

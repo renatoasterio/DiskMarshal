@@ -78,9 +78,9 @@ All nine screens are built, and the app really deletes what you select, always a
 |---|---|---|
 | "Painel" (dashboard) | Disk, memory and temperature gauges, the space the other screens found, the latest removals | Built |
 | "Limpeza" (cleanup) | Caches, temporary files, logs, the Trash, Xcode and package manager leftovers | Built |
-| "Limpeza", group "Sistema" | `/Library/Caches` and `/Library/Logs`, after macOS authenticates an administrator | Built, not verified end to end (see below) |
-| "Aplicativos" (apps) | Uninstalls an app with what it left in the Library; what is yours goes to the Trash | Built, not verified on a real app (see below) |
-| "Aplicativos", group "Sistema" | Apps the App Store or an installer put there, and what they left in `/Library`, after macOS authenticates an administrator | Built, not verified end to end (see below) |
+| "Limpeza", group "Sistema" | `/Library/Caches` and `/Library/Logs`, after macOS authenticates an administrator | Built, confirmed by hand on one Mac (see below) |
+| "Aplicativos" (apps) | Uninstalls an app with what it left in the Library; what is yours goes to the Trash | Built, confirmed by hand on one Mac (see below) |
+| "Aplicativos", group "Sistema" | Apps the App Store or an installer put there, and what they left in `/Library`, after macOS authenticates an administrator | Built, confirmed by hand on one Mac (see below) |
 | "Duplicados" (duplicates) | Files with identical content; the extra copies go to the Trash | Built |
 | "Fotos" (similar photos) | Loose image files that look the same; the extra ones go to the Trash | Built |
 | "Desenvolvedor" (developer) | Build and dependency folders of code projects | Built |
@@ -91,16 +91,25 @@ All nine screens are built, and the app really deletes what you select, always a
 | `diskmarshal-cli apps`, `diskmarshal-cli docker` | Show what those two screens would find; read-only | Built |
 | `cargo xtask install` | Builds, signs and installs `DiskMarshal.app` | Built |
 
+### Confirmed by hand
+
+The automated tests cannot type a password or put a finger on the sensor, so these were confirmed by hand with the installed app, on 18 November 2026, on the development machine (macOS 27.2 on Apple Silicon):
+
+- **System cleanup with the fingerprint.** With Touch ID turned on for `sudo`, cleaning `/Library/Logs` asked for the fingerprint in the macOS dialog, removed the items and recorded them in the history.
+- **Uninstalling real apps.** Two apps in `/Applications` were uninstalled: each app was removed after the macOS password dialog, and what it had left in the user's Library went to the Trash.
+
+One Mac is one Mac: the next section says what this does not cover.
+
 ### Not verified yet
 
 These parts are written and covered by automated tests on temporary folders, but were not confirmed on the real thing. Treat them accordingly.
 
-- **System cleanup, end to end.** The macOS authentication dialog and a real cleanup of `/Library/Caches` and `/Library/Logs` were not exercised by the project's tests. The helper that does the cleaning is covered by tests on temporary folders and by its simulation mode (`--dry-run`). The fingerprint path (Touch ID through `sudo`, which you turn on yourself) was not exercised either: it needs a finger on the sensor.
+- **The rest of the system cleanup.** A real cleanup of `/Library/Caches`, the system cleanup behind the password dialog, and the password dialog that follows a cancelled fingerprint were not exercised on the real thing. The helper that does the cleaning is covered by tests on temporary folders and by its simulation mode (`--dry-run`).
 - **A file that is really cloud-only.** The protection against iCloud downloads was not tested on a real cloud-only file.
 - **Starting with reduced motion.** The app reads the "Reduce motion" switch of System Settings when it opens; this was not tested with the switch on.
 - **Deleting real personal data from the interface.** Removal was exercised on test folders only.
 - **Other macOS versions and Intel Macs.**
-- **Uninstalling a real app.** Finding what belongs to an app was checked against the apps of the development machine, without removing anything. The removal ran on test folders, with a stand-in for the Trash, and its administrator part only in the helper's simulation mode.
+- **The rest of the uninstaller.** Uninstalling with the fingerprint, and removing what an app left in `/Library`, were not exercised on the real thing: nothing of the two apps above was removed from there. That part ran on test folders and in the helper's simulation mode.
 - **Removing from a real Docker.** Reading what Docker holds was checked against a real Docker 24. The removal ran against a stand-in program that answers like Docker. Whether Docker Desktop gives the freed space back to macOS was not checked.
 
 ### Known limits
@@ -218,7 +227,7 @@ For contributors (English): [architecture](docs/architecture.md), [conventions](
 
 ## What is left
 
-**To verify.** Everything in [Not verified yet](#not-verified-yet): a system cleanup on a real Mac from the authentication dialog to the result, a scan over a file that is really cloud-only, a start with "Reduce motion" on, removal of real personal data, and runs on other macOS versions and on Intel Macs. Reports are welcome, including the ones that say "it worked".
+**To verify.** Everything in [Not verified yet](#not-verified-yet): the parts of the system cleanup and of the uninstaller that were not confirmed by hand, a scan over a file that is really cloud-only, a start with "Reduce motion" on, removal of real personal data, and runs on other macOS versions and on Intel Macs. Reports are welcome, including the ones that say "it worked".
 
 **To live with for now.** The [known limits](#known-limits) above.
 

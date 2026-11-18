@@ -78,9 +78,9 @@ As nove telas estão prontas, e o app apaga de verdade o que você seleciona, se
 |---|---|---|
 | "Painel" | Medidores de disco, memória e temperatura, o espaço que as outras telas encontraram, as últimas remoções | Pronto |
 | "Limpeza" | Caches, temporários, logs, a Lixeira, sobras do Xcode e de gerenciadores de pacotes | Pronto |
-| "Limpeza", grupo "Sistema" | `/Library/Caches` e `/Library/Logs`, depois que o macOS autentica um administrador | Pronto, não verificado de ponta a ponta (veja abaixo) |
-| "Aplicativos" | Desinstala um app junto com o que ele deixou na Biblioteca; o que é seu vai para a Lixeira | Pronto, não verificado com um app de verdade (veja abaixo) |
-| "Aplicativos", grupo "Sistema" | Apps que a App Store ou um instalador colocou ali, e o que eles deixaram em `/Library`, depois que o macOS autentica um administrador | Pronto, não verificado de ponta a ponta (veja abaixo) |
+| "Limpeza", grupo "Sistema" | `/Library/Caches` e `/Library/Logs`, depois que o macOS autentica um administrador | Pronto, confirmado à mão em um Mac (veja abaixo) |
+| "Aplicativos" | Desinstala um app junto com o que ele deixou na Biblioteca; o que é seu vai para a Lixeira | Pronto, confirmado à mão em um Mac (veja abaixo) |
+| "Aplicativos", grupo "Sistema" | Apps que a App Store ou um instalador colocou ali, e o que eles deixaram em `/Library`, depois que o macOS autentica um administrador | Pronto, confirmado à mão em um Mac (veja abaixo) |
 | "Duplicados" | Arquivos com conteúdo idêntico; as cópias a mais vão para a Lixeira | Pronto |
 | "Fotos" | Imagens soltas em pastas que parecem a mesma; as que sobram vão para a Lixeira | Pronto |
 | "Desenvolvedor" | Pastas de build e de dependências de projetos de código | Pronto |
@@ -91,16 +91,25 @@ As nove telas estão prontas, e o app apaga de verdade o que você seleciona, se
 | `diskmarshal-cli apps`, `diskmarshal-cli docker` | Mostram o que essas duas telas encontrariam; somente leitura | Pronto |
 | `cargo xtask install` | Compila, assina e instala o `DiskMarshal.app` | Pronto |
 
+### Confirmado à mão
+
+Os testes automáticos não digitam senha nem colocam o dedo no sensor, então estas partes foram confirmadas à mão com o app instalado, em 18 de novembro de 2026, na máquina de desenvolvimento (macOS 27.2 em Apple Silicon):
+
+- **Limpeza de sistema com a digital.** Com o Touch ID ativado para o `sudo`, a limpeza de `/Library/Logs` pediu a digital no diálogo do macOS, removeu os itens e os registrou no histórico.
+- **Desinstalar apps de verdade.** Dois apps de `/Applications` foram desinstalados: cada app foi removido depois do diálogo de senha do macOS, e o que ele tinha deixado na Biblioteca do usuário foi para a Lixeira.
+
+Um Mac é um Mac só: a próxima seção diz o que isso não cobre.
+
 ### Ainda não verificado
 
 Estas partes estão escritas e cobertas por testes automáticos em pastas temporárias, mas não foram confirmadas na situação real. Leve isso em conta.
 
-- **Limpeza de sistema, de ponta a ponta.** O diálogo de autenticação do macOS e uma limpeza real de `/Library/Caches` e `/Library/Logs` não foram exercitados pelos testes do projeto. O auxiliar que faz a limpeza é coberto por testes em pastas temporárias e pelo seu modo de simulação (`--dry-run`). O caminho da digital (Touch ID pelo `sudo`, que você mesmo ativa) também não foi exercitado: precisa de um dedo no sensor.
+- **O restante da limpeza de sistema.** Uma limpeza real de `/Library/Caches`, a limpeza de sistema pelo diálogo de senha e o diálogo de senha que aparece depois de uma digital cancelada não foram exercitados na situação real. O auxiliar que faz a limpeza é coberto por testes em pastas temporárias e pelo seu modo de simulação (`--dry-run`).
 - **Um arquivo que está realmente só na nuvem.** A proteção contra downloads do iCloud não foi testada com um arquivo que esteja de fato só na nuvem.
 - **Abrir com movimento reduzido.** O app lê a opção "Reduzir movimento" dos Ajustes do Sistema ao abrir; isso não foi testado com a opção ligada.
 - **Apagar dados pessoais reais pela interface.** A remoção foi exercitada apenas em pastas de teste.
 - **Outras versões do macOS e Macs com Intel.**
-- **Desinstalar um app de verdade.** A busca do que pertence a um app foi conferida com os apps da máquina de desenvolvimento, sem remover nada. A remoção rodou em pastas de teste, com um substituto da Lixeira, e a parte de administrador dela só no modo de simulação do auxiliar.
+- **O restante do desinstalador.** Desinstalar com a digital e remover o que um app deixou em `/Library` não foram exercitados na situação real: dos dois apps acima, nada foi removido de lá. Essa parte rodou em pastas de teste e no modo de simulação do auxiliar.
 - **Remover de um Docker de verdade.** A leitura do que o Docker guarda foi conferida em um Docker 24 real. A remoção rodou contra um programa substituto, que responde como o Docker. Não foi conferido se o Docker Desktop devolve ao macOS o espaço liberado.
 
 ### Limites conhecidos
@@ -218,7 +227,7 @@ Para quem contribui (em inglês): [arquitetura](docs/architecture.md), [convenç
 
 ## O que falta
 
-**Verificar.** Tudo o que está em [Ainda não verificado](#ainda-não-verificado): uma limpeza de sistema em um Mac de verdade, do diálogo de autenticação até o resultado; uma varredura sobre um arquivo que esteja realmente só na nuvem; uma abertura com "Reduzir movimento" ligado; a remoção de dados pessoais reais; e o uso em outras versões do macOS e em Macs com Intel. Relatos são bem-vindos, inclusive os que dizem "funcionou".
+**Verificar.** Tudo o que está em [Ainda não verificado](#ainda-não-verificado): as partes da limpeza de sistema e do desinstalador que não foram confirmadas à mão; uma varredura sobre um arquivo que esteja realmente só na nuvem; uma abertura com "Reduzir movimento" ligado; a remoção de dados pessoais reais; e o uso em outras versões do macOS e em Macs com Intel. Relatos são bem-vindos, inclusive os que dizem "funcionou".
 
 **Conviver por enquanto.** Os [limites conhecidos](#limites-conhecidos) acima.
 

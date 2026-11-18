@@ -159,7 +159,7 @@ Things to know before using it:
 
 - **It needs the installed app.** The system cleanup is done by a small helper program that `cargo xtask install` puts inside the app. When the app runs from the source without that helper, the group shows "só no app instalado · cargo xtask install" (only in the installed app) and its rows cannot be selected.
 - **It asks for the password until you turn on the fingerprint.** The password dialog of macOS does not take Touch ID. The next section shows how to use the fingerprint instead.
-- **It has not been verified end to end.** The helper is covered by automated tests on temporary folders, but the macOS dialog and a real cleanup of `/Library/Caches` and `/Library/Logs` were not exercised by the project's tests. See the [safety guide](safety.md#administrator-areas).
+- **It was confirmed by hand on one Mac only.** A real cleanup of `/Library/Logs` with the fingerprint worked from the dialog to the history; `/Library/Caches` and the password dialog for this cleanup were not exercised. See the [safety guide](safety.md#administrator-areas).
 - Items that macOS itself protects (System Integrity Protection) cannot be removed even by an administrator. They are reported as left as they were.
 
 #### Using the fingerprint instead of the password
@@ -179,13 +179,15 @@ What that line does: macOS ships a file that turns on Touch ID for `sudo`, its o
 
 From then on, DiskMarshal asks macOS for the fingerprint first. If you cancel it, or the fingerprint cannot be read (with the lid closed, for example), the usual password dialog appears, so nothing gets stuck.
 
+The fingerprint dialog is the one of macOS, and it names `sudo`, not DiskMarshal: on a Mac in Portuguese it reads "sudo está tentando executar um comando como administrador" (sudo is trying to run a command as an administrator). That is expected: `sudo` is what DiskMarshal asks to run its helper.
+
 To go back to the password, remove the file:
 
 ```bash
 sudo rm /etc/pam.d/sudo_local
 ```
 
-DiskMarshal never changes this setting for you. This path was not verified by the project's automated tests, because it needs a finger on the sensor.
+DiskMarshal never changes this setting for you. The automated tests cannot put a finger on the sensor, so this path was confirmed by hand, on one Mac (macOS 27.2 on Apple Silicon): a system cleanup asked for the fingerprint and went through. The password dialog after a cancelled fingerprint was not exercised.
 
 ### 3. "Aplicativos" (apps)
 

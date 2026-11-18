@@ -157,7 +157,7 @@ O que saber antes de usar:
 
 - **Precisa do app instalado.** A limpeza de sistema é feita por um pequeno programa auxiliar que o `cargo xtask install` coloca dentro do app. Quando o app roda direto do código sem esse auxiliar, o grupo mostra "só no app instalado · cargo xtask install" e as linhas dele não podem ser selecionadas.
 - **Ele pede a senha até você ativar a digital.** O diálogo de senha do macOS não aceita o Touch ID. A próxima seção mostra como usar a digital no lugar.
-- **Não foi verificado de ponta a ponta.** O auxiliar é coberto por testes automáticos em pastas temporárias, mas o diálogo do macOS e uma limpeza real de `/Library/Caches` e `/Library/Logs` não foram exercitados pelos testes do projeto. Veja o [guia de segurança](safety.pt-BR.md#áreas-de-administrador).
+- **Foi confirmado à mão em um único Mac.** Uma limpeza real de `/Library/Logs` com a digital funcionou do diálogo ao histórico; `/Library/Caches` e o diálogo de senha para essa limpeza não foram exercitados. Veja o [guia de segurança](safety.pt-BR.md#áreas-de-administrador).
 - Itens que o próprio macOS protege (Proteção da Integridade do Sistema, SIP) não podem ser removidos nem por um administrador. Eles aparecem como deixados como estavam.
 
 #### Usar a digital em vez da senha
@@ -177,13 +177,15 @@ O que essa linha faz: o macOS já vem com um arquivo que ativa o Touch ID para o
 
 Daí em diante, o DiskMarshal pede primeiro a digital ao macOS. Se você cancelar, ou se a digital não puder ser lida (com a tampa fechada, por exemplo), aparece o diálogo de senha de sempre, então nada fica travado.
 
+O diálogo da digital é o do macOS, e ele fala em `sudo`, não em DiskMarshal: "sudo está tentando executar um comando como administrador". É o esperado: o `sudo` é o que o DiskMarshal pede para rodar o auxiliar dele.
+
 Para voltar à senha, apague o arquivo:
 
 ```bash
 sudo rm /etc/pam.d/sudo_local
 ```
 
-O DiskMarshal nunca muda esse ajuste por você. Esse caminho não foi verificado pelos testes automáticos do projeto, porque precisa de um dedo no sensor.
+O DiskMarshal nunca muda esse ajuste por você. Os testes automáticos não têm como colocar um dedo no sensor, então esse caminho foi confirmado à mão, em um Mac (macOS 27.2 em Apple Silicon): uma limpeza de sistema pediu a digital e foi até o fim. O diálogo de senha depois de uma digital cancelada não foi exercitado.
 
 ### 3. "Aplicativos"
 

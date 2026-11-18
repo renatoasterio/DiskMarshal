@@ -16,7 +16,7 @@ Be aware that the project is young and has no stable release. Some things have n
 
 ### What has not been tested yet?
 
-- **System cleanup, end to end.** The macOS authentication dialog and a real cleanup of `/Library/Caches` and `/Library/Logs` were not exercised by the project's tests. The helper that does it is covered by tests on temporary folders and by its simulation mode.
+- **Parts of the system cleanup.** Cleaning `/Library/Logs` with the fingerprint and uninstalling two real apps behind the password dialog were confirmed by hand on one Mac. A real cleanup of `/Library/Caches`, the system cleanup behind the password dialog and the password dialog that follows a cancelled fingerprint were not. The helper that does it is covered by tests on temporary folders and by its simulation mode.
 - **A file that is really cloud-only in iCloud.** The protection against downloads is in place, but was not tried on a real cloud-only file.
 - **Starting with reduced motion,** with the "Reduce motion" switch of System Settings turned on.
 - **Deleting real personal data from the interface.** It was exercised on test folders only.

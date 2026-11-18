@@ -33,4 +33,4 @@ The administrator cleanup uses one-shot elevation: macOS authenticates the user 
 
 ## Not verified yet
 
-The macOS authentication dialog and a real cleanup of `/Library/Caches` and `/Library/Logs` were not exercised end to end by the project's tests. The helper is covered by tests on temporary folders and by its simulation mode (`--dry-run`). A report from someone who tried this path on a real Mac is welcome, whether it worked or not.
+A system cleanup of `/Library/Logs` with the fingerprint, and the uninstall of two real apps behind the macOS password dialog, were confirmed by hand on one Mac (macOS 27.2 on Apple Silicon). A real cleanup of `/Library/Caches`, the password dialog for the system cleanup, the password dialog after a cancelled fingerprint and the removal of an app's items from `/Library` were not exercised on the real thing. The automated tests cover the helper on temporary folders and its simulation mode (`--dry-run`); they cannot authenticate. A report from someone who tried this path on a real Mac is welcome, whether it worked or not.
