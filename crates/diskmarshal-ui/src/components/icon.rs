@@ -24,6 +24,7 @@ pub(crate) enum Icon {
     Docker,
     DiskMap,
     Monitor,
+    Network,
     Sliders,
     /// Marks what needs an administrator.
     Lock,
@@ -139,6 +140,12 @@ impl Icon {
                     [16.0, 7.5],
                     [16.0, 11.0],
                 ]),
+            ],
+            Self::Network => &[
+                Circle([12.0, 12.0, 9.0]),
+                Line(&[[3.0, 12.0], [21.0, 12.0]]),
+                Line(&[[12.0, 3.0], [14.6, 7.5], [14.6, 16.5], [12.0, 21.0]]),
+                Line(&[[12.0, 3.0], [9.4, 7.5], [9.4, 16.5], [12.0, 21.0]]),
             ],
             Self::Sliders => &[
                 Line(&[[3.0, 6.0], [12.0, 6.0]]),

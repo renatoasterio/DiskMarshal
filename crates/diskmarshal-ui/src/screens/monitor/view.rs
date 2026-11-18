@@ -9,7 +9,7 @@ use egui::{
 
 use super::view_model::MonitorViewModel;
 use crate::components::{
-    CellWidth, HudPanel, cell_row, key_value, line_plot, readout, segmented_bar,
+    CellWidth, HudPanel, Trace, cell_row, key_value, line_plot, readout, segmented_bar,
 };
 use crate::i18n::pt_br;
 use crate::screens::ScreenContext;
@@ -43,10 +43,14 @@ pub(crate) fn show(model: &mut MonitorViewModel, ui: &mut Ui, context: &ScreenCo
                     .meta(&percent)
                     .show(ui, tokens, |ui| {
                         let history = model.cpu_history();
+                        let trace = Trace {
+                            values: &history,
+                            color: tokens.color_accent,
+                        };
                         line_plot(
                             ui,
                             tokens,
-                            &history,
+                            &[trace],
                             PLOT_HEIGHT,
                             context.appearance.glow_strength,
                         );

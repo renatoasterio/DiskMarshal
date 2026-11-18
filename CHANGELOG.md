@@ -12,6 +12,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   carry the new name. The removal history now lives in
   `~/Library/Application Support/DiskMarshal/`; a `history.jsonl` kept under
   the previous name is not moved automatically, so copy it there to keep it.
+- The app no longer promises that it never uses the network. It still sends
+  nothing about the user and checks for no updates, but the network screen
+  sends pings and name lookups when asked to analyze the connection, and
+  moves real data when asked to test its speed. Reading the traffic uses
+  counters only. The documentation says so wherever it said "no network".
 - The number keys now go from 1 to 9: the screens after the cleanup moved one
   or two places to make room for the apps and Docker screens.
 
@@ -23,6 +28,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- The network screen ("Rede", key `0`), with three tabs. "Tráfego" shows how
+  fast the Mac is receiving and sending, which programs are doing it and
+  where the connections of each one go. "Análise" reads the wireless link
+  and the network settings, times the router, the internet and the name
+  servers, runs the speed test that ships with macOS when asked, and says in
+  sentences what it found. "Otimização" offers up to three changes for what
+  was found: turning off a proxy search nobody answers, flushing the DNS
+  cache, and switching to a much faster name server. Each change is
+  confirmed first, goes through the privileged helper after macOS
+  authenticates the user, and can be undone while the app is open.
+- `diskmarshal-cli network`: shows which programs are using the network, how
+  fast each one is receiving and sending, and, with `--connections`, where
+  each connection goes. It reads the counters macOS keeps, through
+  `/usr/bin/nettop`: no packet is captured, no connection is opened and
+  nothing is changed.
+- The privileged helper accepts a third form of request, `--network`, that
+  names network settings to change and never a command. See
+  `docs/adr/0004-network-changes-through-the-privileged-helper.md`.
 - The fingerprint for administrator actions: on a Mac where the user turned
   on Touch ID for `sudo`, the system cleanup and the removal of an app's
   system items ask for the fingerprint, and fall back to the password dialog

@@ -5,10 +5,11 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use diskmarshal_application::ports::{
-    AccessStatus, AppBundleReader, ContainerEngine, ContentHasher, ExternalOpener, FileInspector,
-    FileRemover, FileSystemWalker, FolderLister, FolderPicker, HistoryRepository, ImageThumbnailer,
-    MetricsProvider, PermissionProbe, PrivilegedCleaner, RuleCatalog, RunningAppProbe, TrashBin,
-    VersionControlProbe, VolumeStats, WallClock,
+    AccessStatus, AppBundleReader, ConnectionInspector, ContainerEngine, ContentHasher,
+    ExternalOpener, FileInspector, FileRemover, FileSystemWalker, FolderLister, FolderPicker,
+    HistoryRepository, ImageThumbnailer, MetricsProvider, NetworkTuner, PermissionProbe,
+    PrivilegedCleaner, ReachabilityProbe, RuleCatalog, RunningAppProbe, SpeedTester, TrafficProbe,
+    TrashBin, VersionControlProbe, VolumeStats, WallClock,
 };
 use diskmarshal_domain::monitoring::VolumeUsage;
 use egui::{
@@ -106,6 +107,17 @@ pub struct UiServices {
     pub folder_lister: Arc<dyn FolderLister>,
     /// Talks to the Docker engine installed on this Mac.
     pub container_engine: Arc<dyn ContainerEngine>,
+    /// Reads what macOS counts on every open connection.
+    pub traffic_probe: Arc<dyn TrafficProbe>,
+    /// Reads how this Mac is set up to reach the internet.
+    pub connection_inspector: Arc<dyn ConnectionInspector>,
+    /// Times how long the router, the internet and the name servers take
+    /// to answer.
+    pub reachability: Arc<dyn ReachabilityProbe>,
+    /// Measures the speed of the connection.
+    pub speed_tester: Arc<dyn SpeedTester>,
+    /// Changes network settings after macOS authenticates the user.
+    pub network_tuner: Arc<dyn NetworkTuner>,
     /// The folders where apps are installed.
     pub application_folders: Vec<PathBuf>,
     /// The user's home folder.
@@ -140,6 +152,14 @@ pub struct UiOptions {
     pub preload_apps: bool,
     /// Whether to ask Docker what it holds before the first frame.
     pub preload_docker: bool,
+    /// Whether to read the traffic and analyze the connection before the
+    /// first frame.
+    pub preload_network: bool,
+    /// Whether to also run the speed test before the first frame. It spends
+    /// real data unless the tester is a stand-in.
+    pub preload_speed_test: bool,
+    /// The tab the network screen opens on, by its identifier.
+    pub network_tab: Option<String>,
 }
 
 impl Default for UiOptions {
@@ -157,6 +177,9 @@ impl Default for UiOptions {
             preload_photos: None,
             preload_apps: false,
             preload_docker: false,
+            preload_network: false,
+            preload_speed_test: false,
+            network_tab: None,
         }
     }
 }
@@ -217,6 +240,13 @@ impl DiskMarshalUi {
         }
         if options.preload_docker {
             screens.preload_docker(&services);
+        }
+        if options.preload_network {
+            screens.preload_network(
+                &services,
+                options.network_tab.as_deref(),
+                options.preload_speed_test,
+            );
         }
         let now = ctx.input(|input| input.time);
         let plays_boot = options.shows_boot && options.motion.allows_ambient();

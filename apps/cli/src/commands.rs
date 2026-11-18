@@ -2,6 +2,7 @@
 
 pub mod apps;
 pub mod docker;
+pub mod network;
 pub mod scan;
 
 use std::env;

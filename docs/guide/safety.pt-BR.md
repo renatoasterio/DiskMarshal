@@ -94,9 +94,22 @@ O DiskMarshal avisa o macOS, antes de ler qualquer coisa, que ele não deve baix
 
 Isso foi testado com arquivos guardados no Mac. Não foi testado com um arquivo que esteja realmente só na nuvem.
 
-## Sem rede, sem telemetria
+## A rede: só quando você pede
 
-O DiskMarshal não se conecta à internet. Não envia dados de uso, não procura atualizações e não tem conta. O que ele descobre sobre o seu disco fica no seu Mac.
+O DiskMarshal não envia dados de uso, não procura atualizações e não tem conta. O que ele descobre sobre o seu disco e a sua rede fica no seu Mac.
+
+Ler o tráfego usa apenas contadores que o macOS já mantém: nenhum pacote é capturado, então o conteúdo do que trafega nunca é visto. O app usa a rede em dois casos, cada um iniciado por um botão da tela de rede:
+
+- "Analisar conexão" envia dez pings ao seu roteador e dez a 1.1.1.1, e pede aos seus servidores de nomes e a três públicos (Cloudflare, Google e Quad9) o endereço de `example.com`. Quando o macOS está ajustado para procurar um proxy, ela também pergunta uma vez se a sua rede responde a essa procura. Poucos kilobytes ao todo.
+- "Medir velocidade" roda o teste de velocidade que vem com o macOS contra os servidores da Apple. Ele transfere dados de verdade: mais de 1 GB numa conexão rápida.
+
+Nenhum dos dois leva nada sobre você ou sobre os seus arquivos.
+
+## Ajustes de rede
+
+A tela de rede pode mudar três ajustes do macOS, só depois da sua confirmação e de o macOS autenticar você: desligar a procura automática por proxy, limpar o cache de DNS e definir os servidores de nomes do seu serviço de rede. Cada um é um ajuste comum, que você vê em Ajustes do Sistema › Rede. "Desfazer alterações" devolve o ajuste ao que era enquanto o app está aberto. Nenhum arquivo é apagado.
+
+Ainda não testado: uma mudança real feita pelo app. O auxiliar que faz as mudanças foi exercitado só no modo de simulação, que confere o pedido contra o Mac e não altera nada.
 
 ## Áreas de administrador
 

@@ -27,11 +27,14 @@ pub enum Screen {
     DiskMap,
     /// Live processor, memory, disk and sensor readings.
     Monitor,
+    /// Who is using the network, how good the connection is and what can
+    /// be changed to make it faster.
+    Network,
 }
 
 impl Screen {
     /// Every screen, in the order of the navigation rail.
-    pub const ALL: [Self; 9] = [
+    pub const ALL: [Self; 10] = [
         Self::Dashboard,
         Self::Cleanup,
         Self::Apps,
@@ -41,6 +44,7 @@ impl Screen {
         Self::Docker,
         Self::DiskMap,
         Self::Monitor,
+        Self::Network,
     ];
 
     /// Finds a screen by its identifier, such as `disk_map`.
@@ -53,7 +57,10 @@ impl Screen {
     /// content from apps without Full Disk Access.
     #[must_use]
     pub const fn reads_personal_folders(self) -> bool {
-        !matches!(self, Self::Dashboard | Self::Docker | Self::Monitor)
+        !matches!(
+            self,
+            Self::Dashboard | Self::Docker | Self::Monitor | Self::Network
+        )
     }
 
     /// Identifier of the screen, stable across languages.
@@ -69,6 +76,7 @@ impl Screen {
             Self::Docker => "docker",
             Self::DiskMap => "disk_map",
             Self::Monitor => "monitor",
+            Self::Network => "network",
         }
     }
 
@@ -85,6 +93,7 @@ impl Screen {
             Self::Docker => pt_br::SCREEN_DOCKER,
             Self::DiskMap => pt_br::SCREEN_DISK_MAP,
             Self::Monitor => pt_br::SCREEN_MONITOR,
+            Self::Network => pt_br::SCREEN_NETWORK,
         }
     }
 
@@ -99,6 +108,7 @@ impl Screen {
             Self::Docker => pt_br::TITLE_DOCKER,
             Self::DiskMap => pt_br::TITLE_DISK_MAP,
             Self::Monitor => pt_br::TITLE_MONITOR,
+            Self::Network => pt_br::TITLE_NETWORK,
         }
     }
 
@@ -113,6 +123,7 @@ impl Screen {
             Self::Docker => pt_br::SUBTITLE_DOCKER,
             Self::DiskMap => pt_br::SUBTITLE_DISK_MAP,
             Self::Monitor => pt_br::SUBTITLE_MONITOR,
+            Self::Network => pt_br::SUBTITLE_NETWORK,
         }
     }
 
@@ -127,6 +138,7 @@ impl Screen {
             Self::Docker => Icon::Docker,
             Self::DiskMap => Icon::DiskMap,
             Self::Monitor => Icon::Monitor,
+            Self::Network => Icon::Network,
         }
     }
 
@@ -142,6 +154,7 @@ impl Screen {
             Self::Docker => (Key::Num7, "7"),
             Self::DiskMap => (Key::Num8, "8"),
             Self::Monitor => (Key::Num9, "9"),
+            Self::Network => (Key::Num0, "0"),
         }
     }
 }

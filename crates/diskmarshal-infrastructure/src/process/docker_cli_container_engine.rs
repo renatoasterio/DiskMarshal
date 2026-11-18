@@ -94,7 +94,7 @@ impl DockerCliContainerEngine {
         if output.code == Some(0) {
             Ok(String::from_utf8_lossy(&output.stdout).into_owned())
         } else {
-            Err(EngineError::Failed(first_line(&output.stderr)))
+            Err(EngineError::Failed(output.first_error_line()))
         }
     }
 
@@ -422,15 +422,6 @@ fn days_since_epoch(year: i64, month: i64, day: i64) -> i64 {
 
 /// The first line of what a program printed as its error, which is where
 /// Docker says what went wrong.
-fn first_line(printed: &[u8]) -> String {
-    String::from_utf8_lossy(printed)
-        .lines()
-        .map(str::trim)
-        .find(|line| !line.is_empty())
-        .unwrap_or("no message")
-        .to_owned()
-}
-
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;

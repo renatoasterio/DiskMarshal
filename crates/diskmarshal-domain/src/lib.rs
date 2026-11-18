@@ -12,6 +12,7 @@ pub mod dev_artifacts;
 pub mod docker;
 pub mod duplicates;
 pub mod monitoring;
+pub mod network;
 pub mod photos;
 pub mod scan;
 pub mod shared;

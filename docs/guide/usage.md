@@ -15,7 +15,7 @@ How to use each screen of DiskMarshal, and its command line tool. If you have no
 | Area | What it shows |
 |---|---|
 | **Status bar** (top) | The app name, the free space on the startup disk, the time, and the appearance icon. |
-| **Navigation rail** (left) | The nine screens, each with its number key. The lit one is where you are. |
+| **Navigation rail** (left) | The ten screens, each with its number key. The lit one is where you are. |
 | **Disk gauge** (bottom left) | "Disco de inicialização" (startup disk): how full it is. It turns amber and says "crítico" (critical) when less than 10% is free. |
 | **Work area** (right) | The title and a one-line description of the current screen, then its content. |
 
@@ -23,7 +23,7 @@ How to use each screen of DiskMarshal, and its command line tool. If you have no
 
 | Key | Action |
 |---|---|
-| `1` to `9` | Go to a screen, in the order of the rail |
+| `1` to `9`, then `0` | Go to a screen, in the order of the rail. `0` opens the tenth. |
 | `Esc` | Close the appearance panel |
 | `Command + Q` | Quit |
 
@@ -74,7 +74,7 @@ If you click the action button with nothing selected, the screen says "Selecione
 
 The [safety guide](safety.md) explains the rules behind these steps.
 
-## The nine screens
+## The ten screens
 
 ### 1. "Painel" (dashboard)
 
@@ -443,6 +443,84 @@ Good to know:
 - There are no fan speeds.
 - This screen only reads. It cannot stop a program.
 
+### 10. "Rede" (network)
+
+Who is using the network, how good the connection is, and what can be changed to make it faster. The app calls this screen "Central de rede" (network center). It has three tabs.
+
+![The network screen: the two speeds over time, the totals, the programs using the network and the connections of one of them](../assets/screens/network.png)
+
+#### "Tráfego" (traffic)
+
+| Panel | What it shows |
+|---|---|
+| "Tráfego agora" (traffic now) | How fast the Mac is receiving (↓) and sending (↑) right now, and both over the last two minutes. The note under the plot says what its top stands for. |
+| "Desde que a tela abriu" (since the screen opened) | "Recebido" (received), "Enviado" (sent), "Pico de download" (download peak), "Conexões com dados" (connections with data), "Programas na rede" (programs on the network) and "Reenviado" (sent again): the share of what was sent that had to be sent again because it was lost on the way. |
+| "Programas" (programs) | Every program that moved data, the busiest first, with how fast it is receiving and sending. The processes of one app are shown as one program. |
+| "Conexões" (connections) | Where the connections of the program you clicked go: address and port, what the port is usually for, the time the other side takes to answer, and how much was received and sent. A connection that had to send data again says so in orange. |
+
+Good to know:
+
+- Readings are taken every 2 seconds, and only while this screen is open.
+- The app reads the counters macOS keeps for each connection, the same ones Activity Monitor shows. It never sees the content of what travels.
+- Addresses are shown as numbers. The app does not look their names up, because that would itself use the network.
+- What never leaves the Mac (the loopback interface) is left out.
+- A connection opened and closed between two readings is not seen, so very short transfers are undercounted.
+- This tab only reads. It cannot stop a program.
+
+#### "Análise" (analysis)
+
+![The analysis tab: the four figures of the speed test, the wireless link, the way to the internet and the diagnosis](../assets/screens/network-analysis.png)
+
+Nothing on this tab uses the network until you click one of its two buttons.
+
+**"Analisar conexão"** (analyze connection) reads the network settings of the Mac and the Wi-Fi signal, sends ten pings to the router and ten to the internet, and times the name servers (DNS): the ones in use and three public ones. It takes about ten seconds and moves a few kilobytes. It fills in:
+
+| Panel | What it shows |
+|---|---|
+| "Wi-Fi" | "Sinal" (signal), "Ruído" (noise) and "Taxa" (the speed the link is transmitting at), then the channel, the band, the channel width and how many other networks in range use the same channel. |
+| "Caminho até a internet" (way to the internet) | "Roteador" (router) and "Internet" with their answer times, "DNS em uso" (name server in use), "Proxy" and "VPN". |
+| "Diagnóstico" (diagnosis) | What all of it adds up to, in sentences, each with a badge: "Atenção" (attention), "Informação" (information) or "OK". What asks for attention comes first. |
+
+**"Medir velocidade"** (measure speed) runs the speed test that ships with macOS (`networkQuality`) against Apple's servers. It fills in "Download", "Upload", "Latência" (latency) and "Resposta sob carga" (response under load): how many round trips per minute the connection completes while it is fully loaded.
+
+Good to know:
+
+- The speed test uses the connection at full speed for about 20 seconds and spends real data: on a 500 Mb/s connection it moves more than 1 GB. Mind that on a metered connection.
+- Many routers ignore pings on purpose. The panel then says "não responde a ping" (does not answer pings), which is not a fault.
+- The pings to the internet go to 1.1.1.1. The public name servers timed are Cloudflare (1.1.1.1), Google (8.8.8.8) and Quad9 (9.9.9.9), each asked for the address of `example.com`.
+- The other networks counted on your channel may include other access points of your own network: macOS does not tell the app their names.
+- The three steps of "Resposta sob carga" ("baixa", "média", "alta": low, medium, high) are this app's own scale: below 200 round trips per minute, from 200, and from 800.
+
+#### "Otimização" (optimization)
+
+![The optimization tab: the changes offered, each with its risk, and what only you can do](../assets/screens/network-tuning.png)
+
+The changes offered come from the analysis, so this tab asks for it first. Each row says what changes and carries a risk badge.
+
+| Action | What it does | Offered when | Starts selected |
+|---|---|---|---|
+| "Desligar a descoberta automática de proxy" (turn off automatic proxy discovery) | Stops macOS from looking for a proxy before each new connection. | The search is on and no proxy is configured. | Only when the network was seen not to answer the search. |
+| "Limpar o cache de DNS" (flush the DNS cache) | Makes macOS look names up again instead of using what it remembers. Nothing is deleted from the disk. | Always. | Yes. |
+| "Usar o DNS mais rápido medido" (use the fastest DNS measured) | Sets the name servers of your network service to the fastest public ones measured. | The one in use takes 20 ms or more, and at least twice as long as the fastest public one. | Never: the name server in use may filter content or know names that exist only inside your network, and a public one does neither. |
+
+How it goes:
+
+1. Mark what you want and click "Aplicar selecionadas" (apply selected).
+2. The dialog "Autorização requerida" (authorization required) lists each change. Click "Aplicar".
+3. macOS asks for your administrator password, or for your fingerprint once you [turn that on](#using-the-fingerprint-instead-of-the-password). The app never sees either.
+4. The dialog "Aplicado" (applied) lists what changed.
+
+"Desfazer alterações" (undo changes) appears after that. It puts each setting back to what it was: the proxy search back on, the name servers back to the ones that were set, or to the ones the network hands out when none were. Flushing the cache has nothing to undo.
+
+Good to know:
+
+- These are ordinary settings of macOS, changed by `networksetup`, the program macOS ships for that. You can see and change them in System Settings › Network.
+- What was applied is remembered only while the app is open. After you quit, take a change back in System Settings.
+- Changing settings works only in the installed app. Without the helper beside it, the footer says "Mudar ajustes de rede só funciona no app instalado."
+- "Orientações" (guidance) lists what would help and only you can do, such as choosing another Wi-Fi channel on the router.
+- DiskMarshal does not change TCP parameters of the system. On current macOS such "accelerators" bring no measured gain and can make the connection worse.
+- It cannot make the connection faster than your plan. It removes what is slowing it down on the Mac.
+
 ## The command line tool
 
 `diskmarshal-cli` runs the same scan engine as the app, from the Terminal. It is read-only: it never changes or deletes anything.
@@ -544,6 +622,14 @@ cargo run --release -p diskmarshal-cli -- docker
 ```
 
 Shows how much Docker holds of each kind and lists what nothing uses.
+
+```bash
+cargo run --release -p diskmarshal-cli -- network
+```
+
+Shows which programs are using the network: how fast each one is receiving and sending right now, how much its open connections have moved, and how many connections it has. The speeds come from two readings taken 2 seconds apart; `--seconds <N>` changes that, `--top <N>` changes how many programs are listed, and `--connections` also lists where each connection goes, with the time the other side takes to answer.
+
+It reads the counters macOS already keeps for every connection, the same ones Activity Monitor shows. No packet is captured, the content of what travels is never seen, and nothing leaves the Mac. What never leaves the Mac (the loopback interface) is left out. A connection opened and closed between the two readings is not seen, so very short transfers are undercounted.
 
 ## Next
 

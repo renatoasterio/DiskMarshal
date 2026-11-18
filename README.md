@@ -14,7 +14,7 @@ English · [Português](README.pt-BR.md)
 ![Rust 1.100](https://img.shields.io/badge/rust-1.100-2fe6ff)
 ![Status: pre-release](https://img.shields.io/badge/status-pre--release-ffb020)
 
-<img src="docs/assets/tour.gif" alt="Slideshow of the nine DiskMarshal screens: dashboard, cleanup, apps, duplicates, similar photos, developer, Docker, disk map and monitor" width="900">
+<img src="docs/assets/tour.gif" alt="Slideshow of the ten DiskMarshal screens: dashboard, cleanup, apps, duplicates, similar photos, developer, Docker, disk map, monitor and network" width="900">
 
 <sub>Screenshots of the app itself, running on demonstration data. The interface is in Brazilian Portuguese. See <a href="#project-status">Project status</a> for what is built and what has not been verified yet.</sub>
 
@@ -72,7 +72,7 @@ Three things worth knowing:
 
 ## Project status
 
-All nine screens are built, and the app really deletes what you select, always after a preview and a confirmation. There is no stable release yet. It is developed and tested on one kind of machine: macOS 27 on Apple Silicon.
+All ten screens are built, and the app really deletes what you select, always after a preview and a confirmation. There is no stable release yet. It is developed and tested on one kind of machine: macOS 27 on Apple Silicon.
 
 | Part | What it does | State |
 |---|---|---|
@@ -87,8 +87,10 @@ All nine screens are built, and the app really deletes what you select, always a
 | "Docker" | The build cache, images, stopped containers and volumes that nothing uses, removed by Docker itself | Built, removal not verified on a real Docker (see below) |
 | "Mapa do disco" (disk map) | Treemap of the home folder or the whole disk, colored by type or by iCloud state | Built |
 | "Monitor" | Processor, memory, swap, disk, temperatures and the busiest programs, live | Built |
+| "Rede" (network) | Which programs are using the network and how fast, an analysis of the connection with an optional speed test, and three settings that can make it faster | Built, changing a setting not verified on the real thing (see below) |
 | `diskmarshal-cli scan` | Measures a folder from the terminal; read-only | Built |
 | `diskmarshal-cli apps`, `diskmarshal-cli docker` | Show what those two screens would find; read-only | Built |
+| `diskmarshal-cli network` | Shows which programs are using the network and how fast; read-only | Built |
 | `cargo xtask install` | Builds, signs and installs `DiskMarshal.app` | Built |
 
 ### Confirmed by hand
@@ -110,6 +112,7 @@ These parts are written and covered by automated tests on temporary folders, but
 - **Deleting real personal data from the interface.** Removal was exercised on test folders only.
 - **Other macOS versions and Intel Macs.**
 - **The rest of the uninstaller.** Uninstalling with the fingerprint, and removing what an app left in `/Library`, were not exercised on the real thing: nothing of the two apps above was removed from there. That part ran on test folders and in the helper's simulation mode.
+- **Changing a network setting.** Turning off the proxy search, flushing the DNS cache and setting the name servers go through the helper, which was exercised in its simulation mode only: it checks the request against the Mac and changes nothing. Reading the traffic and analyzing the connection were checked against the real network of the development machine. The speed test was checked by running the macOS tool by hand and reading its answer, not by pressing the button.
 - **Removing from a real Docker.** Reading what Docker holds was checked against a real Docker 24. The removal ran against a stand-in program that answers like Docker. Whether Docker Desktop gives the freed space back to macOS was not checked.
 
 ### Known limits
@@ -117,6 +120,8 @@ These parts are written and covered by automated tests on temporary folders, but
 - Paths protected by macOS (System Integrity Protection) cannot be cleaned.
 - Time Machine local snapshots, `/private/var/log` and `/private/var/tmp` are not cleaned.
 - The monitor shows no fan speeds.
+- The network screen reads counters, not packets: it shows who talks to which address and how much, never the content. A connection opened and closed between two readings is not seen.
+- The network screen cannot make a connection faster than the plan it runs on. It removes what slows it down on the Mac.
 - Photos inside the Photos app library are out of scope: the library is never read or changed.
 - APFS clones and snapshots can make the space really freed smaller than the estimate.
 - The uninstaller finds what carries the identifier or the name of the app. What an app keeps under another name stays.
@@ -136,8 +141,8 @@ Screenshots of the app with demonstration data. The [usage guide](docs/guide/usa
 | ![Groups of similar photos with thumbnails, a reference photo and a match percentage](docs/assets/screens/photos.png) | ![Build and dependency folders listed by project and ecosystem](docs/assets/screens/developer.png) |
 | **Docker** | **Disk map ("Mapa do disco")** |
 | ![How much Docker holds of each kind and the list of what nothing uses](docs/assets/screens/docker.png) | ![Treemap where each block is as large as the space the folder uses](docs/assets/screens/disk-map.png) |
-| **Monitor** |  |
-| ![Processor trace, per-core bars, memory, disk, temperatures and the busiest programs](docs/assets/screens/monitor.png) |  |
+| **Monitor** | **Network ("Rede")** |
+| ![Processor trace, per-core bars, memory, disk, temperatures and the busiest programs](docs/assets/screens/monitor.png) | ![The two speeds over time, the programs using the network and the connections of one of them](docs/assets/screens/network.png) |
 
 Three palettes, chosen from the appearance icon in the status bar:
 
@@ -151,7 +156,7 @@ Three palettes, chosen from the appearance icon in the status bar:
 - **Checked again at the last moment.** Each item is looked at again right before removal. If it changed since the preview, it is skipped.
 - **No surprise downloads.** Scanning never makes macOS download files that live only in iCloud.
 - **Administrator rights for one operation only.** The app never runs as an administrator and keeps no background service. macOS itself asks for the password, or for your fingerprint once you [turn that on](docs/guide/usage.md#using-the-fingerprint-instead-of-the-password), and the app never sees either.
-- **No network, no telemetry.** The app never connects to the internet.
+- **No telemetry, and the network only when you ask.** The app sends nothing about you and checks for no updates. It uses the network in two cases, each started by a button on the network screen: analyzing the connection (a few pings and name lookups) and the speed test (which moves real data to and from Apple's servers).
 
 Details in the [safety guide](docs/guide/safety.md).
 
@@ -202,7 +207,7 @@ flowchart LR
 | `diskmarshal-domain` | Rules with no I/O: file tree, deletion policy, cleanup rules, duplicates, photo similarity, treemap layout, sizes |
 | `diskmarshal-application` | Use cases and the ports they need |
 | `diskmarshal-infrastructure` | macOS adapters: disk, Trash, history, hashing, image thumbnails, system readings, permissions, privilege elevation |
-| `diskmarshal-ui` | The egui interface: theme, components, the nine screens |
+| `diskmarshal-ui` | The egui interface: theme, components, the ten screens |
 | `apps/desktop`, `apps/cli`, `apps/privileged-helper` | Binaries that wire everything together |
 | `xtask` | Project tasks: `check`, `bundle`, `install` |
 

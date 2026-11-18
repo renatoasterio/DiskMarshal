@@ -1,25 +1,16 @@
 //! Privileged cleaner that asks macOS to authenticate the user and to run
 //! the helper once.
-//!
-//! There are two ways to get there. Where the user turned on Touch ID for
-//! `sudo`, the helper is started through `sudo` and macOS takes the
-//! fingerprint. Everywhere else, and whenever the fingerprint does not go
-//! through, it is started through AppleScript, whose dialog takes the
-//! password.
 
-use std::env;
 use std::ffi::OsString;
 use std::path::PathBuf;
 
 use diskmarshal_application::ports::{AuthenticationKind, PrivilegeError, PrivilegedCleaner};
 use diskmarshal_domain::deletion::DeletionOutcome;
 
-use crate::privilege::helper_program::{has_valid_signature, is_unmodifiable_program};
+use crate::privilege::helper_launcher::HelperLauncher;
 use crate::privilege::helper_protocol::{
-    HELPER_NAME, UNINSTALL_FLAG, decode_outcomes, is_bundle_id, is_item_path, is_rule_id,
+    UNINSTALL_FLAG, decode_outcomes, is_bundle_id, is_item_path, is_rule_id,
 };
-use crate::privilege::sudo_launch::SudoRun;
-use crate::privilege::{osascript_launch, sudo_launch};
 
 /// Runs the helper as an administrator, once per cleanup.
 ///
@@ -27,7 +18,7 @@ use crate::privilege::{osascript_launch, sudo_launch};
 /// this process never sees either. There is no service left running.
 #[derive(Debug, Clone)]
 pub struct MacosPrivilegedCleaner {
-    helper: Option<PathBuf>,
+    launcher: HelperLauncher,
 }
 
 impl MacosPrivilegedCleaner {
@@ -35,18 +26,16 @@ impl MacosPrivilegedCleaner {
     /// cleaner reports itself unavailable.
     #[must_use]
     pub fn beside_current_executable() -> Self {
-        let helper = env::current_exe()
-            .ok()
-            .and_then(|executable| executable.canonicalize().ok())
-            .and_then(|executable| Some(executable.parent()?.join(HELPER_NAME)));
-        Self::new(helper)
+        Self {
+            launcher: HelperLauncher::beside_current_executable(),
+        }
     }
 
     /// Uses the helper at `helper`, when it is there and can be trusted.
     #[must_use]
     pub fn new(helper: Option<PathBuf>) -> Self {
         Self {
-            helper: helper.filter(|path| is_unmodifiable_program(path)),
+            launcher: HelperLauncher::new(helper),
         }
     }
 
@@ -57,44 +46,18 @@ impl MacosPrivilegedCleaner {
         arguments: &[OsString],
         prompt: &str,
     ) -> Result<Vec<DeletionOutcome>, PrivilegeError> {
-        let unavailable = |reason: &str| PrivilegeError::Unavailable(reason.to_owned());
-        let helper = self
-            .helper
-            .as_ref()
-            .ok_or_else(|| unavailable("helper not found"))?;
-        // Checked again right before use: time passed since the app started.
-        if !is_unmodifiable_program(helper) {
-            return Err(unavailable("helper changed"));
-        }
-        if !has_valid_signature(helper) {
-            return Err(unavailable("the app's signature is not valid"));
-        }
-
-        let with_fingerprint =
-            sudo_launch::accepts_touch_id().then(|| sudo_launch::run(helper, arguments));
-        let report = match with_fingerprint {
-            Some(SudoRun::Finished(result)) => result?,
-            // The fingerprint did not go through, or this Mac does not take
-            // it for `sudo`: the password dialog is the way that always exists.
-            Some(SudoRun::NotAuthenticated) | None => {
-                osascript_launch::run(helper, arguments, prompt)?
-            }
-        };
+        let report = self.launcher.run(arguments, prompt)?;
         decode_outcomes(&report).map_err(PrivilegeError::Failed)
     }
 }
 
 impl PrivilegedCleaner for MacosPrivilegedCleaner {
     fn is_available(&self) -> bool {
-        self.helper.is_some()
+        self.launcher.is_available()
     }
 
     fn authentication(&self) -> AuthenticationKind {
-        if sudo_launch::accepts_touch_id() {
-            AuthenticationKind::TouchId
-        } else {
-            AuthenticationKind::Password
-        }
+        self.launcher.authentication()
     }
 
     fn clean(

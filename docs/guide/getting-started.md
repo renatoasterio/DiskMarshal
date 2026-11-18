@@ -141,7 +141,7 @@ Press `Command + Space`, type `DiskMarshal` and press Return. You can also open 
 
 **What you should see:** a short start-up sequence (click to skip it), then the "Painel" (dashboard).
 
-![The DiskMarshal dashboard: status bar on top, the nine screens on the left, gauges and the recoverable space on the right](../assets/screens/dashboard.png)
+![The DiskMarshal dashboard: status bar on top, the ten screens on the left, gauges and the recoverable space on the right](../assets/screens/dashboard.png)
 
 *Screenshot of the app with demonstration data. Your numbers will be different, and "Espaço recuperável" (recoverable space) starts with "não analisado" (not analyzed) on every row.*
 

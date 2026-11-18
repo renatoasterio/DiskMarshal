@@ -9,6 +9,7 @@ pub mod filesystem;
 pub mod hashing;
 pub mod imaging;
 pub mod metrics;
+pub mod network;
 pub mod permissions;
 pub mod persistence;
 pub mod privilege;

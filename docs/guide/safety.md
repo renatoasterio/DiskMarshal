@@ -94,9 +94,22 @@ DiskMarshal tells macOS, before reading anything, that it must not download file
 
 This has been tested with files stored on the Mac. It has not been tested on a file that really is cloud-only.
 
-## No network, no telemetry
+## The network: only when you ask
 
-DiskMarshal does not connect to the internet. It sends no usage data, checks for no updates and has no account. What it learns about your disk stays on your Mac.
+DiskMarshal sends no usage data, checks for no updates and has no account. What it learns about your disk and your network stays on your Mac.
+
+Reading the traffic uses nothing but counters macOS already keeps: no packet is captured, so the content of what travels is never seen. The app uses the network itself in two cases, each started by a button on the network screen:
+
+- "Analisar conexão" (analyze connection) sends ten pings to your router and ten to 1.1.1.1, and asks your name servers and three public ones (Cloudflare, Google and Quad9) for the address of `example.com`. When macOS is set to look for a proxy, it also asks once whether your network answers that search. A few kilobytes in all.
+- "Medir velocidade" (measure speed) runs the speed test that ships with macOS against Apple's servers. It moves real data: more than 1 GB on a fast connection.
+
+Neither one carries anything about you or your files.
+
+## Network settings
+
+The network screen can change three settings of macOS, only after you confirm and after macOS authenticates you: turn off the automatic search for a proxy, flush the DNS cache, and set the name servers of your network service. Each is an ordinary setting you can see in System Settings › Network. "Desfazer alterações" (undo changes) puts it back while the app is open. No file is deleted.
+
+Not tested yet: a real change made from the app. The helper that makes the changes was exercised only in its simulation mode, which checks the request against the Mac and changes nothing.
 
 ## Administrator areas
 

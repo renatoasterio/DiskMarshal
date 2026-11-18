@@ -14,7 +14,7 @@
 ![Rust 1.100](https://img.shields.io/badge/rust-1.100-2fe6ff)
 ![Estado: pré-lançamento](https://img.shields.io/badge/estado-pr%C3%A9--lan%C3%A7amento-ffb020)
 
-<img src="docs/assets/tour.gif" alt="Sequência com as nove telas do DiskMarshal: painel, limpeza, aplicativos, duplicados, fotos parecidas, desenvolvedor, Docker, mapa do disco e monitor" width="900">
+<img src="docs/assets/tour.gif" alt="Sequência com as dez telas do DiskMarshal: painel, limpeza, aplicativos, duplicados, fotos parecidas, desenvolvedor, Docker, mapa do disco, monitor e rede" width="900">
 
 <sub>Capturas do próprio app, rodando com dados de demonstração. Veja em <a href="#estado-do-projeto">Estado do projeto</a> o que está pronto e o que ainda não foi verificado.</sub>
 
@@ -72,7 +72,7 @@ Três coisas que vale saber:
 
 ## Estado do projeto
 
-As nove telas estão prontas, e o app apaga de verdade o que você seleciona, sempre depois de uma prévia e de uma confirmação. Ainda não há uma versão estável. Ele é desenvolvido e testado em um único tipo de máquina: macOS 27 em Apple Silicon.
+As dez telas estão prontas, e o app apaga de verdade o que você seleciona, sempre depois de uma prévia e de uma confirmação. Ainda não há uma versão estável. Ele é desenvolvido e testado em um único tipo de máquina: macOS 27 em Apple Silicon.
 
 | Parte | O que faz | Estado |
 |---|---|---|
@@ -87,8 +87,10 @@ As nove telas estão prontas, e o app apaga de verdade o que você seleciona, se
 | "Docker" | O cache de build, as imagens, os containers parados e os volumes que nada usa, removidos pelo próprio Docker | Pronto, remoção não verificada em um Docker de verdade (veja abaixo) |
 | "Mapa do disco" | Mapa em blocos da pasta pessoal ou do disco inteiro, colorido por tipo ou por estado no iCloud | Pronto |
 | "Monitor" | Processador, memória, swap, disco, temperaturas e os programas mais ativos, ao vivo | Pronto |
+| "Rede" | Quais programas estão usando a rede e a que velocidade, uma análise da conexão com teste de velocidade opcional e três ajustes que podem deixá-la mais rápida | Pronto, mudança de ajuste não verificada na situação real (veja abaixo) |
 | `diskmarshal-cli scan` | Mede uma pasta pelo terminal; somente leitura | Pronto |
 | `diskmarshal-cli apps`, `diskmarshal-cli docker` | Mostram o que essas duas telas encontrariam; somente leitura | Pronto |
+| `diskmarshal-cli network` | Mostra quais programas estão usando a rede e a que velocidade; somente leitura | Pronto |
 | `cargo xtask install` | Compila, assina e instala o `DiskMarshal.app` | Pronto |
 
 ### Confirmado à mão
@@ -110,6 +112,7 @@ Estas partes estão escritas e cobertas por testes automáticos em pastas tempor
 - **Apagar dados pessoais reais pela interface.** A remoção foi exercitada apenas em pastas de teste.
 - **Outras versões do macOS e Macs com Intel.**
 - **O restante do desinstalador.** Desinstalar com a digital e remover o que um app deixou em `/Library` não foram exercitados na situação real: dos dois apps acima, nada foi removido de lá. Essa parte rodou em pastas de teste e no modo de simulação do auxiliar.
+- **Mudar um ajuste de rede.** Desligar a procura por proxy, limpar o cache de DNS e definir os servidores de nomes passam pelo auxiliar, que foi exercitado só no modo de simulação: ele confere o pedido contra o Mac e não altera nada. A leitura do tráfego e a análise da conexão foram conferidas na rede real da máquina de desenvolvimento. O teste de velocidade foi conferido rodando a ferramenta do macOS à mão e lendo a resposta dela, não apertando o botão.
 - **Remover de um Docker de verdade.** A leitura do que o Docker guarda foi conferida em um Docker 24 real. A remoção rodou contra um programa substituto, que responde como o Docker. Não foi conferido se o Docker Desktop devolve ao macOS o espaço liberado.
 
 ### Limites conhecidos
@@ -117,6 +120,8 @@ Estas partes estão escritas e cobertas por testes automáticos em pastas tempor
 - Caminhos protegidos pelo macOS (Proteção da Integridade do Sistema, SIP) não podem ser limpos.
 - Snapshots locais do Time Machine, `/private/var/log` e `/private/var/tmp` não são limpos.
 - O monitor não mostra a velocidade das ventoinhas.
+- A tela de rede lê contadores, não pacotes: ela mostra quem fala com qual endereço e quanto, nunca o conteúdo. Uma conexão aberta e fechada entre duas leituras não é vista.
+- A tela de rede não deixa a conexão mais rápida do que o plano contratado. Ela remove o que a atrasa no Mac.
 - Fotos dentro da biblioteca do app Fotos ficam de fora: a biblioteca nunca é lida nem alterada.
 - Clones e snapshots do APFS podem fazer o espaço realmente liberado ser menor que o estimado.
 - O desinstalador encontra o que leva o identificador ou o nome do app. O que um app guarda com outro nome fica.
@@ -136,8 +141,8 @@ Capturas do app com dados de demonstração. O [guia de uso](docs/guide/usage.pt
 | ![Grupos de fotos parecidas com miniaturas, uma foto de referência e o percentual de correspondência](docs/assets/screens/photos.png) | ![Pastas de build e de dependências listadas por projeto e ecossistema](docs/assets/screens/developer.png) |
 | **Docker** | **Mapa do disco** |
 | ![Quanto o Docker guarda de cada tipo e a lista do que nada está usando](docs/assets/screens/docker.png) | ![Mapa em que cada bloco tem o tamanho do espaço que a pasta ocupa](docs/assets/screens/disk-map.png) |
-| **Monitor** |  |
-| ![Traço do processador, barras por núcleo, memória, disco, temperaturas e os programas mais ativos](docs/assets/screens/monitor.png) |  |
+| **Monitor** | **Rede** |
+| ![Traço do processador, barras por núcleo, memória, disco, temperaturas e os programas mais ativos](docs/assets/screens/monitor.png) | ![As duas velocidades ao longo do tempo, os programas que usam a rede e as conexões de um deles](docs/assets/screens/network.png) |
 
 Três paletas, escolhidas pelo ícone de aparência na barra de status:
 
@@ -151,7 +156,7 @@ Três paletas, escolhidas pelo ícone de aparência na barra de status:
 - **Conferido de novo no último instante.** Cada item é olhado de novo logo antes da remoção. Se mudou desde a prévia, é pulado.
 - **Sem downloads de surpresa.** A varredura nunca faz o macOS baixar arquivos que estão só no iCloud.
 - **Privilégio de administrador só para uma operação.** O app nunca roda como administrador e não deixa nenhum serviço em segundo plano. O próprio macOS pede a senha, ou a sua digital depois que você [ativa essa opção](docs/guide/usage.pt-BR.md#usar-a-digital-em-vez-da-senha), e o app nunca vê nenhuma das duas.
-- **Sem rede, sem telemetria.** O app nunca se conecta à internet.
+- **Sem telemetria, e rede só quando você pede.** O app não envia nada sobre você e não procura atualizações. Ele usa a rede em dois casos, cada um iniciado por um botão da tela de rede: a análise da conexão (alguns pings e consultas de nomes) e o teste de velocidade (que transfere dados de verdade com os servidores da Apple).
 
 Detalhes no [guia de segurança](docs/guide/safety.pt-BR.md).
 
@@ -202,7 +207,7 @@ flowchart LR
 | `diskmarshal-domain` | Regras sem acesso a disco: árvore de arquivos, política de exclusão, regras de limpeza, duplicados, semelhança de fotos, desenho do mapa, tamanhos |
 | `diskmarshal-application` | Casos de uso e as portas de que eles precisam |
 | `diskmarshal-infrastructure` | Adaptadores do macOS: disco, Lixeira, histórico, hash de conteúdo, miniaturas de imagens, leituras do sistema, permissões, elevação de privilégio |
-| `diskmarshal-ui` | A interface em egui: tema, componentes, as nove telas |
+| `diskmarshal-ui` | A interface em egui: tema, componentes, as dez telas |
 | `apps/desktop`, `apps/cli`, `apps/privileged-helper` | Binários que ligam tudo |
 | `xtask` | Tarefas do projeto: `check`, `bundle`, `install` |
 

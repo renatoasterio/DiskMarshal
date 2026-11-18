@@ -13,7 +13,7 @@ Como usar cada tela do DiskMarshal e a ferramenta de linha de comando. Se ainda 
 | Área | O que mostra |
 |---|---|
 | **Barra de status** (em cima) | O nome do app, o espaço livre no disco de inicialização, a hora e o ícone de aparência. |
-| **Trilho de navegação** (à esquerda) | As nove telas, cada uma com a sua tecla numérica. A que está acesa é onde você está. |
+| **Trilho de navegação** (à esquerda) | As dez telas, cada uma com a sua tecla numérica. A que está acesa é onde você está. |
 | **Medidor do disco** (embaixo, à esquerda) | "Disco de inicialização": quão cheio ele está. Fica âmbar e mostra "crítico" quando há menos de 10% livre. |
 | **Área de trabalho** (à direita) | O título e uma descrição de uma linha da tela atual, e depois o conteúdo. |
 
@@ -21,7 +21,7 @@ Como usar cada tela do DiskMarshal e a ferramenta de linha de comando. Se ainda 
 
 | Tecla | Ação |
 |---|---|
-| `1` a `9` | Ir para uma tela, na ordem do trilho |
+| `1` a `9`, depois `0` | Ir para uma tela, na ordem do trilho. O `0` abre a décima. |
 | `Esc` | Fechar o painel de aparência |
 | `Command + Q` | Sair |
 
@@ -72,7 +72,7 @@ Se você clicar no botão de ação sem nada selecionado, a tela mostra "Selecio
 
 O [guia de segurança](safety.pt-BR.md) explica as regras por trás desses passos.
 
-## As nove telas
+## As dez telas
 
 ### 1. "Painel"
 
@@ -441,6 +441,84 @@ Vale saber:
 - Não há velocidade das ventoinhas.
 - Esta tela só lê. Ela não encerra programas.
 
+### 10. "Rede"
+
+Quem está usando a rede, como está a conexão e o que pode ser mudado para deixá-la mais rápida. O app chama esta tela de "Central de rede". Ela tem três abas.
+
+![A tela de rede: as duas velocidades ao longo do tempo, os totais, os programas que usam a rede e as conexões de um deles](../assets/screens/network.png)
+
+#### "Tráfego"
+
+| Quadro | O que mostra |
+|---|---|
+| "Tráfego agora" | A que velocidade o Mac está recebendo (↓) e enviando (↑) neste momento, e as duas ao longo dos últimos dois minutos. A nota embaixo do gráfico diz o que o topo dele representa. |
+| "Desde que a tela abriu" | "Recebido", "Enviado", "Pico de download", "Conexões com dados", "Programas na rede" e "Reenviado": a parte do que foi enviado que precisou ser enviada de novo porque se perdeu no caminho. |
+| "Programas" | Todo programa que movimentou dados, o mais ativo primeiro, com a velocidade em que está recebendo e enviando. Os processos de um mesmo app aparecem como um programa só. |
+| "Conexões" | Para onde vão as conexões do programa em que você clicou: endereço e porta, para que a porta costuma servir, o tempo que o outro lado leva para responder e quanto foi recebido e enviado. Uma conexão que precisou reenviar dados avisa em laranja. |
+
+Vale saber:
+
+- As leituras são feitas a cada 2 segundos, e só enquanto esta tela está aberta.
+- O app lê os contadores que o macOS mantém para cada conexão, os mesmos que o Monitor de Atividade mostra. Ele nunca vê o conteúdo do que trafega.
+- Os endereços aparecem como números. O app não procura os nomes deles, porque isso já seria usar a rede.
+- O que nunca sai do Mac (a interface de loopback) fica de fora.
+- Uma conexão aberta e fechada entre duas leituras não é vista, então transferências muito curtas são contadas a menos.
+- Esta aba só lê. Ela não encerra programas.
+
+#### "Análise"
+
+![A aba de análise: os quatro números do teste de velocidade, o Wi-Fi, o caminho até a internet e o diagnóstico](../assets/screens/network-analysis.png)
+
+Nada nesta aba usa a rede até você clicar em um dos dois botões dela.
+
+**"Analisar conexão"** lê os ajustes de rede do Mac e o sinal do Wi-Fi, envia dez pings ao roteador e dez à internet e mede o tempo de resposta dos servidores de nomes (DNS): os que estão em uso e três públicos. Leva cerca de dez segundos e movimenta poucos kilobytes. Ela preenche:
+
+| Quadro | O que mostra |
+|---|---|
+| "Wi-Fi" | "Sinal", "Ruído" e "Taxa" (a velocidade em que o enlace está transmitindo), depois o canal, a faixa, a largura do canal e quantas outras redes ao alcance usam o mesmo canal. |
+| "Caminho até a internet" | "Roteador" e "Internet" com os tempos de resposta, "DNS em uso", "Proxy" e "VPN". |
+| "Diagnóstico" | O que tudo isso quer dizer, em frases, cada uma com uma etiqueta: "Atenção", "Informação" ou "OK". O que pede atenção vem primeiro. |
+
+**"Medir velocidade"** roda o teste de velocidade que vem com o macOS (`networkQuality`) contra os servidores da Apple. Ele preenche "Download", "Upload", "Latência" e "Resposta sob carga": quantas idas e voltas por minuto a conexão completa enquanto está totalmente ocupada.
+
+Vale saber:
+
+- O teste de velocidade usa a conexão no máximo por cerca de 20 segundos e gasta dados de verdade: numa conexão de 500 Mb/s ele transfere mais de 1 GB. Leve isso em conta numa conexão com franquia.
+- Muitos roteadores ignoram pings de propósito. O quadro então diz "não responde a ping", o que não é defeito.
+- Os pings para a internet vão para 1.1.1.1. Os servidores de nomes públicos medidos são Cloudflare (1.1.1.1), Google (8.8.8.8) e Quad9 (9.9.9.9), e a cada um é pedido o endereço de `example.com`.
+- As outras redes contadas no seu canal podem incluir outros pontos de acesso da sua própria rede: o macOS não informa os nomes delas ao app.
+- Os três níveis de "Resposta sob carga" ("baixa", "média", "alta") são uma escala deste app: abaixo de 200 idas e voltas por minuto, a partir de 200 e a partir de 800.
+
+#### "Otimização"
+
+![A aba de otimização: as mudanças oferecidas, cada uma com o seu risco, e o que só você pode fazer](../assets/screens/network-tuning.png)
+
+As mudanças oferecidas saem da análise, então esta aba pede a análise primeiro. Cada linha diz o que muda e traz uma etiqueta de risco.
+
+| Ação | O que faz | Quando é oferecida | Já vem marcada |
+|---|---|---|---|
+| "Desligar a descoberta automática de proxy" | Faz o macOS parar de procurar um proxy antes de cada conexão nova. | A procura está ligada e nenhum proxy está configurado. | Só quando a rede foi vista sem responder à procura. |
+| "Limpar o cache de DNS" | Faz o macOS consultar os nomes de novo em vez de usar o que lembra. Nada é apagado do disco. | Sempre. | Sim. |
+| "Usar o DNS mais rápido medido" | Define os servidores de nomes do seu serviço de rede como os públicos mais rápidos que foram medidos. | O que está em uso leva 20 ms ou mais, e pelo menos o dobro do público mais rápido. | Nunca: o servidor em uso pode filtrar conteúdo ou conhecer nomes que só existem dentro da sua rede, e um público não faz nem uma coisa nem outra. |
+
+Como acontece:
+
+1. Marque o que quiser e clique em "Aplicar selecionadas".
+2. O diálogo "Autorização requerida" lista cada mudança. Clique em "Aplicar".
+3. O macOS pede a sua senha de administrador, ou a sua digital, se você [ativar isso](#usar-a-digital-em-vez-da-senha). O app nunca vê nenhuma das duas.
+4. O diálogo "Aplicado" lista o que mudou.
+
+Depois disso aparece "Desfazer alterações". Ele devolve cada ajuste ao que era: a procura por proxy ligada de novo, os servidores de nomes de volta aos que estavam definidos, ou aos que a rede informa quando não havia nenhum. Limpar o cache não tem o que desfazer.
+
+Vale saber:
+
+- São ajustes comuns do macOS, alterados pelo `networksetup`, o programa que o macOS traz para isso. Você pode ver e mudar cada um em Ajustes do Sistema › Rede.
+- O que foi aplicado só é lembrado enquanto o app está aberto. Depois de sair, desfaça uma mudança pelos Ajustes do Sistema.
+- Mudar ajustes só funciona no app instalado. Sem o auxiliar ao lado dele, o rodapé diz "Mudar ajustes de rede só funciona no app instalado."
+- "Orientações" lista o que ajudaria e só você pode fazer, como escolher outro canal de Wi-Fi no roteador.
+- O DiskMarshal não altera parâmetros TCP do sistema. No macOS atual esses "aceleradores" não trazem ganho medido e podem piorar a conexão.
+- Ele não deixa a conexão mais rápida do que o seu plano. Ele remove o que a está atrasando no Mac.
+
 ## A ferramenta de linha de comando
 
 O `diskmarshal-cli` roda o mesmo motor de varredura do app, pelo Terminal. Ele é somente leitura: nunca altera nem apaga nada.
@@ -540,6 +618,14 @@ cargo run --release -p diskmarshal-cli -- docker
 ```
 
 Mostra quanto o Docker guarda de cada tipo e lista o que nada está usando.
+
+```bash
+cargo run --release -p diskmarshal-cli -- network
+```
+
+Mostra quais programas estão usando a rede: a que velocidade cada um está recebendo e enviando agora, quanto as conexões abertas dele já movimentaram e quantas conexões ele tem. As velocidades vêm de duas leituras feitas com 2 segundos de intervalo; `--seconds <N>` muda esse intervalo, `--top <N>` muda quantos programas são listados e `--connections` lista também para onde vai cada conexão, com o tempo que o outro lado leva para responder.
+
+Ele lê os contadores que o macOS já mantém para cada conexão, os mesmos que o Monitor de Atividade mostra. Nenhum pacote é capturado, o conteúdo do que trafega nunca é visto e nada sai do Mac. O que nunca sai do Mac (a interface de loopback) fica de fora. Uma conexão aberta e fechada entre as duas leituras não é vista, então transferências muito curtas são contadas a menos.
 
 ## A seguir
 

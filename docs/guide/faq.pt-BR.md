@@ -24,7 +24,15 @@ Saiba que o projeto é novo e não tem uma versão estável. Algumas coisas aind
 
 ### Ele envia meus dados para algum lugar?
 
-Não. O DiskMarshal nunca se conecta à internet. Não há telemetria, conta nem busca por atualizações.
+Não. Não há telemetria, conta nem busca por atualizações. O app só usa a rede quando você clica em "Analisar conexão" ou em "Medir velocidade" na tela de rede, para medir a sua conexão. Nada sobre você ou sobre os seus arquivos é enviado. Veja [Segurança](safety.pt-BR.md#a-rede-só-quando-você-pede).
+
+### A tela de rede vê o que eu faço na internet?
+
+Não. Ela lê os contadores que o macOS mantém para cada conexão: qual programa, qual endereço e porta e quantos bytes foram em cada sentido. Ela nunca captura um pacote, então não tem como ver páginas, mensagens ou senhas.
+
+### Ele deixa a minha internet mais rápida do que o meu plano?
+
+Não. Ele encontra o que está atrasando a conexão no Mac (uma procura por proxy que ninguém responde, um servidor de nomes lento, um programa ocupando quase todo o envio) e se oferece para corrigir o que der. A velocidade do plano é definida pelo seu provedor.
 
 ### A varredura vai baixar meus arquivos do iCloud?
 
@@ -100,7 +108,7 @@ Sim, desde que o projeto ainda tenha o arquivo que o descreve (`package.json`, `
 
 ### No que ele é diferente de outros limpadores?
 
-O código é aberto, então qualquer pessoa pode conferir o que ele faz. Ele nunca apaga sem prévia, nunca mexe no interior da sua biblioteca do Fotos e nunca envia nada pela rede.
+O código é aberto, então qualquer pessoa pode conferir o que ele faz. Ele nunca apaga sem prévia, nunca mexe no interior da sua biblioteca do Fotos e nunca envia nada sobre você pela rede.
 
 ### Por que o desinstalador deixa alguns arquivos de um app?
 

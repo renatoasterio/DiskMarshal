@@ -34,11 +34,13 @@ them to the use cases; none of them holds rules of its own.
 | Binary | Path | What it wires |
 |---|---|---|
 | `diskmarshal` | `apps/desktop` | Every adapter into `UiServices`, then opens the window. The only binary that depends on `diskmarshal-ui`. |
-| `diskmarshal-cli` | `apps/cli` | The adapters that only read into `ScanDisk`, `ListInstalledApps`, `PlanUninstall` and `InspectDocker`. It never removes anything. |
-| `diskmarshal-privileged-helper` | `apps/privileged-helper` | The catalog, the walker, the inspector and the remover into `CleanRules`, for administrator rules only, and into `RemoveAppItems`, for the system items of an app being uninstalled. Runs once, as root, started by macOS after it authenticates the user. See [security.md](security.md#privileged-helper). |
+| `diskmarshal-cli` | `apps/cli` | The adapters that only read into `ScanDisk`, `ListInstalledApps`, `PlanUninstall`, `InspectDocker` and `MeasureTraffic`. It never removes or changes anything. |
+| `diskmarshal-privileged-helper` | `apps/privileged-helper` | The catalog, the walker, the inspector and the remover into `CleanRules`, for administrator rules only, into `RemoveAppItems`, for the system items of an app being uninstalled, and the settings of macOS into `ChangeNetworkSettings`, for the network changes the user approved. Runs once, as root, started by macOS after it authenticates the user. See [security.md](security.md#privileged-helper). |
 
 The helper has no Trash and keeps no history: it plugs in `NoTrashBin` and
-`NoHistory` (`apps/privileged-helper/src/unused_ports.rs`). The app records
+`NoHistory` (`apps/privileged-helper/src/unused_ports.rs`). In a dry run of
+a network request it plugs in `UnchangedSettings`, which reads the services
+of this Mac and changes nothing. The app records
 what the helper reports in the history of the user.
 
 `cargo xtask bundle` puts `diskmarshal` and `diskmarshal-privileged-helper`
@@ -60,6 +62,7 @@ looks for the helper.
 | `duplicates` | `DuplicateGroup`, `ContentHash`, `candidates_by_size` |
 | `photos` | `PhotoSignature`, `SimilarityTolerance`, `SimilarityGroup`, `Thumbnail`, `photo_candidates` |
 | `monitoring` | `SystemSnapshot`, `SensorReading`, `ThermalLevel`, `VolumeUsage`, `summarize_sensors` |
+| `network` | Traffic: `TrafficReading`, `TrafficMeter` (turns successive readings into speeds), `TrafficSnapshot`, `ProgramTraffic`, `Connection`, `Endpoint`, `Transport`, `BitRate`, `program_name`. Analysis: `NetworkReport` (what was found, and the rules that turn it into findings, advice and optimizations), `ConnectionProfile`, `WifiLink`, `PingResult`, `DnsTiming`, `PublicResolver`, `SpeedTest`, `Finding`, `Advice`. Changes: `NetworkChange`, `Optimization` |
 | `treemap` | `squarify`, `LayoutRect` |
 | `shared` | `ByteSize`, number formatting |
 
@@ -83,6 +86,10 @@ Use cases, in `src/use_cases/`:
 | `UninstallSystemItems` | Asks the `PrivilegedCleaner` port to remove the system items of an app and records the result in the history. This is what the app runs. |
 | `InspectDocker` | Asks Docker what it holds and what of it nothing uses. Removes nothing. |
 | `PruneDocker` | Asks Docker to remove approved resources, records them in the history and measures what Docker freed. |
+| `MeasureTraffic` | Reads the connection counters and reports who is using the network and how fast. Changes nothing. |
+| `AnalyzeNetwork` | Reads the settings of the connection and times the router, the internet and the name servers, all at once. Changes nothing. |
+| `ChangeNetworkSettings` | Checks network changes named by the caller against this Mac and applies them in order, with no preview. This is what the privileged helper runs. |
+| `TuneNetwork` | Asks the `NetworkTuner` port to apply the network changes the user approved, or the ones that take them back. This is what the app runs. |
 
 Ports, in `src/ports/`, with the adapter that implements each one:
 
@@ -108,12 +115,18 @@ Ports, in `src/ports/`, with the adapter that implements each one:
 | `RunningAppProbe` | `SysinfoRunningAppProbe` | `system` |
 | `FolderLister` | `ReaddirFolderLister` | `filesystem` |
 | `ContainerEngine` | `DockerCliContainerEngine` | `process` |
+| `TrafficProbe` | `NettopTrafficProbe` | `network` |
+| `ConnectionInspector` | `MacosConnectionInspector` | `network` |
+| `ReachabilityProbe` | `PingReachabilityProbe` | `network` |
+| `SpeedTester` | `NetworkQualitySpeedTester` | `network` |
+| `NetworkSettings` | `NetworksetupNetworkSettings` | `network` |
+| `NetworkTuner` | `MacosNetworkTuner` | `privilege` |
 
 ### `diskmarshal-infrastructure`
 
 One module per technology: `bundles`, `catalog`, `filesystem`, `hashing`, `imaging`,
-`metrics`, `permissions`, `persistence`, `privilege`, `process`, `system`,
-`trash`. Besides the adapters above:
+`metrics`, `network`, `permissions`, `persistence`, `privilege`, `process`,
+`system`, `trash`. Besides the adapters above:
 
 - `bundles` exports `application_folders`, the folders where apps are
   installed.
@@ -121,8 +134,11 @@ One module per technology: `bundles`, `catalog`, `filesystem`, `hashing`, `imagi
   policy against iCloud downloads, and `icloud_sync_roots`.
 - `privilege` exports the protocol between the app and the helper
   (`HelperRequest`, `HelperTask`, `encode_outcomes`, `decode_outcomes`): on the
-  command line one way, either rule ids or an app identifier followed by its
-  items; one line of JSON the other way.
+  command line one way, either rule ids, an app identifier followed by its
+  items, or `NETWORK_FLAG` followed by network changes; one line of JSON the
+  other way for the first two. `HelperLauncher`, inside the module, is the
+  one place that authenticates the user and starts the helper; the cleaner
+  and the network tuner both go through it.
 - `system` exports `prefers_reduced_motion`, which reads the "Reduce motion"
   switch of System Settings.
 - `process` holds `bounded_command`, which every adapter that runs another
@@ -135,7 +151,7 @@ One module per technology: `bundles`, `catalog`, `filesystem`, `hashing`, `imagi
 | Module | Holds |
 |---|---|
 | `app` | The window frame: status bar, navigation rail, work area, overlays. `UiServices` lists every port the interface uses. |
-| `screens` | One folder per screen, each with a `view` (drawing) and a `view_model` (state and logic): `dashboard`, `cleanup`, `apps`, `duplicates`, `photos`, `developer`, `docker`, `disk_map`, `monitor`. `group_review` is shared by duplicates and photos. |
+| `screens` | One folder per screen, each with a `view` (drawing) and a `view_model` (state and logic): `dashboard`, `cleanup`, `apps`, `duplicates`, `photos`, `developer`, `docker`, `disk_map`, `monitor`, `network`. `group_review` is shared by duplicates and photos. The network screen draws each of its three tabs in a file of its own. |
 | `components` | Pieces reused by the screens: panels, buttons, selection rows, gauges, the removal flow, dialogs. |
 | `tasks` | Work that runs off the interface thread: `Task`, `Search`, `Feed`. |
 | `theme`, `effects`, `animation` | Tokens, palettes, fonts, glow, grid, motion levels. |
@@ -194,6 +210,9 @@ Two screens run something else in steps 3 and 4, through the same component:
   under `crates/diskmarshal-infrastructure/resources/`, not in code.
 - **`unsafe` stays in `infrastructure`.** The other library crates and every
   binary declare `#![forbid(unsafe_code)]`.
+- **The network is used only on request.** Reading the traffic reads counters.
+  The analysis and the speed test send packets, and each starts from a
+  button; no test opens a connection.
 - **Long work runs off the interface thread.** Scans, searches, removals and
   readings run in `tasks`; a screen only polls for results.
 
