@@ -95,7 +95,7 @@ All nine screens are built, and the app really deletes what you select, always a
 
 These parts are written and covered by automated tests on temporary folders, but were not confirmed on the real thing. Treat them accordingly.
 
-- **System cleanup, end to end.** The macOS authentication dialog and a real cleanup of `/Library/Caches` and `/Library/Logs` were not exercised by the project's tests. The helper that does the cleaning is covered by tests on temporary folders and by its simulation mode (`--dry-run`). Whether the dialog offers Touch ID or only the password is decided by macOS.
+- **System cleanup, end to end.** The macOS authentication dialog and a real cleanup of `/Library/Caches` and `/Library/Logs` were not exercised by the project's tests. The helper that does the cleaning is covered by tests on temporary folders and by its simulation mode (`--dry-run`). The fingerprint path (Touch ID through `sudo`, which you turn on yourself) was not exercised either: it needs a finger on the sensor.
 - **A file that is really cloud-only.** The protection against iCloud downloads was not tested on a real cloud-only file.
 - **Starting with reduced motion.** The app reads the "Reduce motion" switch of System Settings when it opens; this was not tested with the switch on.
 - **Deleting real personal data from the interface.** Removal was exercised on test folders only.
@@ -141,7 +141,7 @@ Three palettes, chosen from the appearance icon in the status bar:
 - **Protected locations.** System folders, your Documents, Desktop and Pictures, `.git` folders and the inside of apps and photo libraries can never be deleted.
 - **Checked again at the last moment.** Each item is looked at again right before removal. If it changed since the preview, it is skipped.
 - **No surprise downloads.** Scanning never makes macOS download files that live only in iCloud.
-- **Administrator rights for one operation only.** The app never runs as an administrator and keeps no background service. macOS itself asks for Touch ID or the password, and the app never sees it.
+- **Administrator rights for one operation only.** The app never runs as an administrator and keeps no background service. macOS itself asks for the password, or for your fingerprint once you [turn that on](docs/guide/usage.md#using-the-fingerprint-instead-of-the-password), and the app never sees either.
 - **No network, no telemetry.** The app never connects to the internet.
 
 Details in the [safety guide](docs/guide/safety.md).

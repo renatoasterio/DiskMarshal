@@ -48,11 +48,11 @@ Because the app was rebuilt. The app you build carries a local signature (ad hoc
 
 ### How does the cleanup of system areas ask for my password?
 
-It does not ask; macOS does. When you confirm a cleanup that includes the "Sistema" (system) group, macOS shows its own authentication dialog and collects your Touch ID or administrator password. DiskMarshal never sees the password. macOS then runs a small helper that sits inside the app, once, and the helper exits when it is done. The [safety guide](safety.md#administrator-areas) explains the details.
+It does not ask; macOS does. When you confirm a cleanup that includes the "Sistema" (system) group, macOS shows its own authentication dialog and collects your administrator password, or your fingerprint when you turned that on. DiskMarshal never sees either. macOS then runs a small helper that sits inside the app, once, and the helper exits when it is done. The [safety guide](safety.md#administrator-areas) explains the details.
 
 ### Will the dialog offer Touch ID?
 
-That is decided by macOS, not by DiskMarshal. It may offer Touch ID or only the password field. This was not verified by the project.
+Only after you turn it on. The password dialog of macOS does not take the fingerprint. Once you turn on Touch ID for `sudo`, with one line in the Terminal shown in the [usage guide](usage.md#using-the-fingerprint-instead-of-the-password), DiskMarshal asks for the fingerprint first and shows the password dialog when it does not go through. The fingerprint path was not verified by the project's automated tests: it needs a finger on the sensor.
 
 ### Does DiskMarshal run as an administrator or leave something running in the background?
 

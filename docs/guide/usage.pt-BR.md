@@ -148,17 +148,42 @@ Uma regra remove o **conteúdo** das pastas dela, nunca as pastas em si.
 
 O que acontece quando você seleciona uma delas e confirma:
 
-1. O diálogo "Autorização requerida" ganha a linha "As áreas de sistema pedem Touch ID ou a senha de administrador, no diálogo do próprio macOS".
+1. O diálogo "Autorização requerida" ganha a linha "As áreas de sistema pedem a senha de administrador, no diálogo do próprio macOS". Com a digital ativada, a linha diz "a sua digital (Touch ID)".
 2. Depois que você clica em "Autorizar limpeza", as regras da sua própria conta são limpas primeiro.
-3. Em seguida, **o macOS mostra o diálogo de autenticação dele**, com o texto "O DiskMarshal precisa de permissão de administrador para limpar as áreas de sistema que você selecionou.". Use o Touch ID ou digite a senha de administrador. A senha vai para o macOS; o DiskMarshal nunca a vê.
+3. Em seguida, **o macOS mostra o diálogo de autenticação dele**, com o texto "O DiskMarshal precisa de permissão de administrador para limpar as áreas de sistema que você selecionou.". Digite a senha de administrador, ou encoste o dedo no sensor se você [ativou a digital](#usar-a-digital-em-vez-da-senha). As duas vão para o macOS; o DiskMarshal nunca as vê.
 4. Se você fechar esse diálogo, as áreas de sistema ficam intocadas e o resultado diz "As áreas de sistema não foram limpas: a autenticação foi cancelada.". O que foi limpo no passo 2 continua limpo.
 
 O que saber antes de usar:
 
 - **Precisa do app instalado.** A limpeza de sistema é feita por um pequeno programa auxiliar que o `cargo xtask install` coloca dentro do app. Quando o app roda direto do código sem esse auxiliar, o grupo mostra "só no app instalado · cargo xtask install" e as linhas dele não podem ser selecionadas.
-- **Touch ID ou senha, quem decide é o macOS,** não o DiskMarshal.
+- **Ele pede a senha até você ativar a digital.** O diálogo de senha do macOS não aceita o Touch ID. A próxima seção mostra como usar a digital no lugar.
 - **Não foi verificado de ponta a ponta.** O auxiliar é coberto por testes automáticos em pastas temporárias, mas o diálogo do macOS e uma limpeza real de `/Library/Caches` e `/Library/Logs` não foram exercitados pelos testes do projeto. Veja o [guia de segurança](safety.pt-BR.md#áreas-de-administrador).
 - Itens que o próprio macOS protege (Proteção da Integridade do Sistema, SIP) não podem ser removidos nem por um administrador. Eles aparecem como deixados como estavam.
+
+#### Usar a digital em vez da senha
+
+De fábrica, o macOS pede a senha de administrador, digitada, toda vez que o DiskMarshal limpa uma área de sistema ou remove os itens de sistema de um app. Se o seu Mac tem Touch ID, dá para ele pedir a digital no lugar. Isso é um ajuste do macOS, desligado por padrão, que você mesmo ativa, uma única vez:
+
+1. Abra o app Terminal.
+2. Cole esta linha e aperte Return. Ela pede a sua senha pela última vez:
+
+   ```bash
+   sed 's/^#auth/auth/' /etc/pam.d/sudo_local.template | sudo tee /etc/pam.d/sudo_local
+   ```
+
+3. Feche o DiskMarshal e abra de novo. O grupo "Sistema" passa a dizer "pede a sua digital · senha se ela falhar".
+
+O que essa linha faz: o macOS já vem com um arquivo que ativa o Touch ID para o `sudo`, o comando do próprio sistema para rodar algo como administrador, só que com o ajuste comentado. A linha copia esse arquivo para o lugar que o macOS lê, com o ajuste ligado. Ela não muda mais nada. Como efeito colateral, o `sudo` no Terminal também passa a aceitar a sua digital.
+
+Daí em diante, o DiskMarshal pede primeiro a digital ao macOS. Se você cancelar, ou se a digital não puder ser lida (com a tampa fechada, por exemplo), aparece o diálogo de senha de sempre, então nada fica travado.
+
+Para voltar à senha, apague o arquivo:
+
+```bash
+sudo rm /etc/pam.d/sudo_local
+```
+
+O DiskMarshal nunca muda esse ajuste por você. Esse caminho não foi verificado pelos testes automáticos do projeto, porque precisa de um dedo no sensor.
 
 ### 3. "Aplicativos"
 
@@ -179,7 +204,7 @@ Os itens vêm em dois grupos:
 | Grupo | O que há nele | Para onde vai |
 |---|---|---|
 | "Conta do usuário" | O app, quando foi você quem instalou, e o que ele deixou na sua Biblioteca | Para a Lixeira. Dá para recuperar de lá. |
-| "Sistema" | O app, quando a App Store ou um instalador o colocou ali, e o que ele deixou em `/Library` | Apagado de vez, depois que o macOS pede o Touch ID ou a senha. Um administrador não tem a sua Lixeira para onde mandar. |
+| "Sistema" | O app, quando a App Store ou um instalador o colocou ali, e o que ele deixou em `/Library` | Apagado de vez, depois que o macOS pede a senha, ou a digital se você a ativou. Um administrador não tem a sua Lixeira para onde mandar. |
 
 Como um item é reconhecido como sendo do app:
 

@@ -104,7 +104,7 @@ Dois lugares exigem privilégio de administrador: `/Library/Caches` ("Caches do 
 
 Como funciona quando você os seleciona e confirma:
 
-1. **O DiskMarshal pede ao macOS que autentique você.** O macOS mostra o diálogo dele, pedindo o Touch ID ou a senha de administrador. A senha vai para o macOS. O DiskMarshal nunca a vê e nunca a guarda.
+1. **O DiskMarshal pede ao macOS que autentique você.** O macOS mostra o diálogo dele, pedindo a senha de administrador, ou a sua digital se você ativou o Touch ID para comandos de administrador (o [guia de uso](usage.pt-BR.md#usar-a-digital-em-vez-da-senha) mostra como). As duas vão para o macOS. O DiskMarshal nunca as vê e nunca as guarda.
 2. **O macOS roda um pequeno auxiliar, uma única vez.** O auxiliar é um programinha separado que fica dentro do app. Ele limpa as áreas que você selecionou, informa o que fez e encerra.
 3. **O DiskMarshal grava no seu histórico o que foi removido,** como em qualquer outra remoção.
 
@@ -120,7 +120,7 @@ O que você precisa saber:
 
 - **Esse caminho não foi verificado de ponta a ponta.** O auxiliar é coberto por testes automáticos em pastas temporárias e pelo seu modo de simulação, que confere tudo e não remove nada. O diálogo de autenticação do macOS e uma limpeza real de `/Library/Caches` e `/Library/Logs` não foram exercitados pelos testes do projeto.
 - **O auxiliar trabalha a partir do que ele mesmo encontra nas pastas,** não da lista que você viu na tela. Ele remove o que essas duas pastas contêm naquele momento, o que pode diferir um pouco da prévia.
-- **Touch ID ou senha, quem decide é o macOS,** não o DiskMarshal.
+- **A digital é algo que você ativa.** Por padrão o macOS pede a senha. Ele aceita a digital depois que você ativa o Touch ID para o `sudo`, um ajuste do macOS que o DiskMarshal nunca muda por você. Quando a digital não passa, aparece o diálogo de senha.
 - **Precisa do app instalado** (`cargo xtask install`), porque é lá que o auxiliar fica.
 - **Um risco conhecido e aceito:** um programa malicioso que já esteja rodando na sua conta de usuário poderia tentar trocar o auxiliar no instante entre a conferência e a execução. Isso é considerado aceitável para uso pessoal. Os detalhes estão na [política de segurança](../security.md#privileged-helper) (em inglês).
 
@@ -171,5 +171,5 @@ As regras acima são impostas no código e cobertas por testes:
 - O auxiliar que limpa as áreas de sistema: [`apps/privileged-helper/src/main.rs`](../../apps/privileged-helper/src/main.rs)
 - Como um item é ligado a um app: [`leftover_matcher.rs`](../../crates/diskmarshal-domain/src/applications/leftover_matcher.rs)
 - O que é pedido ao Docker: [`docker_cli_container_engine.rs`](../../crates/diskmarshal-infrastructure/src/process/docker_cli_container_engine.rs)
-- Como o app pede ao macOS que o rode: [`osascript_privileged_cleaner.rs`](../../crates/diskmarshal-infrastructure/src/privilege/osascript_privileged_cleaner.rs)
+- Como o app pede ao macOS que o rode: [`macos_privileged_cleaner.rs`](../../crates/diskmarshal-infrastructure/src/privilege/macos_privileged_cleaner.rs)
 - A política completa para quem contribui (em inglês): [docs/security.md](../security.md)

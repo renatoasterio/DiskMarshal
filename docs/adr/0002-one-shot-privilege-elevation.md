@@ -89,9 +89,26 @@ The rest, as built:
 - The macOS authentication dialog and a real cleanup of `/Library/Caches` and
   `/Library/Logs` were not exercised end to end by the project's tests. The
   helper is covered by tests on temporary folders and by its simulation mode.
-- Whether the dialog offers Touch ID or only the password is decided by
-  macOS. Verified locally when the decision was made: the
-  `system.privilege.admin` right uses the standard system authentication and
-  Touch ID was enabled on the target machine. If the dialog turns out to be
-  password-only, revisit the `SMAppService` option with a custom authorization
-  right.
+- The fingerprint path described under "Touch ID" below was not exercised
+  by the project's tests: it needs a finger on the sensor.
+
+## Touch ID
+
+In use, the AppleScript dialog turned out to take the password only: the
+`system.privilege.admin` right it asks for does not offer the fingerprint.
+The alternative first noted here, a daemon registered with `SMAppService`
+and a custom authorization right, would give the fingerprint at the price of
+a privileged component that stays installed, which is what this decision set
+out to avoid.
+
+What was built instead keeps the one-shot model. macOS can take the
+fingerprint for `sudo` when the user turns that on (one line in
+`/etc/pam.d/sudo_local`, off by default). Where it is on, the app starts the
+helper through `sudo` first and macOS asks for the fingerprint; where it is
+off, or when the fingerprint does not go through, the app uses the AppleScript
+dialog as before. The app only reads that setting. The helper, its checks and
+what it accepts are the same on both paths.
+
+Consequences: the fingerprint needs a one-time step by the user that also
+affects `sudo` in the Terminal, and the dialog shown is the one macOS draws
+for `sudo`, whose wording the app does not control.

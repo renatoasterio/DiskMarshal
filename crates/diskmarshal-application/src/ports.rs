@@ -34,7 +34,7 @@ pub use history_repository::HistoryRepository;
 pub use image_thumbnailer::ImageThumbnailer;
 pub use metrics_provider::MetricsProvider;
 pub use permission_probe::{AccessStatus, PermissionProbe};
-pub use privileged_cleaner::{PrivilegeError, PrivilegedCleaner};
+pub use privileged_cleaner::{AuthenticationKind, PrivilegeError, PrivilegedCleaner};
 pub use rule_catalog::RuleCatalog;
 pub use running_app_probe::RunningAppProbe;
 pub use trash_bin::TrashBin;

@@ -1,5 +1,6 @@
 //! Drawing of the apps screen.
 
+use diskmarshal_application::ports::AuthenticationKind;
 use std::path::{Path, PathBuf};
 
 use diskmarshal_domain::applications::InstalledApp;
@@ -126,7 +127,7 @@ pub(crate) fn show(model: &mut AppsViewModel, ui: &mut Ui, context: &ScreenConte
 
     let name = chosen.map_or_else(String::new, |app| app.name);
     let body = pt_br::apps_confirm_body(&name);
-    let lines = confirm_lines(&selection);
+    let lines = confirm_lines(&selection, model.authentication());
     let text = ConfirmText {
         body: &body,
         lines: &lines,
@@ -330,7 +331,7 @@ fn detail(model: &mut AppsViewModel, ui: &mut Ui, context: &ScreenContext<'_>, h
                 &user_rows,
             );
             let system_meta = if model.removes_system() {
-                pt_br::APPS_ADMIN_META
+                pt_br::apps_admin_meta(model.authentication())
             } else {
                 pt_br::CLEANUP_ADMIN_UNAVAILABLE
             };
@@ -452,7 +453,7 @@ fn group(
     });
 }
 
-fn confirm_lines(selection: &Selection) -> Vec<String> {
+fn confirm_lines(selection: &Selection, authentication: AuthenticationKind) -> Vec<String> {
     let mut lines = vec![format!(
         "{} {} · {}",
         selection.items,
@@ -461,7 +462,10 @@ fn confirm_lines(selection: &Selection) -> Vec<String> {
     )];
     for (applies, line) in [
         (selection.uses_trash, pt_br::APPS_CONFIRM_TRASH),
-        (selection.needs_administrator, pt_br::APPS_CONFIRM_ADMIN),
+        (
+            selection.needs_administrator,
+            pt_br::apps_confirm_admin(authentication),
+        ),
         (selection.has_review, pt_br::APPS_CONFIRM_REVIEW),
     ] {
         if applies {

@@ -104,7 +104,7 @@ Two places need administrator rights: `/Library/Caches` ("Caches do sistema") an
 
 How it works when you select them and confirm:
 
-1. **DiskMarshal asks macOS to authenticate you.** macOS shows its own dialog, asking for Touch ID or the administrator password. The password goes to macOS. DiskMarshal never sees it and never stores it.
+1. **DiskMarshal asks macOS to authenticate you.** macOS shows its own dialog, asking for the administrator password, or for your fingerprint when you turned on Touch ID for administrator commands (the [usage guide](usage.md#using-the-fingerprint-instead-of-the-password) shows how). Either one goes to macOS. DiskMarshal never sees it and never stores it.
 2. **macOS runs a small helper once.** The helper is a separate little program that sits inside the app. It cleans the areas you selected, reports what it did, and exits.
 3. **DiskMarshal writes what was removed to your history,** like any other removal.
 
@@ -120,7 +120,7 @@ What you should know:
 
 - **This path has not been verified end to end.** The helper is covered by automated tests on temporary folders and by its simulation mode, which checks everything and removes nothing. The macOS authentication dialog and a real cleanup of `/Library/Caches` and `/Library/Logs` were not exercised by the project's tests.
 - **The helper works from its own fresh look at the folders,** not from the list you saw on screen. It removes what those two folders hold at that moment, which can differ a little from the preview.
-- **Touch ID or password is macOS's decision,** not DiskMarshal's.
+- **The fingerprint is something you turn on.** By default macOS asks for the password. It takes the fingerprint after you turn on Touch ID for `sudo`, a setting of macOS that DiskMarshal never changes for you. When the fingerprint does not go through, the password dialog appears.
 - **It needs the installed app** (`cargo xtask install`), because that is where the helper lives.
 - **A known, accepted risk:** a malicious program already running in your user account could try to swap the helper in the instant between the check and its execution. This is considered acceptable for personal use. The details are in the [security policy](../security.md#privileged-helper).
 
@@ -171,5 +171,5 @@ The rules above are enforced in code and covered by tests:
 - The helper that cleans system areas: [`apps/privileged-helper/src/main.rs`](../../apps/privileged-helper/src/main.rs)
 - How an item is matched to an app: [`leftover_matcher.rs`](../../crates/diskmarshal-domain/src/applications/leftover_matcher.rs)
 - What Docker is asked to do: [`docker_cli_container_engine.rs`](../../crates/diskmarshal-infrastructure/src/process/docker_cli_container_engine.rs)
-- How the app asks macOS to run it: [`osascript_privileged_cleaner.rs`](../../crates/diskmarshal-infrastructure/src/privilege/osascript_privileged_cleaner.rs)
+- How the app asks macOS to run it: [`macos_privileged_cleaner.rs`](../../crates/diskmarshal-infrastructure/src/privilege/macos_privileged_cleaner.rs)
 - The full policy for contributors: [docs/security.md](../security.md)

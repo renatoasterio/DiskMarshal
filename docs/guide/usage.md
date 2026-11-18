@@ -150,17 +150,42 @@ A rule removes the **content** of its folders, never the folders themselves.
 
 What happens when you select one of them and confirm:
 
-1. The dialog "Autorização requerida" adds the line "As áreas de sistema pedem Touch ID ou a senha de administrador, no diálogo do próprio macOS" (the system areas ask for Touch ID or the administrator password, in macOS's own dialog).
+1. The dialog "Autorização requerida" adds the line "As áreas de sistema pedem a senha de administrador, no diálogo do próprio macOS" (the system areas ask for the administrator password, in macOS's own dialog). When you have turned on the fingerprint, it says "a sua digital (Touch ID)" instead.
 2. After you click "Autorizar limpeza", the rules of your own account are cleaned first.
-3. Then **macOS shows its own authentication dialog**, with the text "O DiskMarshal precisa de permissão de administrador para limpar as áreas de sistema que você selecionou." (DiskMarshal needs administrator permission to clean the system areas you selected). Use Touch ID or type the administrator password. The password goes to macOS; DiskMarshal never sees it.
+3. Then **macOS shows its own authentication dialog**, with the text "O DiskMarshal precisa de permissão de administrador para limpar as áreas de sistema que você selecionou." (DiskMarshal needs administrator permission to clean the system areas you selected). Type the administrator password, or touch the sensor when you have [turned on the fingerprint](#using-the-fingerprint-instead-of-the-password). Either one goes to macOS; DiskMarshal never sees it.
 4. If you close that dialog, the system areas stay untouched and the result says "As áreas de sistema não foram limpas: a autenticação foi cancelada." (the system areas were not cleaned: the authentication was cancelled). What was cleaned in step 2 stays cleaned.
 
 Things to know before using it:
 
 - **It needs the installed app.** The system cleanup is done by a small helper program that `cargo xtask install` puts inside the app. When the app runs from the source without that helper, the group shows "só no app instalado · cargo xtask install" (only in the installed app) and its rows cannot be selected.
-- **Touch ID or password is decided by macOS,** not by DiskMarshal.
+- **It asks for the password until you turn on the fingerprint.** The password dialog of macOS does not take Touch ID. The next section shows how to use the fingerprint instead.
 - **It has not been verified end to end.** The helper is covered by automated tests on temporary folders, but the macOS dialog and a real cleanup of `/Library/Caches` and `/Library/Logs` were not exercised by the project's tests. See the [safety guide](safety.md#administrator-areas).
 - Items that macOS itself protects (System Integrity Protection) cannot be removed even by an administrator. They are reported as left as they were.
+
+#### Using the fingerprint instead of the password
+
+Out of the box, macOS asks for the administrator password, typed, every time DiskMarshal cleans a system area or removes the system items of an app. If your Mac has Touch ID, you can make it ask for your fingerprint instead. That is a setting of macOS, off by default, and you turn it on yourself, once:
+
+1. Open the Terminal app.
+2. Paste this line and press Return. It asks for your password one last time:
+
+   ```bash
+   sed 's/^#auth/auth/' /etc/pam.d/sudo_local.template | sudo tee /etc/pam.d/sudo_local
+   ```
+
+3. Close DiskMarshal and open it again. The "Sistema" group now says "pede a sua digital · senha se ela falhar" (asks for your fingerprint; the password if it fails).
+
+What that line does: macOS ships a file that turns on Touch ID for `sudo`, its own command for running something as an administrator, with the setting commented out. The line copies that file to the place macOS reads, with the setting switched on. It changes nothing else. As a side effect, `sudo` in the Terminal accepts your fingerprint too.
+
+From then on, DiskMarshal asks macOS for the fingerprint first. If you cancel it, or the fingerprint cannot be read (with the lid closed, for example), the usual password dialog appears, so nothing gets stuck.
+
+To go back to the password, remove the file:
+
+```bash
+sudo rm /etc/pam.d/sudo_local
+```
+
+DiskMarshal never changes this setting for you. This path was not verified by the project's automated tests, because it needs a finger on the sensor.
 
 ### 3. "Aplicativos" (apps)
 
@@ -181,7 +206,7 @@ The items come in two groups:
 | Group | What is in it | Where it goes |
 |---|---|---|
 | "Conta do usuário" (user account) | The app, when you installed it yourself, and what it left in your Library | To the Trash. You can put it back from there. |
-| "Sistema" (system) | The app, when the App Store or an installer put it there, and what it left in `/Library` | Removed for good, after macOS asks for Touch ID or the password. An administrator has no Trash of yours to send it to. |
+| "Sistema" (system) | The app, when the App Store or an installer put it there, and what it left in `/Library` | Removed for good, after macOS asks for the password, or for the fingerprint when you turned it on. An administrator has no Trash of yours to send it to. |
 
 How an item is recognized as the app's:
 

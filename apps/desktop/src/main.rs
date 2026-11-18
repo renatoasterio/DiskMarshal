@@ -21,7 +21,7 @@ use diskmarshal_infrastructure::imaging::ImageIoThumbnailer;
 use diskmarshal_infrastructure::metrics::{SysinfoMetricsProvider, UnavailableMetrics};
 use diskmarshal_infrastructure::permissions::FullDiskAccessProbe;
 use diskmarshal_infrastructure::persistence::JsonlHistoryRepository;
-use diskmarshal_infrastructure::privilege::OsascriptPrivilegedCleaner;
+use diskmarshal_infrastructure::privilege::MacosPrivilegedCleaner;
 use diskmarshal_infrastructure::process::{DockerCliContainerEngine, GitVersionControlProbe};
 use diskmarshal_infrastructure::system::{
     LocaltimeWallClock, NativeFolderPicker, OpenCommandOpener, SysinfoRunningAppProbe,
@@ -87,7 +87,7 @@ impl DesktopApp {
             folder_picker: Arc::new(NativeFolderPicker),
             hasher: Arc::new(Blake3ContentHasher),
             thumbnailer: Arc::new(ImageIoThumbnailer),
-            privileged: Arc::new(OsascriptPrivilegedCleaner::beside_current_executable()),
+            privileged: Arc::new(MacosPrivilegedCleaner::beside_current_executable()),
             permissions: Arc::new(FullDiskAccessProbe::for_home(&home)),
             bundles: Arc::new(PlistAppBundleReader::for_home(&home)),
             running_apps: Arc::new(SysinfoRunningAppProbe),

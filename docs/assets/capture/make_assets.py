@@ -286,8 +286,12 @@ def main():
     parser.add_argument("--work-dir", type=pathlib.Path, help="where to create the demonstration folder")
     arguments = parser.parse_args()
 
+    # The helper is built too and lands beside the app, the way it sits in
+    # the installed bundle. Without it the system groups show as unavailable.
     subprocess.run(
-        [os.environ.get("CARGO", "cargo"), "build", "--package", "diskmarshal", "--features", "capture"],
+        [os.environ.get("CARGO", "cargo"), "build",
+         "--package", "diskmarshal", "--features", "diskmarshal/capture",
+         "--package", "diskmarshal-privileged-helper"],
         cwd=REPOSITORY, check=True,
     )
     work = arguments.work_dir or pathlib.Path(tempfile.mkdtemp(prefix="diskmarshal-assets-"))

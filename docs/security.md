@@ -132,7 +132,7 @@ Two cleanup rules have the scope `administrator`: `system-caches`
 (`/Library/Caches`) and `system-logs` (`/Library/Logs`). Cleaning them works
 like this.
 
-In the app (`privilege/osascript_privileged_cleaner.rs`):
+In the app (`privilege/macos_privileged_cleaner.rs` and the two launchers beside it):
 
 1. The helper is looked for beside the running executable. In the installed
    app that is `DiskMarshal.app/Contents/MacOS/diskmarshal-privileged-helper`.
@@ -142,12 +142,30 @@ In the app (`privilege/osascript_privileged_cleaner.rs`):
    helper is inside an app bundle, `/usr/bin/codesign --verify --strict` must
    accept the bundle. Outside a bundle, as in a development build, there is no
    signature to check.
-3. The rule ids are validated. Then the app runs `/usr/bin/osascript` with a
-   fixed script that asks macOS to authenticate the user and to run the helper
-   with those ids. macOS shows its own dialog; the app never receives the
-   password or the fingerprint.
-4. If the user closes the dialog, nothing is cleaned and the app reports the
-   authentication as cancelled.
+3. The rule ids are validated. Then the app asks macOS to authenticate the
+   user and to run the helper with those ids, in one of two ways. Either way
+   macOS shows its own dialog and the app never receives the password or the
+   fingerprint.
+   - **Fingerprint, through `sudo`** (`privilege/sudo_launch.rs`). Used only
+     when Touch ID for `sudo` is on: an active `auth … pam_tid.so` line in
+     `/etc/pam.d/sudo_local` or `/etc/pam.d/sudo`. That is a setting of the
+     Mac, off by default; the app reads it and never writes it. The app runs
+     `/usr/bin/sudo -S -k -p "" -- helper ids…` with a cleared environment
+     and a closed standard input. `-k` means an earlier authentication is
+     never reused. `-S` with nothing to read means `sudo` cannot wait for a
+     password at a terminal: without the fingerprint it fails at once.
+   - **Password, through AppleScript** (`privilege/osascript_launch.rs`).
+     Used when Touch ID for `sudo` is off, and whenever `sudo` did not
+     authenticate the user (fingerprint refused, cancelled or unavailable).
+     The app runs `/usr/bin/osascript` with a fixed script; the dialog text,
+     the helper and the ids arrive as arguments and AppleScript quotes each
+     word before the shell sees it.
+4. If the user closes the password dialog, nothing is cleaned and the app
+   reports the authentication as cancelled.
+
+Turning on Touch ID for `sudo` is the user's decision and applies to every
+use of `sudo` on that Mac, not only to DiskMarshal. It does not widen what
+the helper accepts: the same checks run whichever way it is started.
 
 In the helper (`apps/privileged-helper/src/main.rs`):
 
@@ -223,8 +241,9 @@ Not verified: the macOS authentication dialog and a real cleanup of
 `/Library/Caches` and `/Library/Logs` were not exercised end to end by the
 project's tests. The helper's logic is covered by tests on temporary folders
 (`tests/system_cleanup_flow.rs`, `privilege/helper_protocol.rs`) and by the
-simulation mode. Whether the dialog offers Touch ID or only the password is
-decided by macOS.
+simulation mode. The fingerprint path was not exercised either: the tests
+cover how the `sudo` configuration is read and how a run is interpreted, not a
+real authentication, which needs a finger on the sensor.
 
 Known, accepted risk: an app is believed when it declares its bundle
 identifier. An app that declares the identifier of another app would have

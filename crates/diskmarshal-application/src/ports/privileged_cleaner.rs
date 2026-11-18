@@ -18,6 +18,16 @@ pub enum PrivilegeError {
     Failed(String),
 }
 
+/// What macOS asks the user for before a privileged action.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum AuthenticationKind {
+    /// The fingerprint, with the administrator password when it fails.
+    TouchId,
+    /// The administrator password.
+    #[default]
+    Password,
+}
+
 /// Cleans with administrator rights, after macOS authenticates the user.
 ///
 /// The app itself never runs as an administrator and never sees the
@@ -25,6 +35,12 @@ pub enum PrivilegeError {
 pub trait PrivilegedCleaner: Send + Sync {
     /// Whether this installation can clean with administrator rights.
     fn is_available(&self) -> bool;
+
+    /// What macOS will ask the user for. The password, unless the adapter
+    /// knows this Mac is set up to take the fingerprint instead.
+    fn authentication(&self) -> AuthenticationKind {
+        AuthenticationKind::Password
+    }
 
     /// Asks macOS to authenticate the user, showing `prompt` in its dialog,
     /// and then cleans what the administrator rules named in `rule_ids`
