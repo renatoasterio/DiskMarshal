@@ -23,7 +23,7 @@ Options considered:
 
 Elevate once per operation with AppleScript's
 `do shell script ... with administrator privileges`. macOS shows its own
-authentication dialog and then runs `maccleaner-privileged-helper` as root for
+authentication dialog and then runs `diskmarshal-privileged-helper` as root for
 that single request. Apple's guidance accepts this for limited-audience tools.
 
 The helper accepts rule identifiers only, never paths or commands, and
@@ -45,7 +45,7 @@ The decision stands. Two details differ from what was first written here:
 The rest, as built:
 
 - The helper is a third binary, `apps/privileged-helper`. `cargo xtask bundle`
-  places it beside the main executable inside `MacCleaner.app`, and signs it
+  places it beside the main executable inside `DiskMarshal.app`, and signs it
   before sealing the bundle.
 - The app looks for the helper beside its own executable. Before elevating it
   checks that the helper is a regular file (not a link), executable, and

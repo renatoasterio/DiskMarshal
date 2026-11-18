@@ -1,13 +1,13 @@
-//! `maccleaner-cli docker`: shows what Docker holds and what of it nothing
+//! `diskmarshal-cli docker`: shows what Docker holds and what of it nothing
 //! uses. Nothing is removed.
 
 use anyhow::anyhow;
-use maccleaner_application::ports::EngineError;
-use maccleaner_application::use_cases::InspectDocker;
-use maccleaner_domain::cleanup::RiskLevel;
-use maccleaner_domain::docker::{DockerInventory, ResourceKind};
-use maccleaner_domain::shared::ByteSize;
-use maccleaner_infrastructure::process::DockerCliContainerEngine;
+use diskmarshal_application::ports::EngineError;
+use diskmarshal_application::use_cases::InspectDocker;
+use diskmarshal_domain::cleanup::RiskLevel;
+use diskmarshal_domain::docker::{DockerInventory, ResourceKind};
+use diskmarshal_domain::shared::ByteSize;
+use diskmarshal_infrastructure::process::DockerCliContainerEngine;
 
 use super::home_folder;
 

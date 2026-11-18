@@ -1,0 +1,17 @@
+[package]
+name = "diskmarshal-ui"
+description = "Screens, components, theme and texts of DiskMarshal (egui)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+egui.workspace = true
+diskmarshal-application.workspace = true
+diskmarshal-domain.workspace = true
+
+[lints]
+workspace = true

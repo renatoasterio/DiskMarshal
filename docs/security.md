@@ -1,6 +1,6 @@
 # Security policy
 
-MacCleaner deletes files, so a bug can destroy data. These rules exist to make
+DiskMarshal deletes files, so a bug can destroy data. These rules exist to make
 that hard. The plain-language version for users is the
 [safety guide](guide/safety.md).
 
@@ -10,7 +10,7 @@ that hard. The plain-language version for users is the
   and sends no telemetry. Docker is asked through its own program, which
   talks to the engine on this Mac.
 - The app never runs as root and keeps no background service.
-- Administrator rights exist only inside `maccleaner-privileged-helper`, for
+- Administrator rights exist only inside `diskmarshal-privileged-helper`, for
   one operation, after macOS itself authenticates the user. The app never sees
   or stores the password. See [Privileged helper](#privileged-helper) and
   [adr/0002-one-shot-privilege-elevation.md](adr/0002-one-shot-privilege-elevation.md).
@@ -59,7 +59,7 @@ that hard. The plain-language version for users is the
 - A request that fails any check is skipped and reported, never forced. One
   failure does not stop the others.
 - Every removal is appended to
-  `~/Library/Application Support/MacCleaner/history.jsonl` (file mode 0600,
+  `~/Library/Application Support/DiskMarshal/history.jsonl` (file mode 0600,
   folder mode 0700).
 
 Each screen adds its own guard on top:
@@ -97,7 +97,7 @@ that really is cloud-only.
 
 ## Code
 
-- `unsafe` is allowed only in `maccleaner-infrastructure`, in small modules.
+- `unsafe` is allowed only in `diskmarshal-infrastructure`, in small modules.
   Every block has a `// SAFETY:` comment; the lint
   `clippy::undocumented_unsafe_blocks` enforces it. The other library crates
   and all binaries declare `#![forbid(unsafe_code)]`.
@@ -135,7 +135,7 @@ like this.
 In the app (`privilege/osascript_privileged_cleaner.rs`):
 
 1. The helper is looked for beside the running executable. In the installed
-   app that is `MacCleaner.app/Contents/MacOS/maccleaner-privileged-helper`.
+   app that is `DiskMarshal.app/Contents/MacOS/diskmarshal-privileged-helper`.
    Without it, the "Sistema" group is disabled.
 2. Before elevating, the app checks the helper again: it must be a regular
    file, not a link, executable, and writable only by its owner. When the

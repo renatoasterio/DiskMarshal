@@ -2,7 +2,7 @@
 
 English · [Português](usage.pt-BR.md)
 
-How to use each screen of MacCleaner, and its command line tool. If you have not installed it yet, start with [Getting started](getting-started.md).
+How to use each screen of DiskMarshal, and its command line tool. If you have not installed it yet, start with [Getting started](getting-started.md).
 
 > The interface is in Portuguese. This guide gives the on-screen word in quotes, followed by its meaning in parentheses the first time it appears.
 
@@ -10,7 +10,7 @@ How to use each screen of MacCleaner, and its command line tool. If you have not
 
 ## The window
 
-![The MacCleaner window on the dashboard screen](../assets/screens/dashboard.png)
+![The DiskMarshal window on the dashboard screen](../assets/screens/dashboard.png)
 
 | Area | What it shows |
 |---|---|
@@ -137,7 +137,7 @@ A rule removes the **content** of its folders, never the folders themselves.
 | "Xcode Archives" | The content of `~/Library/Developer/Xcode/Archives`. **These go to the Trash**, not removed for good. | "Revisar" |
 | "Caches de gerenciadores de pacotes" (package manager caches) | The caches of npm, cargo, Gradle, NuGet and pnpm: `~/.npm/_cacache`, `~/.cargo/registry/cache`, `~/.cargo/registry/src`, `~/.gradle/caches`, `~/.nuget/packages`, `~/Library/pnpm/store` | "Seguro" |
 
-> Careful with "Lixeira": emptying the Trash cannot be undone, and the Trash is where MacCleaner sends duplicates and photos. That is why this rule is never selected for you. Select it only when you are sure you want nothing back from the Trash.
+> Careful with "Lixeira": emptying the Trash cannot be undone, and the Trash is where DiskMarshal sends duplicates and photos. That is why this rule is never selected for you. Select it only when you are sure you want nothing back from the Trash.
 
 #### The "Sistema" group
 
@@ -152,13 +152,13 @@ What happens when you select one of them and confirm:
 
 1. The dialog "Autorização requerida" adds the line "As áreas de sistema pedem Touch ID ou a senha de administrador, no diálogo do próprio macOS" (the system areas ask for Touch ID or the administrator password, in macOS's own dialog).
 2. After you click "Autorizar limpeza", the rules of your own account are cleaned first.
-3. Then **macOS shows its own authentication dialog**, with the text "O MacCleaner precisa de permissão de administrador para limpar as áreas de sistema que você selecionou." (MacCleaner needs administrator permission to clean the system areas you selected). Use Touch ID or type the administrator password. The password goes to macOS; MacCleaner never sees it.
+3. Then **macOS shows its own authentication dialog**, with the text "O DiskMarshal precisa de permissão de administrador para limpar as áreas de sistema que você selecionou." (DiskMarshal needs administrator permission to clean the system areas you selected). Use Touch ID or type the administrator password. The password goes to macOS; DiskMarshal never sees it.
 4. If you close that dialog, the system areas stay untouched and the result says "As áreas de sistema não foram limpas: a autenticação foi cancelada." (the system areas were not cleaned: the authentication was cancelled). What was cleaned in step 2 stays cleaned.
 
 Things to know before using it:
 
 - **It needs the installed app.** The system cleanup is done by a small helper program that `cargo xtask install` puts inside the app. When the app runs from the source without that helper, the group shows "só no app instalado · cargo xtask install" (only in the installed app) and its rows cannot be selected.
-- **Touch ID or password is decided by macOS,** not by MacCleaner.
+- **Touch ID or password is decided by macOS,** not by DiskMarshal.
 - **It has not been verified end to end.** The helper is covered by automated tests on temporary folders, but the macOS dialog and a real cleanup of `/Library/Caches` and `/Library/Logs` were not exercised by the project's tests. See the [safety guide](safety.md#administrator-areas).
 - Items that macOS itself protects (System Integrity Protection) cannot be removed even by an administrator. They are reported as left as they were.
 
@@ -270,7 +270,7 @@ What the screen guarantees:
 
 - **At least one photo of each group always stays.** Otherwise the screen says "Ao menos uma foto de cada grupo precisa ficar."
 - **The marked photos go to the Trash.** You can put them back from there.
-- **The library of the Photos app is never read or changed.** macOS stores that library as one sealed package, and MacCleaner does not open it. Only loose image files in folders are compared.
+- **The library of the Photos app is never read or changed.** macOS stores that library as one sealed package, and DiskMarshal does not open it. Only loose image files in folders are compared.
 - **Files that are only in iCloud are never opened.**
 
 What is compared:
@@ -418,18 +418,18 @@ Good to know:
 
 ## The command line tool
 
-`maccleaner-cli` runs the same scan engine as the app, from the Terminal. It is read-only: it never changes or deletes anything.
+`diskmarshal-cli` runs the same scan engine as the app, from the Terminal. It is read-only: it never changes or deletes anything.
 
 Run it from the project folder:
 
 ```bash
-cargo run --release -p maccleaner-cli -- scan ~/Documents
+cargo run --release -p diskmarshal-cli -- scan ~/Documents
 ```
 
 ### What `scan` accepts
 
 ```text
-maccleaner-cli scan [--top <N>] <PATH>
+diskmarshal-cli scan [--top <N>] <PATH>
 ```
 
 | Part | Meaning | Default |
@@ -440,11 +440,11 @@ maccleaner-cli scan [--top <N>] <PATH>
 Examples:
 
 ```bash
-cargo run --release -p maccleaner-cli -- scan ~
+cargo run --release -p diskmarshal-cli -- scan ~
 ```
 
 ```bash
-cargo run --release -p maccleaner-cli -- scan ~/Projects --top 30
+cargo run --release -p diskmarshal-cli -- scan ~/Projects --top 30
 ```
 
 ### Reading the result
@@ -470,7 +470,7 @@ Maiores itens
 | "Itens" | How many files and folders are inside it. |
 | "Ocupado em disco" | The space those items really take on the disk. This is the number that matters when you want to free space. |
 | "Tamanho lógico" | The size of the content itself. It differs from the line above because the disk stores files in blocks and can compress them. |
-| "Somente na nuvem" | Content that exists only in iCloud. It takes no space on this Mac, and MacCleaner does not download it. |
+| "Somente na nuvem" | Content that exists only in iCloud. It takes no space on this Mac, and DiskMarshal does not download it. |
 | "Pastas sem acesso" | Folders macOS did not let the Terminal open. See the next section. |
 | "Tempo" | How long the scan took. |
 | "Maiores itens" | The largest items directly inside the folder. A `/` after the name marks a folder; "(pacote)" marks an app or a library measured as one item. |
@@ -479,7 +479,7 @@ Numbers use the Brazilian format: a comma for decimals and a dot for thousands.
 
 ### When "Pastas sem acesso" is not zero
 
-macOS protects some folders, such as Mail, Safari and other apps' data. The command line tool runs inside the Terminal, so here it is the Terminal that needs **Full Disk Access**, not MacCleaner:
+macOS protects some folders, such as Mail, Safari and other apps' data. The command line tool runs inside the Terminal, so here it is the Terminal that needs **Full Disk Access**, not DiskMarshal:
 
 1. Open **System Settings**.
 2. Go to **Privacy & Security**, then **Full Disk Access**.
@@ -491,7 +491,7 @@ This only lets the Terminal read those folders. You can turn it off the same way
 ### Measuring the whole disk
 
 ```bash
-cargo run --release -p maccleaner-cli -- scan /
+cargo run --release -p diskmarshal-cli -- scan /
 ```
 
 This takes longer and needs Full Disk Access to be complete. Two things are left out on purpose: other disks connected to the Mac, and the internal volume macOS shows twice, which would count every file two times.
@@ -501,24 +501,24 @@ This takes longer and needs Full Disk Access to be complete. Two things are left
 Two more commands print what the "Aplicativos" and "Docker" screens would find. Like `scan`, they remove nothing.
 
 ```bash
-cargo run --release -p maccleaner-cli -- apps
+cargo run --release -p diskmarshal-cli -- apps
 ```
 
 Lists the installed apps, largest first, with the version and who can remove each one: "usuário" (you) or "admin" (an administrator).
 
 ```bash
-cargo run --release -p maccleaner-cli -- apps Docker
+cargo run --release -p diskmarshal-cli -- apps Docker
 ```
 
 With the name of an app, shows what uninstalling it would remove: each item with its kind, its badge and its size.
 
 ```bash
-cargo run --release -p maccleaner-cli -- docker
+cargo run --release -p diskmarshal-cli -- docker
 ```
 
 Shows how much Docker holds of each kind and lists what nothing uses.
 
 ## Next
 
-- [Safety](safety.md): what MacCleaner can and cannot delete, and what has not been tested yet.
+- [Safety](safety.md): what DiskMarshal can and cannot delete, and what has not been tested yet.
 - [Questions and troubleshooting](faq.md).

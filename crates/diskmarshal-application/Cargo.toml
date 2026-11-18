@@ -1,0 +1,16 @@
+[package]
+name = "diskmarshal-application"
+description = "Use cases and ports of DiskMarshal."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+diskmarshal-domain.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

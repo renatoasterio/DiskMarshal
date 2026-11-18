@@ -2,7 +2,7 @@
 
 [English](safety.md) · Português
 
-Um limpador apaga arquivos, então um erro pode custar dados. Esta página explica, em linguagem simples, as regras que o MacCleaner segue para isso não acontecer, e diz com honestidade o que ainda não foi testado.
+Um limpador apaga arquivos, então um erro pode custar dados. Esta página explica, em linguagem simples, as regras que o DiskMarshal segue para isso não acontecer, e diz com honestidade o que ainda não foi testado.
 
 > **Como as coisas estão hoje.** O app apaga de verdade o que você seleciona. Todas as regras desta página são impostas no código e cobertas por testes automáticos. Esses testes rodam em pastas temporárias criadas para isso; a remoção de dados pessoais reais pela interface só foi experimentada em pastas de teste. Comece pequeno: limpe uma coisa, olhe o resultado, depois siga. A seção [O que não foi testado](#o-que-não-foi-testado) lista o resto.
 
@@ -10,7 +10,7 @@ Um limpador apaga arquivos, então um erro pode custar dados. Esta página expli
 
 ### 1. Você sempre vê uma prévia antes
 
-Antes de remover qualquer coisa, o MacCleaner lista exatamente o que vai sair e quanto espaço isso libera. Procurar e analisar nunca removem nada. Depois, um diálogo chamado "Autorização requerida" repete quantos itens e quanto espaço, e espera. Nada acontece até você clicar no botão que confirma. "Cancelar" fecha o diálogo sem remover nada.
+Antes de remover qualquer coisa, o DiskMarshal lista exatamente o que vai sair e quanto espaço isso libera. Procurar e analisar nunca removem nada. Depois, um diálogo chamado "Autorização requerida" repete quantos itens e quanto espaço, e espera. Nada acontece até você clicar no botão que confirma. "Cancelar" fecha o diálogo sem remover nada.
 
 ![A tela de limpeza listando cada regra, onde ela procura e quanto encontrou, antes de qualquer remoção](../assets/screens/cleanup.png)
 
@@ -41,21 +41,21 @@ O espaço do que foi para a Lixeira só é liberado quando você a esvazia.
 
 ### 3. Alguns lugares nunca podem ser apagados
 
-O MacCleaner se recusa a apagar estes itens, mesmo que um defeito ou uma regra errada peça:
+O DiskMarshal se recusa a apagar estes itens, mesmo que um defeito ou uma regra errada peça:
 
 - **Qualquer coisa dentro das pastas do próprio sistema:** `/System`, `/usr`, `/bin` e `/sbin`.
 - **As pastas compartilhadas em si:** `/Applications`, `/Library`, `/Library/Caches`, `/Library/Logs`, `/Users`, `/Volumes`, `/private`, `/tmp` e algumas outras. O conteúdo de `/Library/Caches` e de `/Library/Logs` pode ser limpo pelo grupo "Sistema"; as pastas ficam.
 - **As suas pastas pessoais em si:** a pasta pessoal, Mesa, Documentos, Downloads, Imagens, Filmes, Música, Público, Sites, a sua própria pasta Aplicativos e a pasta da Lixeira.
 - **As pastas da Biblioteca em si:** `~/Library`, `~/Library/Caches`, `~/Library/Logs`, `~/Library/Application Support`, `~/Library/Containers`, `~/Library/Group Containers`, `~/Library/Developer`, `~/Library/Preferences` e `~/Library/Mobile Documents` (onde fica o iCloud Drive). O conteúdo pode ser limpo; as pastas ficam.
 - **Qualquer coisa dentro de uma pasta `.git`,** que guarda o histórico de um projeto de código, e a própria pasta `.git`.
-- **Qualquer coisa dentro de um pacote:** um app (`.app`), uma biblioteca do Fotos (`.photoslibrary`), uma biblioteca do Música ou do TV, uma biblioteca do iMovie ou do Final Cut, um projeto do Logic, uma imagem de disco em pacote (`.sparsebundle`) e parecidos. Apagar pedaços deles os corrompe, então o MacCleaner trata cada um como um item lacrado.
+- **Qualquer coisa dentro de um pacote:** um app (`.app`), uma biblioteca do Fotos (`.photoslibrary`), uma biblioteca do Música ou do TV, uma biblioteca do iMovie ou do Final Cut, um projeto do Logic, uma imagem de disco em pacote (`.sparsebundle`) e parecidos. Apagar pedaços deles os corrompe, então o DiskMarshal trata cada um como um item lacrado.
 - **Qualquer coisa fora das pastas em que a busca foi feita,** e a própria pasta da busca.
 
 Trocar maiúsculas por minúsculas não contorna isso: `/system` é tratado como `/System`. Um caminho escrito com `..` é recusado de cara.
 
 ### 4. Cada item é conferido de novo logo antes da remoção
 
-Passa um tempo entre a prévia e o seu clique. Por isso, imediatamente antes de remover um item, o MacCleaner olha para ele de novo. Se ele mudou, foi movido ou substituído desde que apareceu na prévia, é pulado e informado, não removido. O diálogo de resultado conta esses como "itens deixados como estavam".
+Passa um tempo entre a prévia e o seu clique. Por isso, imediatamente antes de remover um item, o DiskMarshal olha para ele de novo. Se ele mudou, foi movido ou substituído desde que apareceu na prévia, é pulado e informado, não removido. O diálogo de resultado conta esses como "itens deixados como estavam".
 
 Ele também nunca segue atalhos (links simbólicos): um link dentro de uma pasta de cache é removido como link, e aquilo para onde ele aponta fica intocado. E nunca alcança outro disco: uma pasta que tenha outro disco montado dentro dela é recusada inteira.
 
@@ -64,7 +64,7 @@ Ele também nunca segue atalhos (links simbólicos): um link dentro de uma pasta
 Cada remoção é gravada em um arquivo de histórico que só a sua conta de usuário consegue ler:
 
 ```text
-~/Library/Application Support/MacCleaner/history.jsonl
+~/Library/Application Support/DiskMarshal/history.jsonl
 ```
 
 Cada linha registra quando aconteceu, o que foi removido, quanto espaço ocupava e se foi apagado ou enviado para a Lixeira. O "Painel" mostra as entradas mais recentes em "Últimas remoções". O que a limpeza de sistema remove também fica registrado ali.
@@ -75,7 +75,7 @@ Se uma remoção aconteceu mas não pôde ser gravada no histórico, o diálogo 
 
 Toda tela que remove alguma coisa usa o mesmo trecho de código para isso, e esse código aplica as cinco regras acima. Não existe um segundo jeito, mais rápido, de apagar escondido em algum canto. O auxiliar que limpa as áreas de sistema e remove os itens de sistema de um app desinstalado usa esse mesmo código.
 
-Uma coisa não tem como passar por ele: o que o Docker guarda. Isso não é feito de arquivos que o app alcance, então é o próprio Docker quem remove, um item por vez, e ele recusa o que estiver em uso. O MacCleaner nunca força o Docker a remover nada.
+Uma coisa não tem como passar por ele: o que o Docker guarda. Isso não é feito de arquivos que o app alcance, então é o próprio Docker quem remove, um item por vez, e ele recusa o que estiver em uso. O DiskMarshal nunca força o Docker a remover nada.
 
 ## O que cada tela preserva para você
 
@@ -90,13 +90,13 @@ Uma coisa não tem como passar por ele: o que o Docker guarda. Isso não é feit
 
 Arquivos guardados só no iCloud não ocupam espaço no seu Mac. Normalmente, qualquer programa que lê um arquivo desses faz o macOS baixá-lo, o que encheria justamente o disco que você quer liberar.
 
-O MacCleaner avisa o macOS, antes de ler qualquer coisa, que ele não deve baixar arquivos por causa do app. Itens que estão só na nuvem são medidos e identificados, nunca baixados. As buscas de duplicados e de fotos parecidas os deixam de fora, porque compará-los exigiria lê-los. Se o macOS recusar essa configuração, o MacCleaner para em vez de varrer.
+O DiskMarshal avisa o macOS, antes de ler qualquer coisa, que ele não deve baixar arquivos por causa do app. Itens que estão só na nuvem são medidos e identificados, nunca baixados. As buscas de duplicados e de fotos parecidas os deixam de fora, porque compará-los exigiria lê-los. Se o macOS recusar essa configuração, o DiskMarshal para em vez de varrer.
 
 Isso foi testado com arquivos guardados no Mac. Não foi testado com um arquivo que esteja realmente só na nuvem.
 
 ## Sem rede, sem telemetria
 
-O MacCleaner não se conecta à internet. Não envia dados de uso, não procura atualizações e não tem conta. O que ele descobre sobre o seu disco fica no seu Mac.
+O DiskMarshal não se conecta à internet. Não envia dados de uso, não procura atualizações e não tem conta. O que ele descobre sobre o seu disco fica no seu Mac.
 
 ## Áreas de administrador
 
@@ -104,9 +104,9 @@ Dois lugares exigem privilégio de administrador: `/Library/Caches` ("Caches do 
 
 Como funciona quando você os seleciona e confirma:
 
-1. **O MacCleaner pede ao macOS que autentique você.** O macOS mostra o diálogo dele, pedindo o Touch ID ou a senha de administrador. A senha vai para o macOS. O MacCleaner nunca a vê e nunca a guarda.
+1. **O DiskMarshal pede ao macOS que autentique você.** O macOS mostra o diálogo dele, pedindo o Touch ID ou a senha de administrador. A senha vai para o macOS. O DiskMarshal nunca a vê e nunca a guarda.
 2. **O macOS roda um pequeno auxiliar, uma única vez.** O auxiliar é um programinha separado que fica dentro do app. Ele limpa as áreas que você selecionou, informa o que fez e encerra.
-3. **O MacCleaner grava no seu histórico o que foi removido,** como em qualquer outra remoção.
+3. **O DiskMarshal grava no seu histórico o que foi removido,** como em qualquer outra remoção.
 
 O que mantém isso restrito:
 
@@ -120,7 +120,7 @@ O que você precisa saber:
 
 - **Esse caminho não foi verificado de ponta a ponta.** O auxiliar é coberto por testes automáticos em pastas temporárias e pelo seu modo de simulação, que confere tudo e não remove nada. O diálogo de autenticação do macOS e uma limpeza real de `/Library/Caches` e `/Library/Logs` não foram exercitados pelos testes do projeto.
 - **O auxiliar trabalha a partir do que ele mesmo encontra nas pastas,** não da lista que você viu na tela. Ele remove o que essas duas pastas contêm naquele momento, o que pode diferir um pouco da prévia.
-- **Touch ID ou senha, quem decide é o macOS,** não o MacCleaner.
+- **Touch ID ou senha, quem decide é o macOS,** não o DiskMarshal.
 - **Precisa do app instalado** (`cargo xtask install`), porque é lá que o auxiliar fica.
 - **Um risco conhecido e aceito:** um programa malicioso que já esteja rodando na sua conta de usuário poderia tentar trocar o auxiliar no instante entre a conferência e a execução. Isso é considerado aceitável para uso pessoal. Os detalhes estão na [política de segurança](../security.md#privileged-helper) (em inglês).
 
@@ -158,18 +158,18 @@ Dito com clareza, para você decidir o quanto de cuidado tomar:
 
 ## Se algo der errado
 
-1. **Olhe na Lixeira.** Arquivos pessoais removidos pelo MacCleaner estão lá. Clique com o botão direito e escolha **Colocar de Volta**.
+1. **Olhe na Lixeira.** Arquivos pessoais removidos pelo DiskMarshal estão lá. Clique com o botão direito e escolha **Colocar de Volta**.
 2. **Leia o arquivo de histórico** para ver exatamente o que foi removido e quando. O painel mostra as entradas mais recentes.
-3. **Abra uma issue** em [github.com/renatoasterio/MacCleaner/issues](https://github.com/renatoasterio/MacCleaner/issues) contando o que aconteceu. Se parecer um problema de segurança, siga o [SECURITY.md](../../SECURITY.md).
+3. **Abra uma issue** em [github.com/renatoasterio/DiskMarshal/issues](https://github.com/renatoasterio/DiskMarshal/issues) contando o que aconteceu. Se parecer um problema de segurança, siga o [SECURITY.md](../../SECURITY.md).
 
 ## Para quem quer ver o código
 
 As regras acima são impostas no código e cobertas por testes:
 
-- Regras de caminho: [`protected_paths.rs`](../../crates/maccleaner-domain/src/deletion/protected_paths.rs)
-- O único caminho do código que apaga: [`delete_items.rs`](../../crates/maccleaner-application/src/use_cases/delete_items.rs)
+- Regras de caminho: [`protected_paths.rs`](../../crates/diskmarshal-domain/src/deletion/protected_paths.rs)
+- O único caminho do código que apaga: [`delete_items.rs`](../../crates/diskmarshal-application/src/use_cases/delete_items.rs)
 - O auxiliar que limpa as áreas de sistema: [`apps/privileged-helper/src/main.rs`](../../apps/privileged-helper/src/main.rs)
-- Como um item é ligado a um app: [`leftover_matcher.rs`](../../crates/maccleaner-domain/src/applications/leftover_matcher.rs)
-- O que é pedido ao Docker: [`docker_cli_container_engine.rs`](../../crates/maccleaner-infrastructure/src/process/docker_cli_container_engine.rs)
-- Como o app pede ao macOS que o rode: [`osascript_privileged_cleaner.rs`](../../crates/maccleaner-infrastructure/src/privilege/osascript_privileged_cleaner.rs)
+- Como um item é ligado a um app: [`leftover_matcher.rs`](../../crates/diskmarshal-domain/src/applications/leftover_matcher.rs)
+- O que é pedido ao Docker: [`docker_cli_container_engine.rs`](../../crates/diskmarshal-infrastructure/src/process/docker_cli_container_engine.rs)
+- Como o app pede ao macOS que o rode: [`osascript_privileged_cleaner.rs`](../../crates/diskmarshal-infrastructure/src/privilege/osascript_privileged_cleaner.rs)
 - A política completa para quem contribui (em inglês): [docs/security.md](../security.md)

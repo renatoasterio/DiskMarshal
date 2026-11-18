@@ -31,7 +31,7 @@ rules are part of the rule catalog (`resources/cleanup_rules.toml`).
 
 | Item | Rule | Example |
 |---|---|---|
-| Crate | kebab-case, `maccleaner-` prefix | `maccleaner-domain` |
+| Crate | kebab-case, `diskmarshal-` prefix | `diskmarshal-domain` |
 | Folder and `.rs` file | snake_case; one main type per file, same name | `duplicate_group.rs` holds `DuplicateGroup` |
 | Module with children | `name.rs` plus folder `name/`; never `mod.rs` | `scan.rs`, `scan/file_tree.rs` |
 | Struct, enum, trait | UpperCamelCase | `FileTree`, `RiskLevel` |
@@ -52,7 +52,7 @@ rules are part of the rule catalog (`resources/cleanup_rules.toml`).
   versions and lints are declared once in the root `Cargo.toml` and inherited
   with `key.workspace = true`.
 - **Rules as data.** A new cache location or ecosystem is a new TOML entry in
-  `crates/maccleaner-infrastructure/resources/`. [CONTRIBUTING.md](../CONTRIBUTING.md#adding-a-cleanup-rule-or-an-ecosystem)
+  `crates/diskmarshal-infrastructure/resources/`. [CONTRIBUTING.md](../CONTRIBUTING.md#adding-a-cleanup-rule-or-an-ecosystem)
   shows how.
 - **Shared interface components.** Lists with selection, risk badges, action
   footers, progress panels and the removal flow (confirm, run, report) are
@@ -60,7 +60,7 @@ rules are part of the rule catalog (`resources/cleanup_rules.toml`).
   same group review.
 - **Single sources.** Colors, glow and durations in `theme/tokens.rs`; texts in
   `i18n/pt_br.rs`; size formatting in `ByteSize`; fixtures in
-  `maccleaner-test-support`.
+  `diskmarshal-test-support`.
 - **Rule of thumb.** The second time the same logic appears, extract it.
 
 ## Code quality
@@ -70,7 +70,7 @@ rules are part of the rule catalog (`resources/cleanup_rules.toml`).
   `thiserror`; `anyhow` is used only in binaries.
 - Sizes and counters use saturating arithmetic.
 - Unit tests sit next to the code in a `tests` module; tests that need real
-  files use `TempTree` from `maccleaner-test-support`.
+  files use `TempTree` from `diskmarshal-test-support`.
 
 ## Quality gate
 
@@ -82,5 +82,5 @@ It runs `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test` and
 `cargo deny check`. CI runs the same command. A change is not done while it fails.
 
 The other project tasks build the app: `cargo xtask bundle` assembles and
-signs `dist/MacCleaner.app`, and `cargo xtask install` also copies it to
+signs `dist/DiskMarshal.app`, and `cargo xtask install` also copies it to
 `/Applications` (or to the folder given as an argument).

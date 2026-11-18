@@ -1,4 +1,4 @@
-//! Headless MacCleaner. Composition root for the command line: wires the macOS
+//! Headless DiskMarshal. Composition root for the command line: wires the macOS
 //! adapters into the use cases and prints the result. It never deletes anything.
 
 #![forbid(unsafe_code)]
@@ -9,13 +9,13 @@ use std::process::ExitCode;
 
 use anyhow::Context as _;
 use clap::{Parser, Subcommand};
-use maccleaner_infrastructure::filesystem::disable_dataless_materialization;
+use diskmarshal_infrastructure::filesystem::disable_dataless_materialization;
 
 #[derive(Parser)]
 #[command(
-    name = "maccleaner-cli",
+    name = "diskmarshal-cli",
     version,
-    about = "MacCleaner em linha de comando (somente leitura)"
+    about = "DiskMarshal em linha de comando (somente leitura)"
 )]
 struct Cli {
     #[command(subcommand)]

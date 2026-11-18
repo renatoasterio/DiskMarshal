@@ -1,6 +1,6 @@
 [package]
-name = "maccleaner-privileged-helper"
-description = "One-shot helper that cleans system areas for MacCleaner, as an administrator."
+name = "diskmarshal-privileged-helper"
+description = "One-shot helper that cleans system areas for DiskMarshal, as an administrator."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -9,9 +9,9 @@ repository.workspace = true
 publish.workspace = true
 
 [dependencies]
-maccleaner-application.workspace = true
-maccleaner-domain.workspace = true
-maccleaner-infrastructure.workspace = true
+diskmarshal-application.workspace = true
+diskmarshal-domain.workspace = true
+diskmarshal-infrastructure.workspace = true
 
 [lints]
 workspace = true

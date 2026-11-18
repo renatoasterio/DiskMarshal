@@ -2,7 +2,7 @@
 //!
 //! - `check` is the quality gate: the same steps run locally and in CI, and a
 //!   change is not done while any of them fails.
-//! - `bundle` builds `dist/MacCleaner.app`, a regular macOS application.
+//! - `bundle` builds `dist/DiskMarshal.app`, a regular macOS application.
 //! - `install` builds the app and copies it to `/Applications`, or to the
 //!   folder given as an argument (for example `~/Applications`).
 
@@ -32,20 +32,20 @@ const CHECK_STEPS: [(&str, &[&str]); 4] = [
     ("audit", &["deny", "check"]),
 ];
 
-const APP_BUNDLE: &str = "MacCleaner.app";
-const APP_EXECUTABLE: &str = "maccleaner";
+const APP_BUNDLE: &str = "DiskMarshal.app";
+const APP_EXECUTABLE: &str = "diskmarshal";
 /// The program that cleans system areas as an administrator. It sits beside
 /// the app's own executable, where the app looks for it.
-const HELPER_EXECUTABLE: &str = "maccleaner-privileged-helper";
+const HELPER_EXECUTABLE: &str = "diskmarshal-privileged-helper";
 const INSTALL_DIRECTORY: &str = "/Applications";
 /// Environment variable naming the code-signing identity to use. Without it
 /// the app is signed ad hoc, which is enough to run it on this Mac.
-const SIGNING_IDENTITY_VARIABLE: &str = "MACCLEANER_SIGNING_IDENTITY";
+const SIGNING_IDENTITY_VARIABLE: &str = "DISKMARSHAL_SIGNING_IDENTITY";
 const AD_HOC_IDENTITY: &str = "-";
 const USAGE: &str = "usage: cargo xtask <check | bundle | install [folder]>
 
   check             format, lint, test and audit the workspace
-  bundle            build dist/MacCleaner.app
+  bundle            build dist/DiskMarshal.app
   install [folder]  build the app and copy it to /Applications, or to `folder`";
 
 type TaskResult = Result<(), String>;

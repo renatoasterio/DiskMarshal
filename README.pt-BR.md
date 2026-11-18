@@ -1,20 +1,20 @@
 <div align="center">
 
-<img src="docs/assets/app-icon.png" alt="O ícone do app MacCleaner" width="112">
+<img src="docs/assets/app-icon.png" alt="O ícone do app DiskMarshal" width="112">
 
-# MacCleaner
+# DiskMarshal
 
 **Limpador de disco e monitor do sistema para macOS, de código aberto, escrito em Rust.**
 
 [English](README.md) · Português
 
-[![CI](https://github.com/renatoasterio/MacCleaner/actions/workflows/ci.yml/badge.svg)](https://github.com/renatoasterio/MacCleaner/actions/workflows/ci.yml)
+[![CI](https://github.com/renatoasterio/DiskMarshal/actions/workflows/ci.yml/badge.svg)](https://github.com/renatoasterio/DiskMarshal/actions/workflows/ci.yml)
 [![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-2fe6ff)](LICENSE)
 ![Plataforma: macOS](https://img.shields.io/badge/plataforma-macOS-2fe6ff)
 ![Rust 1.100](https://img.shields.io/badge/rust-1.100-2fe6ff)
 ![Estado: pré-lançamento](https://img.shields.io/badge/estado-pr%C3%A9--lan%C3%A7amento-ffb020)
 
-<img src="docs/assets/tour.gif" alt="Sequência com as nove telas do MacCleaner: painel, limpeza, aplicativos, duplicados, fotos parecidas, desenvolvedor, Docker, mapa do disco e monitor" width="900">
+<img src="docs/assets/tour.gif" alt="Sequência com as nove telas do DiskMarshal: painel, limpeza, aplicativos, duplicados, fotos parecidas, desenvolvedor, Docker, mapa do disco e monitor" width="900">
 
 <sub>Capturas do próprio app, rodando com dados de demonstração. Veja em <a href="#estado-do-projeto">Estado do projeto</a> o que está pronto e o que ainda não foi verificado.</sub>
 
@@ -22,7 +22,7 @@
 
 ## O que é
 
-O MacCleaner descobre o que está enchendo o disco do seu Mac e ajuda a recuperar o espaço, com segurança.
+O DiskMarshal descobre o que está enchendo o disco do seu Mac e ajuda a recuperar o espaço, com segurança.
 
 - **Veja para onde foi o espaço.** Um mapa do disco, mostrando o que está neste Mac e o que está só no iCloud.
 - **Remova o que é seguro remover.** Caches, arquivos temporários, logs, arquivos duplicados, fotos parecidas e as pastas de build que projetos de código deixam para trás (`node_modules`, `target`, `bin`/`obj` e companhia).
@@ -39,11 +39,11 @@ Você precisa de um Mac com as ferramentas de linha de comando do Xcode, o Homeb
 Baixe o código:
 
 ```bash
-git clone https://github.com/renatoasterio/MacCleaner.git
+git clone https://github.com/renatoasterio/DiskMarshal.git
 ```
 
 ```bash
-cd MacCleaner
+cd DiskMarshal
 ```
 
 Compile o app e instale:
@@ -52,23 +52,23 @@ Compile o app e instale:
 cargo xtask install
 ```
 
-Esse comando compila o app, monta o `dist/MacCleaner.app` (o app, o auxiliar da limpeza de sistema e o ícone), assina e copia para `/Applications` (a pasta Aplicativos). A primeira compilação baixa as dependências e leva alguns minutos.
+Esse comando compila o app, monta o `dist/DiskMarshal.app` (o app, o auxiliar da limpeza de sistema e o ícone), assina e copia para `/Applications` (a pasta Aplicativos). A primeira compilação baixa as dependências e leva alguns minutos.
 
-Daí em diante, **o MacCleaner abre pelo Launchpad ou pelo Spotlight, como qualquer outro app**. A pasta do código só é necessária para alterar o código ou para atualizar.
+Daí em diante, **o DiskMarshal abre pelo Launchpad ou pelo Spotlight, como qualquer outro app**. A pasta do código só é necessária para alterar o código ou para atualizar.
 
 | Comando | O que faz |
 |---|---|
 | `cargo xtask install` | Compila o app e instala em `/Applications` |
 | `cargo xtask install ~/Applications` | Instala em outra pasta |
-| `cargo xtask bundle` | Só monta o `dist/MacCleaner.app`, sem instalar |
-| `cargo run --release -p maccleaner` | Abre o app direto do código, sem instalar |
-| `cargo run --release -p maccleaner-cli -- scan ~/Downloads` | Mede uma pasta pelo terminal, sem alterar nada |
+| `cargo xtask bundle` | Só monta o `dist/DiskMarshal.app`, sem instalar |
+| `cargo run --release -p diskmarshal` | Abre o app direto do código, sem instalar |
+| `cargo run --release -p diskmarshal-cli -- scan ~/Downloads` | Mede uma pasta pelo terminal, sem alterar nada |
 
 Três coisas que vale saber:
 
 - **O Acesso Total ao Disco é opcional.** Sem ele o app funciona, mas o macOS esconde algumas pastas dele. As telas que leem as suas pastas mostram um aviso de uma linha com um link para o lugar certo nos Ajustes do Sistema.
-- **A assinatura é local (ad hoc) por padrão.** Com ela, o macOS esquece a permissão de Acesso Total ao Disco toda vez que o app é recompilado e reinstalado. Para assinar com a sua própria identidade, defina a variável de ambiente `MACCLEANER_SIGNING_IDENTITY` com o nome dela antes de rodar `cargo xtask install`.
-- **Para desinstalar,** mova o `/Applications/MacCleaner.app` para a Lixeira. O histórico de remoções fica em `~/Library/Application Support/MacCleaner/`; apague essa pasta também se não quiser guardá-lo.
+- **A assinatura é local (ad hoc) por padrão.** Com ela, o macOS esquece a permissão de Acesso Total ao Disco toda vez que o app é recompilado e reinstalado. Para assinar com a sua própria identidade, defina a variável de ambiente `DISKMARSHAL_SIGNING_IDENTITY` com o nome dela antes de rodar `cargo xtask install`.
+- **Para desinstalar,** mova o `/Applications/DiskMarshal.app` para a Lixeira. O histórico de remoções fica em `~/Library/Application Support/DiskMarshal/`; apague essa pasta também se não quiser guardá-lo.
 
 ## Estado do projeto
 
@@ -87,9 +87,9 @@ As nove telas estão prontas, e o app apaga de verdade o que você seleciona, se
 | "Docker" | O cache de build, as imagens, os containers parados e os volumes que nada usa, removidos pelo próprio Docker | Pronto, remoção não verificada em um Docker de verdade (veja abaixo) |
 | "Mapa do disco" | Mapa em blocos da pasta pessoal ou do disco inteiro, colorido por tipo ou por estado no iCloud | Pronto |
 | "Monitor" | Processador, memória, swap, disco, temperaturas e os programas mais ativos, ao vivo | Pronto |
-| `maccleaner-cli scan` | Mede uma pasta pelo terminal; somente leitura | Pronto |
-| `maccleaner-cli apps`, `maccleaner-cli docker` | Mostram o que essas duas telas encontrariam; somente leitura | Pronto |
-| `cargo xtask install` | Compila, assina e instala o `MacCleaner.app` | Pronto |
+| `diskmarshal-cli scan` | Mede uma pasta pelo terminal; somente leitura | Pronto |
+| `diskmarshal-cli apps`, `diskmarshal-cli docker` | Mostram o que essas duas telas encontrariam; somente leitura | Pronto |
+| `cargo xtask install` | Compila, assina e instala o `DiskMarshal.app` | Pronto |
 
 ### Ainda não verificado
 
@@ -177,23 +177,23 @@ Medido em um Apple M2 Pro:
 
 ## Como é construído
 
-O MacCleaner segue a Clean Architecture. Cada camada é um crate próprio, então o compilador recusa uma dependência que aponte para o lado errado.
+O DiskMarshal segue a Clean Architecture. Cada camada é um crate próprio, então o compilador recusa uma dependência que aponte para o lado errado.
 
 ```mermaid
 flowchart LR
-    apps["apps: desktop, cli, privileged-helper"] --> ui["maccleaner-ui"]
-    apps --> infra["maccleaner-infrastructure"]
-    ui --> application["maccleaner-application"]
+    apps["apps: desktop, cli, privileged-helper"] --> ui["diskmarshal-ui"]
+    apps --> infra["diskmarshal-infrastructure"]
+    ui --> application["diskmarshal-application"]
     infra --> application
-    application --> domain["maccleaner-domain"]
+    application --> domain["diskmarshal-domain"]
 ```
 
 | Crate | Papel |
 |---|---|
-| `maccleaner-domain` | Regras sem acesso a disco: árvore de arquivos, política de exclusão, regras de limpeza, duplicados, semelhança de fotos, desenho do mapa, tamanhos |
-| `maccleaner-application` | Casos de uso e as portas de que eles precisam |
-| `maccleaner-infrastructure` | Adaptadores do macOS: disco, Lixeira, histórico, hash de conteúdo, miniaturas de imagens, leituras do sistema, permissões, elevação de privilégio |
-| `maccleaner-ui` | A interface em egui: tema, componentes, as nove telas |
+| `diskmarshal-domain` | Regras sem acesso a disco: árvore de arquivos, política de exclusão, regras de limpeza, duplicados, semelhança de fotos, desenho do mapa, tamanhos |
+| `diskmarshal-application` | Casos de uso e as portas de que eles precisam |
+| `diskmarshal-infrastructure` | Adaptadores do macOS: disco, Lixeira, histórico, hash de conteúdo, miniaturas de imagens, leituras do sistema, permissões, elevação de privilégio |
+| `diskmarshal-ui` | A interface em egui: tema, componentes, as nove telas |
 | `apps/desktop`, `apps/cli`, `apps/privileged-helper` | Binários que ligam tudo |
 | `xtask` | Tarefas do projeto: `check`, `bundle`, `install` |
 

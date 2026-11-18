@@ -8,17 +8,17 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.95"
 license = "MIT"
-repository = "https://github.com/renatoasterio/MacCleaner"
+repository = "https://github.com/renatoasterio/DiskMarshal"
 # Distributed from GitHub, not from crates.io.
 publish = false
 
 [workspace.dependencies]
 # Internal crates
-maccleaner-domain = { path = "crates/maccleaner-domain" }
-maccleaner-application = { path = "crates/maccleaner-application" }
-maccleaner-infrastructure = { path = "crates/maccleaner-infrastructure" }
-maccleaner-test-support = { path = "crates/maccleaner-test-support" }
-maccleaner-ui = { path = "crates/maccleaner-ui" }
+diskmarshal-domain = { path = "crates/diskmarshal-domain" }
+diskmarshal-application = { path = "crates/diskmarshal-application" }
+diskmarshal-infrastructure = { path = "crates/diskmarshal-infrastructure" }
+diskmarshal-test-support = { path = "crates/diskmarshal-test-support" }
+diskmarshal-ui = { path = "crates/diskmarshal-ui" }
 
 # Third-party crates (minimal features)
 anyhow = "1.0"

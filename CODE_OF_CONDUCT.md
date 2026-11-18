@@ -1,6 +1,6 @@
 # Code of conduct
 
-MacCleaner follows the [Contributor Covenant, version 2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/). Its full text applies to every space of this project: issues, pull requests, discussions and reviews.
+DiskMarshal follows the [Contributor Covenant, version 2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/). Its full text applies to every space of this project: issues, pull requests, discussions and reviews.
 
 ## In short
 

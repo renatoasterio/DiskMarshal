@@ -1,10 +1,10 @@
 <meta charset="utf-8">
-<title>Protótipo MacCleaner</title>
+<title>Protótipo DiskMarshal</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Rajdhani:wght@500;600;700&display=swap">
 <style>
 /* Layout: ops console. Status bar on top, module rail at left, one working stage.
    Appearance controls (palette, motion, glow) open from the sliders icon in the status bar.
-   Token names mirror crates/maccleaner-ui/src/theme/tokens.rs one to one. */
+   Token names mirror crates/diskmarshal-ui/src/theme/tokens.rs one to one. */
 :root {
   color-scheme: dark;
   --color-surface-void: #04070a;
@@ -322,7 +322,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
     <div class="window" id="window">
       <div class="scan-band ambient"></div>
       <div class="status-bar">
-        <span class="brand">MACCLEANER</span>
+        <span class="brand">DISKMARSHAL</span>
         <span class="status-item"><i class="dot"></i>Sistema nominal</span>
         <span class="status-item"><i class="dot warn"></i><button class="status-link" id="fda-link">Acesso total ao disco: negado</button></span>
         <span class="spacer"></span>
@@ -551,7 +551,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   function systemAuth(next) {
     overlayHost.innerHTML = `<div class="overlay"><div><div class="mac-sheet" role="dialog" aria-modal="true" aria-label="Diálogo do macOS simulado">
       <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 40c-3-6-4-12-2-18a12 12 0 0 1 24 2c0 5 1 10 3 14M20 42c-2-6-3-11-2-17a6 6 0 0 1 12 1c0 6 1 11 3 16M24 26c0 6 1 11 3 16M9 30c-1-5 0-10 2-14M16 9a17 17 0 0 1 20 3"/></svg>
-      <strong>MacCleaner quer fazer alterações.</strong><p>Use o Touch ID para permitir.</p>
+      <strong>DiskMarshal quer fazer alterações.</strong><p>Use o Touch ID para permitir.</p>
       <button class="go" data-act="touch">Simular Touch ID</button><button data-act="cancel">Cancelar</button></div>
       <p class="mac-note">Diálogo do macOS · aparência do sistema, simulada aqui</p></div></div>`;
     $('[data-act="touch"]', overlayHost).onclick = next;
@@ -789,7 +789,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
     });
   }
 
-  /* Squarified treemap: the same algorithm is ported to maccleaner-domain/src/treemap/squarified_layout.rs */
+  /* Squarified treemap: the same algorithm is ported to diskmarshal-domain/src/treemap/squarified_layout.rs */
   function squarify(items, x, y, w, h) {
     const total = items.reduce((sum, i) => sum + i.gb, 0), out = [];
     let rest = [...items].sort((a, b) => b.gb - a.gb).map((item) => ({ item, area: item.gb / total * w * h }));
@@ -885,7 +885,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   document.addEventListener('click', (e) => { const go = e.target.closest('[data-go]'); if (go) show(go.dataset.go); });
   document.addEventListener('keydown', (e) => { if (e.target.matches('input') || e.metaKey || e.ctrlKey) return; const i = Number(e.key) - 1; if (order[i]) show(order[i]); });
   $('#fda-link').onclick = () => { overlayHost.innerHTML = `<div class="overlay"><div class="hud-panel dialog" role="dialog" aria-modal="true"><h2>Acesso total ao disco</h2>
-    <div>Sem essa permissão, o macOS bloqueia partes da Biblioteca e a análise fica incompleta.</div><ul><li>Abra Ajustes do Sistema › Privacidade e Segurança</li><li>Ative MacCleaner em Acesso Total ao Disco</li><li>Volte ao app: a verificação é refeita sozinha</li></ul>
+    <div>Sem essa permissão, o macOS bloqueia partes da Biblioteca e a análise fica incompleta.</div><ul><li>Abra Ajustes do Sistema › Privacidade e Segurança</li><li>Ative DiskMarshal em Acesso Total ao Disco</li><li>Volte ao app: a verificação é refeita sozinha</li></ul>
     <div class="dialog-actions"><button class="btn quiet" data-act="cancel">Agora não</button><button class="btn primary" data-act="cancel">Abrir ajustes</button></div></div></div>`;
     $$('[data-act="cancel"]', overlayHost).forEach((b) => { b.onclick = closeOverlay; }); };
 
@@ -893,7 +893,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
     const lines = ['> verificando permissões ............. <span class="ok">ok</span>', '> montando volume Macintosh HD ....... <span class="ok">ok</span>', '> catálogo de regras ................. <span class="ok">47 regras</span>',
       '> sensores AppleSMC .................. <span class="ok">12 ativos</span>', '> política iCloud: sem downloads ..... <span class="ok">ok</span>', '> sistema pronto'];
     const el = document.createElement('div'); el.className = 'boot';
-    el.innerHTML = `<div class="boot-inner"><div class="boot-title">MACCLEANER</div><div class="boot-lines" id="boot-lines"></div><div class="seg" id="boot-seg" style="height:10px">${segments(0, 24)}</div><div class="boot-hint">clique para pular</div></div>`;
+    el.innerHTML = `<div class="boot-inner"><div class="boot-title">DISKMARSHAL</div><div class="boot-lines" id="boot-lines"></div><div class="seg" id="boot-seg" style="height:10px">${segments(0, 24)}</div><div class="boot-hint">clique para pular</div></div>`;
     $('#window').append(el);
     let i = 0; const cells = $$('#boot-seg i', el), stepMs = parseFloat(getComputedStyle(root).getPropertyValue('--motion-boot-duration')) * 1000 / lines.length;
     /* Replays the screen's entrance, so counters and gauges animate in view instead of behind the overlay. */

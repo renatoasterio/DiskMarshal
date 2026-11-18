@@ -4,7 +4,7 @@
 Run:  python3 apps/desktop/bundle/make_icon.py
 
 Needs the Python package Pillow and the macOS tools `sips` and `iconutil`.
-This is a build-asset tool; it is not part of MacCleaner. The colors are the
+This is a build-asset tool; it is not part of DiskMarshal. The colors are the
 Agency palette of the interface.
 """
 import math

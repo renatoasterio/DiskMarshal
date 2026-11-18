@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>MacCleaner</string>
+    <string>DiskMarshal</string>
     <key>CFBundleDisplayName</key>
-    <string>MacCleaner</string>
+    <string>DiskMarshal</string>
     <key>CFBundleIdentifier</key>
-    <string>io.github.renatoasterio.maccleaner</string>
+    <string>io.github.renatoasterio.diskmarshal</string>
     <key>CFBundleExecutable</key>
-    <string>maccleaner</string>
+    <string>diskmarshal</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundlePackageType</key>

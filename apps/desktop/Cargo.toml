@@ -1,6 +1,6 @@
 [package]
-name = "maccleaner"
-description = "MacCleaner desktop application."
+name = "diskmarshal"
+description = "DiskMarshal desktop application."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -11,14 +11,14 @@ publish.workspace = true
 [dependencies]
 anyhow.workspace = true
 eframe.workspace = true
-maccleaner-application.workspace = true
-maccleaner-domain = { workspace = true, optional = true }
-maccleaner-infrastructure.workspace = true
-maccleaner-ui.workspace = true
+diskmarshal-application.workspace = true
+diskmarshal-domain = { workspace = true, optional = true }
+diskmarshal-infrastructure.workspace = true
+diskmarshal-ui.workspace = true
 
 [features]
 # Development only: lets eframe save one frame to a PNG (see `src/main.rs`).
-capture = ["eframe/glow", "eframe/__screenshot", "dep:maccleaner-domain"]
+capture = ["eframe/glow", "eframe/__screenshot", "dep:diskmarshal-domain"]
 
 [lints]
 workspace = true

@@ -1,6 +1,6 @@
 [package]
 name = "xtask"
-description = "Project automation for MacCleaner: cargo xtask <task>."
+description = "Project automation for DiskMarshal: cargo xtask <task>."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

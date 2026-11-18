@@ -1,4 +1,4 @@
-//! MacCleaner desktop application. Composition root for the graphical
+//! DiskMarshal desktop application. Composition root for the graphical
 //! interface: wires the macOS adapters into the interface and opens the window.
 
 #![forbid(unsafe_code)]
@@ -9,28 +9,28 @@ use std::process::ExitCode;
 use std::sync::Arc;
 
 use anyhow::{Context as _, anyhow};
-use eframe::egui;
-use maccleaner_application::ports::{ContainerEngine, MetricsProvider};
-use maccleaner_infrastructure::bundles::{PlistAppBundleReader, application_folders};
-use maccleaner_infrastructure::catalog::TomlRuleCatalog;
-use maccleaner_infrastructure::filesystem::{
+use diskmarshal_application::ports::{ContainerEngine, MetricsProvider};
+use diskmarshal_infrastructure::bundles::{PlistAppBundleReader, application_folders};
+use diskmarshal_infrastructure::catalog::TomlRuleCatalog;
+use diskmarshal_infrastructure::filesystem::{
     LstatFileInspector, ReaddirFolderLister, ReaddirWalker, SafeFileRemover, StatfsVolumeStats,
     disable_dataless_materialization, icloud_sync_roots,
 };
-use maccleaner_infrastructure::hashing::Blake3ContentHasher;
-use maccleaner_infrastructure::imaging::ImageIoThumbnailer;
-use maccleaner_infrastructure::metrics::{SysinfoMetricsProvider, UnavailableMetrics};
-use maccleaner_infrastructure::permissions::FullDiskAccessProbe;
-use maccleaner_infrastructure::persistence::JsonlHistoryRepository;
-use maccleaner_infrastructure::privilege::OsascriptPrivilegedCleaner;
-use maccleaner_infrastructure::process::{DockerCliContainerEngine, GitVersionControlProbe};
-use maccleaner_infrastructure::system::{
+use diskmarshal_infrastructure::hashing::Blake3ContentHasher;
+use diskmarshal_infrastructure::imaging::ImageIoThumbnailer;
+use diskmarshal_infrastructure::metrics::{SysinfoMetricsProvider, UnavailableMetrics};
+use diskmarshal_infrastructure::permissions::FullDiskAccessProbe;
+use diskmarshal_infrastructure::persistence::JsonlHistoryRepository;
+use diskmarshal_infrastructure::privilege::OsascriptPrivilegedCleaner;
+use diskmarshal_infrastructure::process::{DockerCliContainerEngine, GitVersionControlProbe};
+use diskmarshal_infrastructure::system::{
     LocaltimeWallClock, NativeFolderPicker, OpenCommandOpener, SysinfoRunningAppProbe,
 };
-use maccleaner_infrastructure::trash::NsFileManagerTrashBin;
-use maccleaner_ui::{MacCleanerUi, UiOptions, UiServices, WINDOW_SIZE};
+use diskmarshal_infrastructure::trash::NsFileManagerTrashBin;
+use diskmarshal_ui::{DiskMarshalUi, UiOptions, UiServices, WINDOW_SIZE};
+use eframe::egui;
 
-const APP_NAME: &str = "MacCleaner";
+const APP_NAME: &str = "DiskMarshal";
 
 fn main() -> ExitCode {
     match run() {
@@ -66,7 +66,7 @@ fn run() -> anyhow::Result<()> {
 
 /// The eframe application: owns the interface and forwards every frame to it.
 struct DesktopApp {
-    interface: MacCleanerUi,
+    interface: DiskMarshalUi,
 }
 
 impl DesktopApp {
@@ -99,7 +99,7 @@ impl DesktopApp {
             home,
         };
         Self {
-            interface: MacCleanerUi::new(ctx, services, &capture::ui_options()),
+            interface: DiskMarshalUi::new(ctx, services, &capture::ui_options()),
         }
     }
 }
@@ -134,9 +134,9 @@ mod capture {
     use std::path::PathBuf;
     use std::sync::Arc;
 
-    use maccleaner_application::ports::{ContainerEngine, MetricsProvider};
-    use maccleaner_infrastructure::system::prefers_reduced_motion;
-    use maccleaner_ui::MotionPreference;
+    use diskmarshal_application::ports::{ContainerEngine, MetricsProvider};
+    use diskmarshal_infrastructure::system::prefers_reduced_motion;
+    use diskmarshal_ui::MotionPreference;
 
     use super::UiOptions;
 
@@ -179,14 +179,14 @@ mod capture {
 /// With `EFRAME_SCREENSHOT_TO=<file>.png` set, eframe saves the second frame
 /// and exits. That hook exists only in the OpenGL renderer, and the frame has
 /// to be still, so this build skips the start-up sequence and all motion.
-/// `MACCLEANER_SCREEN=<slug>` and `MACCLEANER_PALETTE=<slug>` choose what to capture,
-/// `MACCLEANER_SCAN=<folder>` measures a folder first so the disk map is filled in, and
-/// `MACCLEANER_ANALYZE=1` analyzes the cleanup rules first. `MACCLEANER_DEV`,
-/// `MACCLEANER_DUP` and `MACCLEANER_PHOTOS` each name a folder to search
+/// `DISKMARSHAL_SCREEN=<slug>` and `DISKMARSHAL_PALETTE=<slug>` choose what to capture,
+/// `DISKMARSHAL_SCAN=<folder>` measures a folder first so the disk map is filled in, and
+/// `DISKMARSHAL_ANALYZE=1` analyzes the cleanup rules first. `DISKMARSHAL_DEV`,
+/// `DISKMARSHAL_DUP` and `DISKMARSHAL_PHOTOS` each name a folder to search
 /// first for build folders, duplicates and similar photos, and
-/// `MACCLEANER_DEMO=1` replaces the readings of the monitor with made-up
-/// ones, and what Docker holds too. `MACCLEANER_APPS=<folder>` lists the apps
-/// of that folder instead of the ones installed, and `MACCLEANER_DOCKER=1`
+/// `DISKMARSHAL_DEMO=1` replaces the readings of the monitor with made-up
+/// ones, and what Docker holds too. `DISKMARSHAL_APPS=<folder>` lists the apps
+/// of that folder instead of the ones installed, and `DISKMARSHAL_DOCKER=1`
 /// asks Docker first. Run with `HOME` pointing at a demonstration folder to
 /// keep every personal path out of the picture.
 #[cfg(feature = "capture")]
@@ -196,13 +196,13 @@ mod capture {
     use std::sync::atomic::{AtomicU32, Ordering};
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    use maccleaner_application::ports::{ContainerEngine, EngineError, MetricsProvider};
-    use maccleaner_domain::docker::{
+    use diskmarshal_application::ports::{ContainerEngine, EngineError, MetricsProvider};
+    use diskmarshal_domain::docker::{
         DockerInventory, DockerResource, EngineStatus, KindUsage, ResourceKind,
     };
-    use maccleaner_domain::monitoring::{ProcessUsage, SensorReading, SystemSnapshot};
-    use maccleaner_domain::shared::ByteSize;
-    use maccleaner_ui::{MotionPreference, Palette, Screen};
+    use diskmarshal_domain::monitoring::{ProcessUsage, SensorReading, SystemSnapshot};
+    use diskmarshal_domain::shared::ByteSize;
+    use diskmarshal_ui::{MotionPreference, Palette, Screen};
 
     use super::UiOptions;
 
@@ -339,20 +339,20 @@ mod capture {
         }
     }
 
-    /// With `MACCLEANER_DEMO` set, the Docker screen shows a made-up Docker.
+    /// With `DISKMARSHAL_DEMO` set, the Docker screen shows a made-up Docker.
     pub(super) fn container_engine() -> Option<Arc<dyn ContainerEngine>> {
-        std::env::var_os("MACCLEANER_DEMO")
+        std::env::var_os("DISKMARSHAL_DEMO")
             .map(|_| Arc::new(DemoEngine) as Arc<dyn ContainerEngine>)
     }
 
-    /// With `MACCLEANER_APPS` set, the apps of that folder are the ones listed.
+    /// With `DISKMARSHAL_APPS` set, the apps of that folder are the ones listed.
     pub(super) fn application_folders() -> Option<Vec<PathBuf>> {
-        std::env::var_os("MACCLEANER_APPS").map(|folder| vec![PathBuf::from(folder)])
+        std::env::var_os("DISKMARSHAL_APPS").map(|folder| vec![PathBuf::from(folder)])
     }
 
-    /// With `MACCLEANER_DEMO` set, the monitor shows made-up readings.
+    /// With `DISKMARSHAL_DEMO` set, the monitor shows made-up readings.
     pub(super) fn metrics() -> Option<Arc<dyn MetricsProvider>> {
-        std::env::var_os("MACCLEANER_DEMO")
+        std::env::var_os("DISKMARSHAL_DEMO")
             .map(|_| Arc::new(DemoMetrics::default()) as Arc<dyn MetricsProvider>)
     }
 
@@ -364,11 +364,11 @@ mod capture {
     }
 
     pub(super) fn ui_options() -> UiOptions {
-        let initial_screen = std::env::var("MACCLEANER_SCREEN")
+        let initial_screen = std::env::var("DISKMARSHAL_SCREEN")
             .ok()
             .and_then(|slug| Screen::from_slug(&slug))
             .unwrap_or_default();
-        let palette = std::env::var("MACCLEANER_PALETTE")
+        let palette = std::env::var("DISKMARSHAL_PALETTE")
             .ok()
             .and_then(|slug| Palette::from_slug(&slug))
             .unwrap_or_default();
@@ -377,14 +377,14 @@ mod capture {
             motion: MotionPreference::Off,
             initial_screen,
             palette,
-            preload_scan: std::env::var_os("MACCLEANER_SCAN").map(std::path::PathBuf::from),
-            preload_cleanup: std::env::var_os("MACCLEANER_ANALYZE").is_some(),
-            preload_developer: std::env::var_os("MACCLEANER_DEV").map(std::path::PathBuf::from),
-            preload_duplicates: std::env::var_os("MACCLEANER_DUP").map(std::path::PathBuf::from),
+            preload_scan: std::env::var_os("DISKMARSHAL_SCAN").map(std::path::PathBuf::from),
+            preload_cleanup: std::env::var_os("DISKMARSHAL_ANALYZE").is_some(),
+            preload_developer: std::env::var_os("DISKMARSHAL_DEV").map(std::path::PathBuf::from),
+            preload_duplicates: std::env::var_os("DISKMARSHAL_DUP").map(std::path::PathBuf::from),
             preload_monitor: true,
-            preload_photos: std::env::var_os("MACCLEANER_PHOTOS").map(std::path::PathBuf::from),
-            preload_apps: std::env::var_os("MACCLEANER_APPS").is_some(),
-            preload_docker: std::env::var_os("MACCLEANER_DOCKER").is_some(),
+            preload_photos: std::env::var_os("DISKMARSHAL_PHOTOS").map(std::path::PathBuf::from),
+            preload_apps: std::env::var_os("DISKMARSHAL_APPS").is_some(),
+            preload_docker: std::env::var_os("DISKMARSHAL_DOCKER").is_some(),
         }
     }
 }

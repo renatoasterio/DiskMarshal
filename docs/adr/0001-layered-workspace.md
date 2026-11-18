@@ -4,7 +4,7 @@ Status: accepted (2026-11-17)
 
 ## Context
 
-MacCleaner deletes files and talks to several macOS APIs. The rules that
+DiskMarshal deletes files and talks to several macOS APIs. The rules that
 decide what may be deleted must be testable without touching a disk, and the
 interface must not be able to reach the operating system by accident.
 

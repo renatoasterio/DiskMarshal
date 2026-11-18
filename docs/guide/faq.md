@@ -4,9 +4,9 @@ English · [Português](faq.pt-BR.md)
 
 ## Questions
 
-### Does MacCleaner delete anything?
+### Does DiskMarshal delete anything?
 
-Yes, but only what you select, and only after it shows a preview and you confirm. Opening the app, searching and analyzing never remove anything. Duplicate files, similar photos and Xcode archives go to the Trash; caches, temporary files, logs and build folders are removed for good. The command line tool, `maccleaner-cli`, only reads.
+Yes, but only what you select, and only after it shows a preview and you confirm. Opening the app, searching and analyzing never remove anything. Duplicate files, similar photos and Xcode archives go to the Trash; caches, temporary files, logs and build folders are removed for good. The command line tool, `diskmarshal-cli`, only reads.
 
 ### Is it safe to run?
 
@@ -24,11 +24,11 @@ Be aware that the project is young and has no stable release. Some things have n
 
 ### Does it send my data anywhere?
 
-No. MacCleaner never connects to the internet. There is no telemetry, no account and no update check.
+No. DiskMarshal never connects to the internet. There is no telemetry, no account and no update check.
 
 ### Will scanning download my iCloud files?
 
-No. MacCleaner tells macOS not to download cloud-only files while it scans. They are measured and labeled, not fetched. The searches for duplicates and for similar photos skip them entirely.
+No. DiskMarshal tells macOS not to download cloud-only files while it scans. They are measured and labeled, not fetched. The searches for duplicates and for similar photos skip them entirely.
 
 ### Why is there no app to download?
 
@@ -36,25 +36,25 @@ A downloadable app needs to be signed with an Apple developer certificate and ch
 
 ### Do I need the Terminal every time?
 
-No. You need it once, to build and install. After that MacCleaner opens like any other app. You need the Terminal again only to update to a newer version.
+No. You need it once, to build and install. After that DiskMarshal opens like any other app. You need the Terminal again only to update to a newer version.
 
-### Does MacCleaner need Full Disk Access?
+### Does DiskMarshal need Full Disk Access?
 
 No, it works without it. But macOS then hides some folders from the app, such as the data of Mail and Safari and the Trash, so they do not appear in the results. The screens that read your folders show a one-line notice with the link "Abrir ajustes de Acesso Total ao Disco" (open the Full Disk Access settings). The steps are in the [getting started guide](getting-started.md#step-7-give-full-disk-access-optional).
 
 ### Why did macOS forget the Full Disk Access I gave?
 
-Because the app was rebuilt. The app you build carries a local signature (ad hoc) that changes with every build, so after each `cargo xtask install` macOS sees a new app. Give the permission again, or sign with an identity of your own by setting the environment variable `MACCLEANER_SIGNING_IDENTITY` before running `cargo xtask install`.
+Because the app was rebuilt. The app you build carries a local signature (ad hoc) that changes with every build, so after each `cargo xtask install` macOS sees a new app. Give the permission again, or sign with an identity of your own by setting the environment variable `DISKMARSHAL_SIGNING_IDENTITY` before running `cargo xtask install`.
 
 ### How does the cleanup of system areas ask for my password?
 
-It does not ask; macOS does. When you confirm a cleanup that includes the "Sistema" (system) group, macOS shows its own authentication dialog and collects your Touch ID or administrator password. MacCleaner never sees the password. macOS then runs a small helper that sits inside the app, once, and the helper exits when it is done. The [safety guide](safety.md#administrator-areas) explains the details.
+It does not ask; macOS does. When you confirm a cleanup that includes the "Sistema" (system) group, macOS shows its own authentication dialog and collects your Touch ID or administrator password. DiskMarshal never sees the password. macOS then runs a small helper that sits inside the app, once, and the helper exits when it is done. The [safety guide](safety.md#administrator-areas) explains the details.
 
 ### Will the dialog offer Touch ID?
 
-That is decided by macOS, not by MacCleaner. It may offer Touch ID or only the password field. This was not verified by the project.
+That is decided by macOS, not by DiskMarshal. It may offer Touch ID or only the password field. This was not verified by the project.
 
-### Does MacCleaner run as an administrator or leave something running in the background?
+### Does DiskMarshal run as an administrator or leave something running in the background?
 
 No to both. The app always runs as your own user. Administrator rights exist only inside the small helper, for one cleanup, after macOS authenticates you. No service is installed and nothing keeps running afterwards.
 
@@ -68,7 +68,7 @@ A few possible reasons:
 
 ### Why are the photos in my Photos app not found?
 
-The "Fotos" screen compares loose image files in folders only. The library of the Photos app is one sealed package, and MacCleaner never reads or changes it. To remove duplicates inside that library, use the Photos app itself.
+The "Fotos" screen compares loose image files in folders only. The library of the Photos app is one sealed package, and DiskMarshal never reads or changes it. To remove duplicates inside that library, use the Photos app itself.
 
 ### Why are there no fan speeds in the monitor?
 
@@ -84,7 +84,7 @@ It is developed and tested on macOS 27 on Apple Silicon. Other versions and Inte
 
 ### Does it work on Windows or Linux?
 
-No. MacCleaner is built on macOS features such as iCloud placeholders, the Trash and the system sensors.
+No. DiskMarshal is built on macOS features such as iCloud placeholders, the Trash and the system sensors.
 
 ### Why is the interface in Portuguese?
 
@@ -92,7 +92,7 @@ The project started in Brazil. Every text of the interface lives in one file, so
 
 ### Is it really safe to delete `node_modules`, `target` and similar folders?
 
-Yes, as long as the project still has the file that describes it (`package.json`, `Cargo.toml`, and so on). Those folders are recreated by your tools the next time you install or build. MacCleaner only offers a folder when it finds that file next to it and git has no tracked files inside the folder. The removal is permanent, so the folder does not go to the Trash.
+Yes, as long as the project still has the file that describes it (`package.json`, `Cargo.toml`, and so on). Those folders are recreated by your tools the next time you install or build. DiskMarshal only offers a folder when it finds that file next to it and git has no tracked files inside the folder. The removal is permanent, so the folder does not go to the Trash.
 
 ### What is the difference between "Ocupado em disco" and "Tamanho lógico"?
 
@@ -116,7 +116,7 @@ The space is freed inside Docker. Docker Desktop keeps everything in one large f
 
 ### How do I uninstall it?
 
-Move `/Applications/MacCleaner.app` to the Trash. The removal history is in `~/Library/Application Support/MacCleaner/`; delete that folder if you do not want to keep it. If you no longer need the source, move the `MacCleaner` project folder to the Trash too.
+Move `/Applications/DiskMarshal.app` to the Trash. The removal history is in `~/Library/Application Support/DiskMarshal/`; delete that folder if you do not want to keep it. If you no longer need the source, move the `DiskMarshal` project folder to the Trash too.
 
 ## Troubleshooting
 
@@ -129,12 +129,12 @@ Find the message you see in the left column.
 | `command not found: cargo` | The Terminal does not know where Rust is. | Run the two commands from [step 3](getting-started.md#step-3-install-rust) that start with `echo` and `source`, then try again. |
 | `command not found: brew` | Homebrew is not installed, or its "Next steps" were skipped. | Follow [step 2](getting-started.md#step-2-install-homebrew), including the commands Homebrew prints at the end. |
 | `xcrun: error: invalid active developer path` | The Xcode command line tools are missing. This often happens after a macOS update. | Run `xcode-select --install`. |
-| `error: could not find Cargo.toml` | The command ran outside the project folder. | Run `cd ~/MacCleaner` first. |
-| `error: no such command: xtask` | Same cause: the command ran outside the project folder. | Run `cd ~/MacCleaner` first. |
+| `error: could not find Cargo.toml` | The command ran outside the project folder. | Run `cd ~/DiskMarshal` first. |
+| `error: no such command: xtask` | Same cause: the command ran outside the project folder. | Run `cd ~/DiskMarshal` first. |
 | `error: no such command: deny` during `cargo xtask check` | The dependency auditor is not installed. | Run `brew install cargo-deny`. |
 | The build stops with `No space left on device` | The disk is full. The build needs about 1 GB. | Free some space, then run the command again. |
 | `xtask: could not replace the installed app` or `xtask: could not copy the app to the destination folder` | Most likely your account cannot write to `/Applications`. | Install in your own Applications folder instead: `cargo xtask install ~/Applications`. |
-| `xtask: could not sign the app` | Most likely the name in `MACCLEANER_SIGNING_IDENTITY` does not match a signing identity on this Mac. | Correct the name, or remove the variable to use the local signature. |
+| `xtask: could not sign the app` | Most likely the name in `DISKMARSHAL_SIGNING_IDENTITY` does not match a signing identity on this Mac. | Correct the name, or remove the variable to use the local signature. |
 | The project folder takes a lot of space | Build output is kept in the `target` folder. | Run `cargo clean` inside the project folder. The installed app keeps working, and the next build recreates the folder. |
 
 ### In the app
@@ -147,13 +147,13 @@ Find the message you see in the left column.
 | The group "Sistema" says "só no app instalado · cargo xtask install" and cannot be selected | The app is running from the source, without the helper that cleans system areas. | Install the app with `cargo xtask install` and open the installed one. |
 | "As áreas de sistema não foram limpas: a autenticação foi cancelada." | The macOS authentication dialog was closed. | Nothing was removed from the system areas. Run the cleanup again and authenticate if you want them cleaned. |
 | "As áreas de sistema não foram limpas: esse recurso só existe no app instalado." | The helper is missing, was changed, or the app's signature is no longer valid. | Run `cargo xtask install` again and open the installed app. |
-| "As áreas de sistema não foram limpas:" followed by another reason | The cleanup started and could not finish. | Nothing is forced. Please [open an issue](https://github.com/renatoasterio/MacCleaner/issues) with the message. |
+| "As áreas de sistema não foram limpas:" followed by another reason | The cleanup started and could not finish. | Nothing is forced. Please [open an issue](https://github.com/renatoasterio/DiskMarshal/issues) with the message. |
 | "itens deixados como estavam: mudaram, sumiram ou o macOS não permitiu" | Some items changed after the preview, were already gone, or are protected by macOS. They were skipped on purpose. | Nothing to fix. The screen looks again after you close the dialog. |
 | "Selecione ao menos um item." | The action button was clicked with nothing selected. | Select something first. |
 | "Ao menos uma cópia de cada arquivo precisa ficar." or "Ao menos uma foto de cada grupo precisa ficar." | You tried to mark every file of a group for removal. | Keep one. To remove all of them, use Finder. |
 | "Análise interrompida" | The cleanup analysis could not finish. | Click "Tentar de novo" (try again). |
-| "Aguardando leituras" stays on the monitor | macOS did not report the system readings. | Wait a few seconds. If it stays, please [open an issue](https://github.com/renatoasterio/MacCleaner/issues) with your macOS version. |
-| macOS asks whether MacCleaner can access Documents, Desktop or Downloads | Normal macOS protection for those folders. | Click **Allow** to include them, or **Don't Allow** to leave them out. |
+| "Aguardando leituras" stays on the monitor | macOS did not report the system readings. | Wait a few seconds. If it stays, please [open an issue](https://github.com/renatoasterio/DiskMarshal/issues) with your macOS version. |
+| macOS asks whether DiskMarshal can access Documents, Desktop or Downloads | Normal macOS protection for those folders. | Click **Allow** to include them, or **Don't Allow** to leave them out. |
 | The window is slow, or the Mac gets warm | Animations redraw the window continuously while it is in front. | Open the appearance panel and set "Animações" to "Reduzida" or "Desligada". |
 
 ### In the command line tool
@@ -162,11 +162,11 @@ Find the message you see in the left column.
 |---|---|---|
 | "Pastas sem acesso" is greater than zero | macOS did not let the Terminal read some folders. | Give the Terminal [Full Disk Access](usage.md#when-pastas-sem-acesso-is-not-zero). |
 | macOS asks whether the Terminal can access Documents, Desktop or Downloads | Normal macOS protection for those folders. | Click **Allow** to include them in the scan, or **Don't Allow** to leave them out. |
-| `erro: não foi possível impedir downloads do iCloud` | macOS refused the setting that prevents iCloud downloads, so MacCleaner stopped on purpose. | Please [open an issue](https://github.com/renatoasterio/MacCleaner/issues) with your macOS version. |
+| `erro: não foi possível impedir downloads do iCloud` | macOS refused the setting that prevents iCloud downloads, so DiskMarshal stopped on purpose. | Please [open an issue](https://github.com/renatoasterio/DiskMarshal/issues) with your macOS version. |
 
 ## Still stuck?
 
-Open an issue at [github.com/renatoasterio/MacCleaner/issues](https://github.com/renatoasterio/MacCleaner/issues). Include:
+Open an issue at [github.com/renatoasterio/DiskMarshal/issues](https://github.com/renatoasterio/DiskMarshal/issues). Include:
 
 - your macOS version (Apple menu, **About This Mac**);
 - what you were doing: the screen and the button, or the command you ran;

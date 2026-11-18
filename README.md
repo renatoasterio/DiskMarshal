@@ -1,20 +1,20 @@
 <div align="center">
 
-<img src="docs/assets/app-icon.png" alt="The MacCleaner app icon" width="112">
+<img src="docs/assets/app-icon.png" alt="The DiskMarshal app icon" width="112">
 
-# MacCleaner
+# DiskMarshal
 
 **Open-source disk cleaner and system monitor for macOS, written in Rust.**
 
 English · [Português](README.pt-BR.md)
 
-[![CI](https://github.com/renatoasterio/MacCleaner/actions/workflows/ci.yml/badge.svg)](https://github.com/renatoasterio/MacCleaner/actions/workflows/ci.yml)
+[![CI](https://github.com/renatoasterio/DiskMarshal/actions/workflows/ci.yml/badge.svg)](https://github.com/renatoasterio/DiskMarshal/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2fe6ff)](LICENSE)
 ![Platform: macOS](https://img.shields.io/badge/platform-macOS-2fe6ff)
 ![Rust 1.100](https://img.shields.io/badge/rust-1.100-2fe6ff)
 ![Status: pre-release](https://img.shields.io/badge/status-pre--release-ffb020)
 
-<img src="docs/assets/tour.gif" alt="Slideshow of the nine MacCleaner screens: dashboard, cleanup, apps, duplicates, similar photos, developer, Docker, disk map and monitor" width="900">
+<img src="docs/assets/tour.gif" alt="Slideshow of the nine DiskMarshal screens: dashboard, cleanup, apps, duplicates, similar photos, developer, Docker, disk map and monitor" width="900">
 
 <sub>Screenshots of the app itself, running on demonstration data. The interface is in Brazilian Portuguese. See <a href="#project-status">Project status</a> for what is built and what has not been verified yet.</sub>
 
@@ -22,7 +22,7 @@ English · [Português](README.pt-BR.md)
 
 ## What it is
 
-MacCleaner finds what is filling your Mac's disk and helps you get the space back, safely.
+DiskMarshal finds what is filling your Mac's disk and helps you get the space back, safely.
 
 - **See where the space went.** A map of the disk, including what is on this Mac and what is only in iCloud.
 - **Remove what is safe to remove.** Caches, temporary files, logs, duplicate files, similar photos, and the build folders code projects leave behind (`node_modules`, `target`, `bin`/`obj` and friends).
@@ -39,11 +39,11 @@ You need a Mac with the Xcode command line tools, Homebrew and Rust. The [gettin
 Download the source:
 
 ```bash
-git clone https://github.com/renatoasterio/MacCleaner.git
+git clone https://github.com/renatoasterio/DiskMarshal.git
 ```
 
 ```bash
-cd MacCleaner
+cd DiskMarshal
 ```
 
 Build the app and install it:
@@ -52,23 +52,23 @@ Build the app and install it:
 cargo xtask install
 ```
 
-That command builds the app, assembles `dist/MacCleaner.app` (the app, its helper for system cleanup and the icon), signs it and copies it to `/Applications`. The first build downloads the dependencies and takes a few minutes.
+That command builds the app, assembles `dist/DiskMarshal.app` (the app, its helper for system cleanup and the icon), signs it and copies it to `/Applications`. The first build downloads the dependencies and takes a few minutes.
 
-From then on, **MacCleaner opens from Launchpad or Spotlight like any other app**. The source folder is only needed to change the code or to update.
+From then on, **DiskMarshal opens from Launchpad or Spotlight like any other app**. The source folder is only needed to change the code or to update.
 
 | Command | What it does |
 |---|---|
 | `cargo xtask install` | Builds the app and installs it in `/Applications` |
 | `cargo xtask install ~/Applications` | Installs it in another folder instead |
-| `cargo xtask bundle` | Only builds `dist/MacCleaner.app`, without installing |
-| `cargo run --release -p maccleaner` | Opens the app straight from the source, without installing |
-| `cargo run --release -p maccleaner-cli -- scan ~/Downloads` | Measures a folder from the terminal, without changing anything |
+| `cargo xtask bundle` | Only builds `dist/DiskMarshal.app`, without installing |
+| `cargo run --release -p diskmarshal` | Opens the app straight from the source, without installing |
+| `cargo run --release -p diskmarshal-cli -- scan ~/Downloads` | Measures a folder from the terminal, without changing anything |
 
 Three things worth knowing:
 
 - **Full Disk Access is optional.** Without it the app works, but macOS hides some folders from it. The screens that read your folders show a one-line notice with a link to the right place in System Settings.
-- **The signature is local (ad hoc) by default.** With it, macOS forgets the Full Disk Access permission each time the app is rebuilt and reinstalled. To sign with your own identity, set the environment variable `MACCLEANER_SIGNING_IDENTITY` to its name before running `cargo xtask install`.
-- **To uninstall,** move `/Applications/MacCleaner.app` to the Trash. The removal history lives in `~/Library/Application Support/MacCleaner/`; delete that folder too if you do not want to keep it.
+- **The signature is local (ad hoc) by default.** With it, macOS forgets the Full Disk Access permission each time the app is rebuilt and reinstalled. To sign with your own identity, set the environment variable `DISKMARSHAL_SIGNING_IDENTITY` to its name before running `cargo xtask install`.
+- **To uninstall,** move `/Applications/DiskMarshal.app` to the Trash. The removal history lives in `~/Library/Application Support/DiskMarshal/`; delete that folder too if you do not want to keep it.
 
 ## Project status
 
@@ -87,9 +87,9 @@ All nine screens are built, and the app really deletes what you select, always a
 | "Docker" | The build cache, images, stopped containers and volumes that nothing uses, removed by Docker itself | Built, removal not verified on a real Docker (see below) |
 | "Mapa do disco" (disk map) | Treemap of the home folder or the whole disk, colored by type or by iCloud state | Built |
 | "Monitor" | Processor, memory, swap, disk, temperatures and the busiest programs, live | Built |
-| `maccleaner-cli scan` | Measures a folder from the terminal; read-only | Built |
-| `maccleaner-cli apps`, `maccleaner-cli docker` | Show what those two screens would find; read-only | Built |
-| `cargo xtask install` | Builds, signs and installs `MacCleaner.app` | Built |
+| `diskmarshal-cli scan` | Measures a folder from the terminal; read-only | Built |
+| `diskmarshal-cli apps`, `diskmarshal-cli docker` | Show what those two screens would find; read-only | Built |
+| `cargo xtask install` | Builds, signs and installs `DiskMarshal.app` | Built |
 
 ### Not verified yet
 
@@ -177,23 +177,23 @@ Measured on an Apple M2 Pro:
 
 ## How it is built
 
-MacCleaner follows Clean Architecture. Each layer is its own crate, so the compiler rejects a dependency that points the wrong way.
+DiskMarshal follows Clean Architecture. Each layer is its own crate, so the compiler rejects a dependency that points the wrong way.
 
 ```mermaid
 flowchart LR
-    apps["apps: desktop, cli, privileged-helper"] --> ui["maccleaner-ui"]
-    apps --> infra["maccleaner-infrastructure"]
-    ui --> application["maccleaner-application"]
+    apps["apps: desktop, cli, privileged-helper"] --> ui["diskmarshal-ui"]
+    apps --> infra["diskmarshal-infrastructure"]
+    ui --> application["diskmarshal-application"]
     infra --> application
-    application --> domain["maccleaner-domain"]
+    application --> domain["diskmarshal-domain"]
 ```
 
 | Crate | Role |
 |---|---|
-| `maccleaner-domain` | Rules with no I/O: file tree, deletion policy, cleanup rules, duplicates, photo similarity, treemap layout, sizes |
-| `maccleaner-application` | Use cases and the ports they need |
-| `maccleaner-infrastructure` | macOS adapters: disk, Trash, history, hashing, image thumbnails, system readings, permissions, privilege elevation |
-| `maccleaner-ui` | The egui interface: theme, components, the nine screens |
+| `diskmarshal-domain` | Rules with no I/O: file tree, deletion policy, cleanup rules, duplicates, photo similarity, treemap layout, sizes |
+| `diskmarshal-application` | Use cases and the ports they need |
+| `diskmarshal-infrastructure` | macOS adapters: disk, Trash, history, hashing, image thumbnails, system readings, permissions, privilege elevation |
+| `diskmarshal-ui` | The egui interface: theme, components, the nine screens |
 | `apps/desktop`, `apps/cli`, `apps/privileged-helper` | Binaries that wire everything together |
 | `xtask` | Project tasks: `check`, `bundle`, `install` |
 

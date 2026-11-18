@@ -6,6 +6,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- The project is now called DiskMarshal; it was MacCleaner, a name other
+  products already use. Crates, binaries, the app bundle and its identifier,
+  the `DISKMARSHAL_*` environment variables and the repository address all
+  carry the new name. The removal history now lives in
+  `~/Library/Application Support/DiskMarshal/`; a `history.jsonl` kept under
+  the previous name is not moved automatically, so copy it there to keep it.
 - The number keys now go from 1 to 9: the screens after the cleanup moved one
   or two places to make room for the apps and Docker screens.
 
@@ -18,7 +24,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   items that only start with it, or are named like the app, wait for the user.
   What belongs to the user goes to the Trash. An app that is open is refused.
 - Uninstall with macOS authentication: a bundle owned by root and what the app
-  left in `/Library` are removed by `maccleaner-privileged-helper`, which is
+  left in `/Library` are removed by `diskmarshal-privileged-helper`, which is
   told the app by its identifier and removes only the requested items that its
   own analysis finds too. Not yet run as root or exercised against the real
   dialog.
@@ -28,14 +34,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   Docker itself removes what is approved, nothing is forced, and the report
   shows what Docker freed, measured before and after. The removal was exercised
   against a stand-in for Docker only.
-- `maccleaner-cli apps` and `maccleaner-cli docker`: show what those two
+- `diskmarshal-cli apps` and `diskmarshal-cli docker`: show what those two
   screens would find, without removing anything.
 - Dashboard: a row for what Docker says it can free.
 - `cargo xtask install`: builds the release app, assembles and signs
-  `dist/MacCleaner.app` (the app, the privileged helper and the icon) and copies
+  `dist/DiskMarshal.app` (the app, the privileged helper and the icon) and copies
   it to `/Applications`, or to the folder given as an argument. `cargo xtask bundle`
   stops after assembling the app. The signature is ad hoc unless
-  `MACCLEANER_SIGNING_IDENTITY` names a signing identity.
+  `DISKMARSHAL_SIGNING_IDENTITY` names a signing identity.
 - App icon.
 - Dashboard screen: gauges for disk, memory and the hottest temperature sensor
   (processor use when the Mac reports no sensor); the recoverable space found by
@@ -48,7 +54,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   selected; removal after a confirmation dialog.
 - Cleanup of system areas (`/Library/Caches` and `/Library/Logs`) with macOS
   authentication: on confirmation the app asks macOS to authenticate the user and
-  to run `maccleaner-privileged-helper` once. The helper accepts rule ids only,
+  to run `diskmarshal-privileged-helper` once. The helper accepts rule ids only,
   takes the folders from the catalog compiled into it, deletes through the same
   policy as the app, and has a simulation mode (`--dry-run`). The app never runs
   as root and keeps no background service. Not yet exercised end to end against
@@ -109,5 +115,5 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   clock, navigation rail with keyboard shortcuts (1 to 7), three palettes, motion
   and glow controls behind the appearance icon, start-up sequence, background grid
   and scanlines.
-- `maccleaner-cli scan <folder>`: read-only summary of a folder and its largest
+- `diskmarshal-cli scan <folder>`: read-only summary of a folder and its largest
   items.

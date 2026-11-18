@@ -1,18 +1,18 @@
 # Architecture
 
-MacCleaner follows Clean Architecture (ports and adapters). Each layer is its
+DiskMarshal follows Clean Architecture (ports and adapters). Each layer is its
 own crate, so the compiler rejects a dependency that points the wrong way.
 
 ## Layers
 
 | Crate | Responsibility | May depend on |
 |---|---|---|
-| `maccleaner-domain` | Entities, value objects, pure rules. No I/O. | nothing internal |
-| `maccleaner-application` | Use cases and ports (traits). | `domain` |
-| `maccleaner-infrastructure` | macOS adapters that implement the ports. | `application`, `domain` |
-| `maccleaner-ui` | Screens, components, theme, texts (egui). | `application`, `domain` |
+| `diskmarshal-domain` | Entities, value objects, pure rules. No I/O. | nothing internal |
+| `diskmarshal-application` | Use cases and ports (traits). | `domain` |
+| `diskmarshal-infrastructure` | macOS adapters that implement the ports. | `application`, `domain` |
+| `diskmarshal-ui` | Screens, components, theme, texts (egui). | `application`, `domain` |
 | `apps/*` | Composition roots: wire adapters into use cases. | everything |
-| `maccleaner-test-support` | Fixtures for tests (`TempTree`, `bitmap_bytes`). | nothing internal |
+| `diskmarshal-test-support` | Fixtures for tests (`TempTree`, `bitmap_bytes`). | nothing internal |
 | `xtask` | Project tasks: `check`, `bundle`, `install`. | nothing internal |
 
 Dependencies always point inward:
@@ -33,21 +33,21 @@ them to the use cases; none of them holds rules of its own.
 
 | Binary | Path | What it wires |
 |---|---|---|
-| `maccleaner` | `apps/desktop` | Every adapter into `UiServices`, then opens the window. The only binary that depends on `maccleaner-ui`. |
-| `maccleaner-cli` | `apps/cli` | The adapters that only read into `ScanDisk`, `ListInstalledApps`, `PlanUninstall` and `InspectDocker`. It never removes anything. |
-| `maccleaner-privileged-helper` | `apps/privileged-helper` | The catalog, the walker, the inspector and the remover into `CleanRules`, for administrator rules only, and into `RemoveAppItems`, for the system items of an app being uninstalled. Runs once, as root, started by macOS after it authenticates the user. See [security.md](security.md#privileged-helper). |
+| `diskmarshal` | `apps/desktop` | Every adapter into `UiServices`, then opens the window. The only binary that depends on `diskmarshal-ui`. |
+| `diskmarshal-cli` | `apps/cli` | The adapters that only read into `ScanDisk`, `ListInstalledApps`, `PlanUninstall` and `InspectDocker`. It never removes anything. |
+| `diskmarshal-privileged-helper` | `apps/privileged-helper` | The catalog, the walker, the inspector and the remover into `CleanRules`, for administrator rules only, and into `RemoveAppItems`, for the system items of an app being uninstalled. Runs once, as root, started by macOS after it authenticates the user. See [security.md](security.md#privileged-helper). |
 
 The helper has no Trash and keeps no history: it plugs in `NoTrashBin` and
 `NoHistory` (`apps/privileged-helper/src/unused_ports.rs`). The app records
 what the helper reports in the history of the user.
 
-`cargo xtask bundle` puts `maccleaner` and `maccleaner-privileged-helper`
-side by side in `dist/MacCleaner.app/Contents/MacOS/`, which is where the app
+`cargo xtask bundle` puts `diskmarshal` and `diskmarshal-privileged-helper`
+side by side in `dist/DiskMarshal.app/Contents/MacOS/`, which is where the app
 looks for the helper.
 
 ## What each crate holds
 
-### `maccleaner-domain`
+### `diskmarshal-domain`
 
 | Module | Holds |
 |---|---|
@@ -63,7 +63,7 @@ looks for the helper.
 | `treemap` | `squarify`, `LayoutRect` |
 | `shared` | `ByteSize`, number formatting |
 
-### `maccleaner-application`
+### `diskmarshal-application`
 
 Use cases, in `src/use_cases/`:
 
@@ -109,7 +109,7 @@ Ports, in `src/ports/`, with the adapter that implements each one:
 | `FolderLister` | `ReaddirFolderLister` | `filesystem` |
 | `ContainerEngine` | `DockerCliContainerEngine` | `process` |
 
-### `maccleaner-infrastructure`
+### `diskmarshal-infrastructure`
 
 One module per technology: `bundles`, `catalog`, `filesystem`, `hashing`, `imaging`,
 `metrics`, `permissions`, `persistence`, `privilege`, `process`, `system`,
@@ -130,7 +130,7 @@ One module per technology: `bundles`, `catalog`, `filesystem`, `hashing`, `imagi
 - `resources/` holds the three catalogs, compiled into the binaries: cleanup
   rules, build-artifact rules and the folders where apps leave their items.
 
-### `maccleaner-ui`
+### `diskmarshal-ui`
 
 | Module | Holds |
 |---|---|
@@ -149,12 +149,12 @@ Similar photos, for example:
 
 | Layer | Path |
 |---|---|
-| Domain | `crates/maccleaner-domain/src/photos/` (`PhotoSignature`, `SimilarityGroup`, `SimilarityTolerance`) |
-| Port | `crates/maccleaner-application/src/ports/image_thumbnailer.rs` |
-| Use case | `crates/maccleaner-application/src/use_cases/find_similar_photos.rs` |
-| Adapter | `crates/maccleaner-infrastructure/src/imaging/image_io_thumbnailer.rs` |
-| Screen | `crates/maccleaner-ui/src/screens/photos/` (`view.rs`, `view_model.rs`) |
-| Flow test | `crates/maccleaner-infrastructure/tests/photos_flow.rs` |
+| Domain | `crates/diskmarshal-domain/src/photos/` (`PhotoSignature`, `SimilarityGroup`, `SimilarityTolerance`) |
+| Port | `crates/diskmarshal-application/src/ports/image_thumbnailer.rs` |
+| Use case | `crates/diskmarshal-application/src/use_cases/find_similar_photos.rs` |
+| Adapter | `crates/diskmarshal-infrastructure/src/imaging/image_io_thumbnailer.rs` |
+| Screen | `crates/diskmarshal-ui/src/screens/photos/` (`view.rs`, `view_model.rs`) |
+| Flow test | `crates/diskmarshal-infrastructure/tests/photos_flow.rs` |
 
 ## How a removal flows
 
@@ -191,7 +191,7 @@ Two screens run something else in steps 3 and 4, through the same component:
   download. See [security.md](security.md).
 - **Catalogs are data.** Cleanup rules, build-artifact rules and the folders
   where apps leave their items live in TOML
-  under `crates/maccleaner-infrastructure/resources/`, not in code.
+  under `crates/diskmarshal-infrastructure/resources/`, not in code.
 - **`unsafe` stays in `infrastructure`.** The other library crates and every
   binary declare `#![forbid(unsafe_code)]`.
 - **Long work runs off the interface thread.** Scans, searches, removals and

@@ -35,6 +35,6 @@ body:
   - type: input
     id: version
     attributes:
-      label: MacCleaner version
+      label: DiskMarshal version
       description: Run `git rev-parse --short HEAD` in the project folder.
       placeholder: 96fdc4d

@@ -1,4 +1,4 @@
-//! Privileged helper of MacCleaner. Composition root for the two things that
+//! Privileged helper of DiskMarshal. Composition root for the two things that
 //! run as an administrator: cleaning the system areas of the rule catalog,
 //! and removing the system items of an app that is being uninstalled.
 //!
@@ -17,21 +17,21 @@ use std::env;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use maccleaner_application::ports::WallClock;
-use maccleaner_application::use_cases::{
+use diskmarshal_application::ports::WallClock;
+use diskmarshal_application::use_cases::{
     CleanRules, DeleteItems, DeletionPorts, ExecutionMode, ListInstalledApps, PlanCleanup,
     PlanUninstall, RemoveAppItems,
 };
-use maccleaner_domain::cleanup::PrivilegeScope;
-use maccleaner_domain::deletion::ProtectedPaths;
-use maccleaner_infrastructure::bundles::{PlistAppBundleReader, application_folders};
-use maccleaner_infrastructure::catalog::TomlRuleCatalog;
-use maccleaner_infrastructure::filesystem::{
+use diskmarshal_domain::cleanup::PrivilegeScope;
+use diskmarshal_domain::deletion::ProtectedPaths;
+use diskmarshal_infrastructure::bundles::{PlistAppBundleReader, application_folders};
+use diskmarshal_infrastructure::catalog::TomlRuleCatalog;
+use diskmarshal_infrastructure::filesystem::{
     LstatFileInspector, ReaddirFolderLister, ReaddirWalker, SafeFileRemover,
     disable_dataless_materialization,
 };
-use maccleaner_infrastructure::privilege::{HelperRequest, HelperTask, encode_outcomes};
-use maccleaner_infrastructure::system::{LocaltimeWallClock, SysinfoRunningAppProbe};
+use diskmarshal_infrastructure::privilege::{HelperRequest, HelperTask, encode_outcomes};
+use diskmarshal_infrastructure::system::{LocaltimeWallClock, SysinfoRunningAppProbe};
 
 use crate::unused_ports::{NoHistory, NoTrashBin};
 

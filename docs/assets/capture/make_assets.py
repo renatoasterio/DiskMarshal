@@ -4,7 +4,7 @@
 Run from anywhere:  python3 docs/assets/capture/make_assets.py
 
 Needs cargo, ffmpeg and the Python package Pillow. This script is a tool for
-the documentation; it is not part of MacCleaner.
+the documentation; it is not part of DiskMarshal.
 
 How it works: the app is built in its development capture mode, which saves
 one frame to a PNG and exits. Each shot runs it with HOME pointing at a
@@ -31,7 +31,7 @@ from PIL import Image, ImageDraw
 
 REPOSITORY = pathlib.Path(__file__).resolve().parents[3]
 ASSETS = REPOSITORY / "docs" / "assets"
-BINARY = REPOSITORY / "target" / "debug" / "maccleaner"
+BINARY = REPOSITORY / "target" / "debug" / "diskmarshal"
 SCREENS = ["dashboard", "cleanup", "apps", "duplicates", "photos", "developer", "docker", "disk_map", "monitor"]
 PALETTES = ["agency", "terminal", "tactical"]
 SHOT_WIDTH = 1280
@@ -222,7 +222,7 @@ def build_demo_home(home):
     save_photo(home, picture.resize((1100, 825), Image.LANCZOS), "Backup antigo/floresta (1).jpg", quality=85)
     save_photo(home, desk(), "Documentos/mesa.jpg", quality=92)
 
-    history = home / "Library/Application Support/MacCleaner/history.jsonl"
+    history = home / "Library/Application Support/DiskMarshal/history.jsonl"
     history.parent.mkdir(parents=True, exist_ok=True)
     now = int(time.time())
     entries = [
@@ -253,20 +253,20 @@ def capture(home, screen, palette, target):
         "TMPDIR": str(home / "tmp"),
         "PATH": "/usr/bin:/bin",
         "EFRAME_SCREENSHOT_TO": str(target),
-        "MACCLEANER_SCREEN": screen,
-        "MACCLEANER_PALETTE": palette,
-        "MACCLEANER_ANALYZE": "1",
-        "MACCLEANER_DEMO": "1",
-        "MACCLEANER_SCAN": str(home),
-        "MACCLEANER_DEV": str(home / "Projetos"),
-        "MACCLEANER_DUP": str(home),
-        "MACCLEANER_PHOTOS": str(home / "Imagens"),
-        "MACCLEANER_APPS": str(home / "Applications"),
+        "DISKMARSHAL_SCREEN": screen,
+        "DISKMARSHAL_PALETTE": palette,
+        "DISKMARSHAL_ANALYZE": "1",
+        "DISKMARSHAL_DEMO": "1",
+        "DISKMARSHAL_SCAN": str(home),
+        "DISKMARSHAL_DEV": str(home / "Projetos"),
+        "DISKMARSHAL_DUP": str(home),
+        "DISKMARSHAL_PHOTOS": str(home / "Imagens"),
+        "DISKMARSHAL_APPS": str(home / "Applications"),
     }
     # The made-up Docker is asked only for its own screen: next to a small
     # demonstration home, its gigabytes would be all the dashboard shows.
     if screen == "docker":
-        environment["MACCLEANER_DOCKER"] = "1"
+        environment["DISKMARSHAL_DOCKER"] = "1"
     subprocess.run([str(BINARY)], env=environment, check=True, capture_output=True, timeout=180)
     return Image.open(target).convert("RGB")
 
@@ -287,10 +287,10 @@ def main():
     arguments = parser.parse_args()
 
     subprocess.run(
-        [os.environ.get("CARGO", "cargo"), "build", "--package", "maccleaner", "--features", "capture"],
+        [os.environ.get("CARGO", "cargo"), "build", "--package", "diskmarshal", "--features", "capture"],
         cwd=REPOSITORY, check=True,
     )
-    work = arguments.work_dir or pathlib.Path(tempfile.mkdtemp(prefix="maccleaner-assets-"))
+    work = arguments.work_dir or pathlib.Path(tempfile.mkdtemp(prefix="diskmarshal-assets-"))
     home = work / "inicio"
     shots = work / "shots"
     try:

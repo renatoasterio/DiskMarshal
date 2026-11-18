@@ -1,14 +1,14 @@
-//! `maccleaner-cli scan`: measures a folder and lists its largest items.
+//! `diskmarshal-cli scan`: measures a folder and lists its largest items.
 
 use std::path::{self, PathBuf};
 
 use anyhow::Context as _;
 use clap::Args;
-use maccleaner_application::progress::{CancellationToken, NoProgress};
-use maccleaner_application::use_cases::{ScanDisk, ScanReport};
-use maccleaner_domain::scan::{EntryKind, FileTree};
-use maccleaner_domain::shared::group_digits;
-use maccleaner_infrastructure::filesystem::{ReaddirWalker, icloud_sync_roots};
+use diskmarshal_application::progress::{CancellationToken, NoProgress};
+use diskmarshal_application::use_cases::{ScanDisk, ScanReport};
+use diskmarshal_domain::scan::{EntryKind, FileTree};
+use diskmarshal_domain::shared::group_digits;
+use diskmarshal_infrastructure::filesystem::{ReaddirWalker, icloud_sync_roots};
 
 /// Arguments of the `scan` subcommand.
 #[derive(Args)]

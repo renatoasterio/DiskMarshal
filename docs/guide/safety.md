@@ -2,7 +2,7 @@
 
 English · [Português](safety.pt-BR.md)
 
-A cleaner deletes files, so a mistake can cost you data. This page explains, in plain terms, the rules MacCleaner follows so that does not happen, and says honestly what has not been tested yet.
+A cleaner deletes files, so a mistake can cost you data. This page explains, in plain terms, the rules DiskMarshal follows so that does not happen, and says honestly what has not been tested yet.
 
 > **Where things stand today.** The app really deletes what you select. Every rule on this page is enforced in the code and covered by automated tests. Those tests run on temporary folders made for the purpose; removing real personal data from the interface was only tried on test folders. Start small: clean one thing, look at the result, then go on. The section [What has not been tested](#what-has-not-been-tested) lists the rest.
 
@@ -10,7 +10,7 @@ A cleaner deletes files, so a mistake can cost you data. This page explains, in 
 
 ### 1. You always see a preview first
 
-Before anything is removed, MacCleaner lists exactly what will go and how much space it frees. Searching and analyzing never remove anything. Then a dialog called "Autorização requerida" (authorization required) repeats how many items and how much space, and waits. Nothing happens until you click the button that confirms. "Cancelar" (cancel) closes it with nothing removed.
+Before anything is removed, DiskMarshal lists exactly what will go and how much space it frees. Searching and analyzing never remove anything. Then a dialog called "Autorização requerida" (authorization required) repeats how many items and how much space, and waits. Nothing happens until you click the button that confirms. "Cancelar" (cancel) closes it with nothing removed.
 
 ![The cleanup screen listing each rule, where it looks and how much it found, before anything is removed](../assets/screens/cleanup.png)
 
@@ -41,21 +41,21 @@ Space sent to the Trash is only freed when you empty the Trash.
 
 ### 3. Some places can never be deleted
 
-MacCleaner refuses to delete these, even if a bug or a bad rule asked it to:
+DiskMarshal refuses to delete these, even if a bug or a bad rule asked it to:
 
 - **Anything inside the system's own folders:** `/System`, `/usr`, `/bin` and `/sbin`.
 - **The shared folders themselves:** `/Applications`, `/Library`, `/Library/Caches`, `/Library/Logs`, `/Users`, `/Volumes`, `/private`, `/tmp` and a few others. The content of `/Library/Caches` and `/Library/Logs` can be cleaned by the "Sistema" group; the folders stay.
 - **Your personal folders themselves:** the home folder, Desktop, Documents, Downloads, Pictures, Movies, Music, Public, Sites, your own Applications folder and the Trash folder.
 - **The Library folders themselves:** `~/Library`, `~/Library/Caches`, `~/Library/Logs`, `~/Library/Application Support`, `~/Library/Containers`, `~/Library/Group Containers`, `~/Library/Developer`, `~/Library/Preferences` and `~/Library/Mobile Documents` (where iCloud Drive lives). Their content can be cleaned; the folders stay.
 - **Anything inside a `.git` folder,** which holds the history of a code project, and the `.git` folder itself.
-- **Anything inside a package:** an app (`.app`), a Photos library (`.photoslibrary`), a Music or TV library, an iMovie or Final Cut library, a Logic project, a disk image bundle (`.sparsebundle`) and similar. Deleting pieces of these corrupts them, so MacCleaner treats each as one sealed item.
+- **Anything inside a package:** an app (`.app`), a Photos library (`.photoslibrary`), a Music or TV library, an iMovie or Final Cut library, a Logic project, a disk image bundle (`.sparsebundle`) and similar. Deleting pieces of these corrupts them, so DiskMarshal treats each as one sealed item.
 - **Anything outside the folders that were searched,** and the searched folder itself.
 
 Letter case does not get around this: `/system` is treated as `/System`. A path written with `..` in it is refused outright.
 
 ### 4. Every item is checked again right before removal
 
-Time passes between the preview and your click. So, immediately before removing an item, MacCleaner looks at it again. If it changed, moved or was replaced since you saw it in the preview, it is skipped and reported, not removed. The result dialog counts these as "itens deixados como estavam" (items left as they were).
+Time passes between the preview and your click. So, immediately before removing an item, DiskMarshal looks at it again. If it changed, moved or was replaced since you saw it in the preview, it is skipped and reported, not removed. The result dialog counts these as "itens deixados como estavam" (items left as they were).
 
 It also never follows shortcuts (symbolic links): a link inside a cache folder is removed as a link, and whatever it points to is left alone. And it never reaches into another disk: a folder that contains another disk mounted inside it is refused whole.
 
@@ -64,7 +64,7 @@ It also never follows shortcuts (symbolic links): a link inside a cache folder i
 Each removal is recorded in a history file that only your user account can read:
 
 ```text
-~/Library/Application Support/MacCleaner/history.jsonl
+~/Library/Application Support/DiskMarshal/history.jsonl
 ```
 
 Each line records when it happened, what was removed, how much space it took, and whether it was deleted or sent to the Trash. The "Painel" (dashboard) shows the latest entries under "Últimas remoções" (latest removals). What the system cleanup removes is recorded there too.
@@ -75,7 +75,7 @@ If a removal happened but could not be written to the history, the result dialog
 
 Every screen that removes something uses the same piece of code to do it, and that code applies all five rules above. There is no second, quicker way to delete hidden somewhere. The helper that cleans system areas and removes the system items of an uninstalled app uses that same code.
 
-One thing cannot go through it: what Docker holds. Those are not files the app can reach, so Docker itself removes them, one at a time, and refuses anything that is in use. MacCleaner never forces Docker to remove something.
+One thing cannot go through it: what Docker holds. Those are not files the app can reach, so Docker itself removes them, one at a time, and refuses anything that is in use. DiskMarshal never forces Docker to remove something.
 
 ## What each screen keeps for you
 
@@ -90,13 +90,13 @@ One thing cannot go through it: what Docker holds. Those are not files the app c
 
 Files stored only in iCloud take no space on your Mac. Normally, any program that reads such a file makes macOS download it, which would fill the disk you are trying to free.
 
-MacCleaner tells macOS, before reading anything, that it must not download files on its behalf. Cloud-only items are measured and labeled, never fetched. The searches for duplicates and similar photos leave them out, because comparing them would mean reading them. If macOS refuses that setting, MacCleaner stops instead of scanning.
+DiskMarshal tells macOS, before reading anything, that it must not download files on its behalf. Cloud-only items are measured and labeled, never fetched. The searches for duplicates and similar photos leave them out, because comparing them would mean reading them. If macOS refuses that setting, DiskMarshal stops instead of scanning.
 
 This has been tested with files stored on the Mac. It has not been tested on a file that really is cloud-only.
 
 ## No network, no telemetry
 
-MacCleaner does not connect to the internet. It sends no usage data, checks for no updates and has no account. What it learns about your disk stays on your Mac.
+DiskMarshal does not connect to the internet. It sends no usage data, checks for no updates and has no account. What it learns about your disk stays on your Mac.
 
 ## Administrator areas
 
@@ -104,9 +104,9 @@ Two places need administrator rights: `/Library/Caches` ("Caches do sistema") an
 
 How it works when you select them and confirm:
 
-1. **MacCleaner asks macOS to authenticate you.** macOS shows its own dialog, asking for Touch ID or the administrator password. The password goes to macOS. MacCleaner never sees it and never stores it.
+1. **DiskMarshal asks macOS to authenticate you.** macOS shows its own dialog, asking for Touch ID or the administrator password. The password goes to macOS. DiskMarshal never sees it and never stores it.
 2. **macOS runs a small helper once.** The helper is a separate little program that sits inside the app. It cleans the areas you selected, reports what it did, and exits.
-3. **MacCleaner writes what was removed to your history,** like any other removal.
+3. **DiskMarshal writes what was removed to your history,** like any other removal.
 
 What keeps this narrow:
 
@@ -120,7 +120,7 @@ What you should know:
 
 - **This path has not been verified end to end.** The helper is covered by automated tests on temporary folders and by its simulation mode, which checks everything and removes nothing. The macOS authentication dialog and a real cleanup of `/Library/Caches` and `/Library/Logs` were not exercised by the project's tests.
 - **The helper works from its own fresh look at the folders,** not from the list you saw on screen. It removes what those two folders hold at that moment, which can differ a little from the preview.
-- **Touch ID or password is macOS's decision,** not MacCleaner's.
+- **Touch ID or password is macOS's decision,** not DiskMarshal's.
 - **It needs the installed app** (`cargo xtask install`), because that is where the helper lives.
 - **A known, accepted risk:** a malicious program already running in your user account could try to swap the helper in the instant between the check and its execution. This is considered acceptable for personal use. The details are in the [security policy](../security.md#privileged-helper).
 
@@ -158,18 +158,18 @@ Said plainly, so you can decide how careful to be:
 
 ## If something goes wrong
 
-1. **Look in the Trash.** Personal files removed by MacCleaner are there. Right-click and choose **Put Back**.
+1. **Look in the Trash.** Personal files removed by DiskMarshal are there. Right-click and choose **Put Back**.
 2. **Read the history file** to see exactly what was removed and when. The dashboard shows the latest entries.
-3. **Open an issue** at [github.com/renatoasterio/MacCleaner/issues](https://github.com/renatoasterio/MacCleaner/issues) describing what happened. If it looks like a security problem, follow [SECURITY.md](../../SECURITY.md) instead.
+3. **Open an issue** at [github.com/renatoasterio/DiskMarshal/issues](https://github.com/renatoasterio/DiskMarshal/issues) describing what happened. If it looks like a security problem, follow [SECURITY.md](../../SECURITY.md) instead.
 
 ## For the technically curious
 
 The rules above are enforced in code and covered by tests:
 
-- Path rules: [`protected_paths.rs`](../../crates/maccleaner-domain/src/deletion/protected_paths.rs)
-- The single code path that deletes: [`delete_items.rs`](../../crates/maccleaner-application/src/use_cases/delete_items.rs)
+- Path rules: [`protected_paths.rs`](../../crates/diskmarshal-domain/src/deletion/protected_paths.rs)
+- The single code path that deletes: [`delete_items.rs`](../../crates/diskmarshal-application/src/use_cases/delete_items.rs)
 - The helper that cleans system areas: [`apps/privileged-helper/src/main.rs`](../../apps/privileged-helper/src/main.rs)
-- How an item is matched to an app: [`leftover_matcher.rs`](../../crates/maccleaner-domain/src/applications/leftover_matcher.rs)
-- What Docker is asked to do: [`docker_cli_container_engine.rs`](../../crates/maccleaner-infrastructure/src/process/docker_cli_container_engine.rs)
-- How the app asks macOS to run it: [`osascript_privileged_cleaner.rs`](../../crates/maccleaner-infrastructure/src/privilege/osascript_privileged_cleaner.rs)
+- How an item is matched to an app: [`leftover_matcher.rs`](../../crates/diskmarshal-domain/src/applications/leftover_matcher.rs)
+- What Docker is asked to do: [`docker_cli_container_engine.rs`](../../crates/diskmarshal-infrastructure/src/process/docker_cli_container_engine.rs)
+- How the app asks macOS to run it: [`osascript_privileged_cleaner.rs`](../../crates/diskmarshal-infrastructure/src/privilege/osascript_privileged_cleaner.rs)
 - The full policy for contributors: [docs/security.md](../security.md)

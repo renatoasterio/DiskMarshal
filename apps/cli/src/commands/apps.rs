@@ -1,20 +1,20 @@
-//! `maccleaner-cli apps`: lists the installed apps, or shows what
+//! `diskmarshal-cli apps`: lists the installed apps, or shows what
 //! uninstalling one of them would remove. Nothing is removed.
 
 use std::path::Path;
 
 use anyhow::Context as _;
 use clap::Args;
-use maccleaner_application::progress::{CancellationToken, NoProgress};
-use maccleaner_application::use_cases::{ListInstalledApps, PlanUninstall};
-use maccleaner_domain::applications::{InstalledApp, LeftoverKind, UninstallPlan};
-use maccleaner_domain::cleanup::{PrivilegeScope, RiskLevel};
-use maccleaner_infrastructure::bundles::{PlistAppBundleReader, application_folders};
-use maccleaner_infrastructure::catalog::TomlRuleCatalog;
-use maccleaner_infrastructure::filesystem::{
+use diskmarshal_application::progress::{CancellationToken, NoProgress};
+use diskmarshal_application::use_cases::{ListInstalledApps, PlanUninstall};
+use diskmarshal_domain::applications::{InstalledApp, LeftoverKind, UninstallPlan};
+use diskmarshal_domain::cleanup::{PrivilegeScope, RiskLevel};
+use diskmarshal_infrastructure::bundles::{PlistAppBundleReader, application_folders};
+use diskmarshal_infrastructure::catalog::TomlRuleCatalog;
+use diskmarshal_infrastructure::filesystem::{
     LstatFileInspector, ReaddirFolderLister, ReaddirWalker, icloud_sync_roots,
 };
-use maccleaner_infrastructure::system::SysinfoRunningAppProbe;
+use diskmarshal_infrastructure::system::SysinfoRunningAppProbe;
 
 use super::home_folder;
 
@@ -75,7 +75,7 @@ fn print_apps(installed: &[InstalledApp]) {
     let total = installed
         .iter()
         .map(|app| app.size)
-        .sum::<maccleaner_domain::shared::ByteSize>();
+        .sum::<diskmarshal_domain::shared::ByteSize>();
     println!("\n{} apps · {total}", installed.len());
 }
 

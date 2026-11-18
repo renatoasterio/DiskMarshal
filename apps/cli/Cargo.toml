@@ -1,6 +1,6 @@
 [package]
-name = "maccleaner-cli"
-description = "Headless MacCleaner: the same use cases as the app, read-only."
+name = "diskmarshal-cli"
+description = "Headless DiskMarshal: the same use cases as the app, read-only."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -11,9 +11,9 @@ publish.workspace = true
 [dependencies]
 anyhow.workspace = true
 clap.workspace = true
-maccleaner-application.workspace = true
-maccleaner-domain.workspace = true
-maccleaner-infrastructure.workspace = true
+diskmarshal-application.workspace = true
+diskmarshal-domain.workspace = true
+diskmarshal-infrastructure.workspace = true
 
 [lints]
 workspace = true

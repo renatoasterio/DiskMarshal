@@ -2,13 +2,13 @@
 
 [English](getting-started.md) · Português
 
-Este guia leva você do zero até o MacCleaner instalado no seu Mac e aberto, um passo de cada vez. Não é preciso saber programar.
+Este guia leva você do zero até o DiskMarshal instalado no seu Mac e aberto, um passo de cada vez. Não é preciso saber programar.
 
 - **Tempo:** cerca de 15 minutos, a maior parte esperando downloads e a compilação.
 - **Espaço em disco:** deixe uns 6 GB livres para as ferramentas e a compilação. O app instalado ocupa cerca de 10 MB.
-- **Testado em:** macOS 27 em Apple Silicon. Outras versões e Macs com Intel devem funcionar, mas ainda não foram testados. Se algo falhar, [avise a gente](https://github.com/renatoasterio/MacCleaner/issues).
+- **Testado em:** macOS 27 em Apple Silicon. Outras versões e Macs com Intel devem funcionar, mas ainda não foram testados. Se algo falhar, [avise a gente](https://github.com/renatoasterio/DiskMarshal/issues).
 
-> Instalar e abrir o MacCleaner não apaga nada. O app só remove o que você seleciona, depois de mostrar uma prévia e pedir confirmação. Leia o [guia de segurança](safety.pt-BR.md) antes da primeira limpeza: ele também diz com clareza o que ainda não foi testado.
+> Instalar e abrir o DiskMarshal não apaga nada. O app só remove o que você seleciona, depois de mostrar uma prévia e pedir confirmação. Leia o [guia de segurança](safety.pt-BR.md) antes da primeira limpeza: ele também diz com clareza o que ainda não foi testado.
 
 ## Como seguir este guia
 
@@ -20,7 +20,7 @@ Cada caixa cinza é um comando. Para cada uma:
 
 Para abrir o Terminal, pressione `Command + Espaço`, digite `Terminal` e pressione Return.
 
-Você só precisa do Terminal para instalar. Depois disso, o MacCleaner abre como qualquer outro app.
+Você só precisa do Terminal para instalar. Depois disso, o DiskMarshal abre como qualquer outro app.
 
 ## Passo 1. Instale as ferramentas de linha de comando do Xcode
 
@@ -55,7 +55,7 @@ brew --version
 
 ## Passo 3. Instale o Rust
 
-O MacCleaner é escrito em Rust, então você precisa das ferramentas do Rust para compilá-lo.
+O DiskMarshal é escrito em Rust, então você precisa das ferramentas do Rust para compilá-lo.
 
 > Já tem o Rust (`cargo --version` mostra uma versão)? Pule para o passo 4.
 
@@ -91,7 +91,7 @@ cargo --version
 
 Deve aparecer algo como `cargo 1.100.0`. O projeto fixa a versão exata do Rust de que precisa (no arquivo `rust-toolchain.toml`) e a baixa sozinho na primeira compilação.
 
-## Passo 4. Baixe o MacCleaner
+## Passo 4. Baixe o DiskMarshal
 
 Escolha onde a pasta do projeto vai ficar. Este exemplo usa a sua pasta pessoal.
 
@@ -100,13 +100,13 @@ cd ~
 ```
 
 ```bash
-git clone https://github.com/renatoasterio/MacCleaner.git
+git clone https://github.com/renatoasterio/DiskMarshal.git
 ```
 
 Entre na pasta. Todos os comandos daqui em diante precisam rodar dentro dela.
 
 ```bash
-cd MacCleaner
+cd DiskMarshal
 ```
 
 ## Passo 5. Compile e instale o app
@@ -117,15 +117,15 @@ cargo xtask install
 
 Esse único comando faz quatro coisas:
 
-1. Compila o MacCleaner. Na primeira vez, também baixa as bibliotecas que o MacCleaner usa. Conte com alguns minutos. Linhas começando com `Compiling` são normais.
-2. Monta o app em `dist/MacCleaner.app`, dentro da pasta do projeto: o app em si, um pequeno auxiliar usado só na limpeza de sistema e o ícone.
+1. Compila o DiskMarshal. Na primeira vez, também baixa as bibliotecas que o DiskMarshal usa. Conte com alguns minutos. Linhas começando com `Compiling` são normais.
+2. Monta o app em `dist/DiskMarshal.app`, dentro da pasta do projeto: o app em si, um pequeno auxiliar usado só na limpeza de sistema e o ícone.
 3. Assina o app, para o macOS aceitar abri-lo.
 4. Copia para `/Applications`, a pasta Aplicativos do seu Mac.
 
 **Confira se deu certo:** as últimas linhas devem ser estas.
 
 ```text
-xtask: installed /Applications/MacCleaner.app
+xtask: installed /Applications/DiskMarshal.app
 xtask: open it from Launchpad, Spotlight or the Applications folder
 ```
 
@@ -137,11 +137,11 @@ cargo xtask install ~/Applications
 
 ## Passo 6. Abra o app
 
-Pressione `Command + Espaço`, digite `MacCleaner` e pressione Return. Você também pode abrir pelo Launchpad ou pela pasta Aplicativos no Finder.
+Pressione `Command + Espaço`, digite `DiskMarshal` e pressione Return. Você também pode abrir pelo Launchpad ou pela pasta Aplicativos no Finder.
 
 **O que você deve ver:** uma sequência curta de abertura (clique para pular) e, em seguida, o "Painel".
 
-![O painel do MacCleaner: barra de status em cima, as nove telas à esquerda, medidores e o espaço recuperável à direita](../assets/screens/dashboard.png)
+![O painel do DiskMarshal: barra de status em cima, as nove telas à esquerda, medidores e o espaço recuperável à direita](../assets/screens/dashboard.png)
 
 *Captura do app com dados de demonstração. Os seus números serão outros, e "Espaço recuperável" começa com "não analisado" em todas as linhas.*
 
@@ -149,7 +149,7 @@ Pressione `1` a `7` para visitar cada tela. Para sair, pressione `Command + Q`.
 
 ## Passo 7. Dê o Acesso Total ao Disco (opcional)
 
-O macOS mantém algumas pastas, como os dados do Mail e do Safari e a Lixeira, escondidas de todo app até você permitir. O MacCleaner funciona sem essa permissão; ele só não consegue ver nem medir essas pastas.
+O macOS mantém algumas pastas, como os dados do Mail e do Safari e a Lixeira, escondidas de todo app até você permitir. O DiskMarshal funciona sem essa permissão; ele só não consegue ver nem medir essas pastas.
 
 Quando a permissão falta, as telas que leem as suas pastas mostram esta linha no topo:
 
@@ -158,20 +158,20 @@ Quando a permissão falta, as telas que leem as suas pastas mostram esta linha n
 Para dar a permissão:
 
 1. Clique no link **"Abrir ajustes de Acesso Total ao Disco"**. Os Ajustes do Sistema abrem na página certa.
-2. Ligue a chave ao lado de **MacCleaner**. Se o MacCleaner não estiver na lista, clique no botão **+** e escolha o app na pasta Aplicativos.
+2. Ligue a chave ao lado de **DiskMarshal**. Se o DiskMarshal não estiver na lista, clique no botão **+** e escolha o app na pasta Aplicativos.
 3. Se o macOS pedir a sua senha ou o Touch ID para confirmar a mudança, informe.
-4. Encerre o MacCleaner (`Command + Q`) e abra de novo.
+4. Encerre o DiskMarshal (`Command + Q`) e abra de novo.
 
 Você pode desligar a chave do mesmo jeito quando quiser.
 
-> **O macOS esquece essa permissão quando o app é recompilado.** O app que você acabou de compilar leva uma assinatura local (chamada ad hoc), que muda a cada compilação. Toda vez que você roda `cargo xtask install` de novo, o macOS trata o resultado como um app novo, e é preciso repetir este passo. Assinar com uma identidade sua evita isso: defina a variável de ambiente `MACCLEANER_SIGNING_IDENTITY` com o nome da identidade antes de rodar `cargo xtask install`.
+> **O macOS esquece essa permissão quando o app é recompilado.** O app que você acabou de compilar leva uma assinatura local (chamada ad hoc), que muda a cada compilação. Toda vez que você roda `cargo xtask install` de novo, o macOS trata o resultado como um app novo, e é preciso repetir este passo. Assinar com uma identidade sua evita isso: defina a variável de ambiente `DISKMARSHAL_SIGNING_IDENTITY` com o nome da identidade antes de rodar `cargo xtask install`.
 
 ## Passo 8. Meça uma pasta pelo Terminal (opcional)
 
-O MacCleaner também tem uma pequena ferramenta de linha de comando. Ela mede uma pasta e lista os maiores itens, sem alterar nada:
+O DiskMarshal também tem uma pequena ferramenta de linha de comando. Ela mede uma pasta e lista os maiores itens, sem alterar nada:
 
 ```bash
-cargo run --release -p maccleaner-cli -- scan ~/Downloads
+cargo run --release -p diskmarshal-cli -- scan ~/Downloads
 ```
 
 O macOS pode perguntar se o Terminal pode acessar a pasta Downloads. Clique em **Permitir**.
@@ -200,12 +200,12 @@ O [guia de uso](usage.pt-BR.md#a-ferramenta-de-linha-de-comando) explica cada li
 |---|---|
 | Abrir o app | Launchpad ou Spotlight, como qualquer outro app. O Terminal não é necessário. |
 | Entender o que cada tela faz | Leia o [guia de uso](usage.pt-BR.md). |
-| Pegar a versão mais nova | `cd ~/MacCleaner`, depois `git pull`, depois `cargo xtask install` |
+| Pegar a versão mais nova | `cd ~/DiskMarshal`, depois `git pull`, depois `cargo xtask install` |
 | Instalar em outro lugar | `cargo xtask install ~/Applications` (ou qualquer outra pasta) |
-| Só montar o app, sem instalar | `cargo xtask bundle`. O resultado é o `dist/MacCleaner.app`, dentro da pasta do projeto. |
-| Abrir o app sem instalar | `cargo run --release -p maccleaner`. O grupo "Sistema" da tela de limpeza pode ficar indisponível desse jeito: veja o [guia de uso](usage.pt-BR.md#o-grupo-sistema). |
-| Liberar o espaço usado pela compilação | `cd ~/MacCleaner` e depois `cargo clean`. O app instalado continua funcionando. |
-| Remover o MacCleaner | Mova o `/Applications/MacCleaner.app` para a Lixeira. Depois, se quiser, apague o histórico de remoções em `~/Library/Application Support/MacCleaner/` e a pasta `MacCleaner` do projeto. |
+| Só montar o app, sem instalar | `cargo xtask bundle`. O resultado é o `dist/DiskMarshal.app`, dentro da pasta do projeto. |
+| Abrir o app sem instalar | `cargo run --release -p diskmarshal`. O grupo "Sistema" da tela de limpeza pode ficar indisponível desse jeito: veja o [guia de uso](usage.pt-BR.md#o-grupo-sistema). |
+| Liberar o espaço usado pela compilação | `cd ~/DiskMarshal` e depois `cargo clean`. O app instalado continua funcionando. |
+| Remover o DiskMarshal | Mova o `/Applications/DiskMarshal.app` para a Lixeira. Depois, se quiser, apague o histórico de remoções em `~/Library/Application Support/DiskMarshal/` e a pasta `DiskMarshal` do projeto. |
 
 ## Se algo der errado
 

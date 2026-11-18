@@ -5,9 +5,9 @@
 use std::io;
 use std::path::Path;
 
-use maccleaner_application::ApplicationError;
-use maccleaner_application::ports::{HistoryRepository, TrashBin};
-use maccleaner_domain::deletion::{DeletionOutcome, HistoryEntry};
+use diskmarshal_application::ApplicationError;
+use diskmarshal_application::ports::{HistoryRepository, TrashBin};
+use diskmarshal_domain::deletion::{DeletionOutcome, HistoryEntry};
 
 /// A Trash that refuses everything. Administrator rules remove permanently;
 /// a rule that asked for the Trash is reported as failed instead.
