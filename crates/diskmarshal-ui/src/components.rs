@@ -33,7 +33,7 @@ pub(crate) use hud_panel::HudPanel;
 pub(crate) use icon::Icon;
 pub(crate) use icon_button::icon_button;
 pub(crate) use key_value::key_value;
-pub(crate) use line_plot::line_plot;
+pub(crate) use line_plot::{Trace, line_plot};
 pub(crate) use progress_panel::{ProgressPanel, progress_panel};
 pub(crate) use radar::radar;
 pub(crate) use radial_gauge::{RadialGauge, radial_gauge};

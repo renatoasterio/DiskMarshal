@@ -9,8 +9,8 @@ the documentation; it is not part of DiskMarshal.
 How it works: the app is built in its development capture mode, which saves
 one frame to a PNG and exits. Each shot runs it with HOME pointing at a
 demonstration home folder created here, so the pictures show made-up caches,
-apps, projects, duplicates and photos, a made-up Docker, and no path or
-program of the machine that takes them. Nothing in the real home folder is read or changed. The window of
+apps, projects, duplicates and photos, a made-up Docker, a made-up network,
+and no path, program or address of the machine that takes them. Nothing in the real home folder is read or changed. The window of
 the app flashes on screen for a moment at each shot.
 
 Pass --work-dir to choose where the demonstration folder is created; by
@@ -32,7 +32,10 @@ from PIL import Image, ImageDraw
 REPOSITORY = pathlib.Path(__file__).resolve().parents[3]
 ASSETS = REPOSITORY / "docs" / "assets"
 BINARY = REPOSITORY / "target" / "debug" / "diskmarshal"
-SCREENS = ["dashboard", "cleanup", "apps", "duplicates", "photos", "developer", "docker", "disk_map", "monitor"]
+SCREENS = ["dashboard", "cleanup", "apps", "duplicates", "photos", "developer", "docker", "disk_map", "monitor", "network"]
+# The network screen has three tabs. The first one is its picture in SCREENS;
+# these get a picture of their own.
+NETWORK_TABS = ["analysis", "tuning"]
 PALETTES = ["agency", "terminal", "tactical"]
 SHOT_WIDTH = 1280
 TOUR_WIDTH = 900
@@ -247,7 +250,7 @@ def build_demo_home(home):
 
 # ------------------------------------------------------------------ capture
 
-def capture(home, screen, palette, target):
+def capture(home, screen, palette, target, network_tab="traffic"):
     environment = {
         "HOME": str(home),
         "TMPDIR": str(home / "tmp"),
@@ -267,6 +270,9 @@ def capture(home, screen, palette, target):
     # demonstration home, its gigabytes would be all the dashboard shows.
     if screen == "docker":
         environment["DISKMARSHAL_DOCKER"] = "1"
+    # The made-up network is read only for its own screen: nothing else shows it.
+    if screen == "network":
+        environment["DISKMARSHAL_NETWORK"] = network_tab
     subprocess.run([str(BINARY)], env=environment, check=True, capture_output=True, timeout=180)
     return Image.open(target).convert("RGB")
 
@@ -308,6 +314,10 @@ def main():
             save_small(scaled(image, SHOT_WIDTH), ASSETS / "screens" / f"{screen.replace('_', '-')}.png")
             frames.append(scaled(image, TOUR_WIDTH))
             print("captured", screen)
+        for tab in NETWORK_TABS:
+            image = capture(home, "network", PALETTES[0], shots / f"network-{tab}.png", network_tab=tab)
+            save_small(scaled(image, SHOT_WIDTH), ASSETS / "screens" / f"network-{tab}.png")
+            print("captured network", tab)
 
         gap, tile_width = 16, 620
         tiles = [scaled(capture(home, "dashboard", palette, shots / f"palette-{palette}.png"), tile_width)

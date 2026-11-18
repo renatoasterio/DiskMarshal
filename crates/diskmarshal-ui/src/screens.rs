@@ -9,6 +9,7 @@ mod docker;
 mod duplicates;
 mod group_review;
 mod monitor;
+mod network;
 mod photos;
 
 use std::path::Path;
@@ -43,6 +44,7 @@ pub(crate) struct Screens {
     disk_map: disk_map::DiskMapViewModel,
     duplicates: duplicates::DuplicatesViewModel,
     monitor: monitor::MonitorViewModel,
+    network: network::NetworkViewModel,
     photos: photos::PhotosViewModel,
 }
 
@@ -56,6 +58,11 @@ impl Screens {
     ) -> Option<Screen> {
         // Readings keep arriving whatever screen is open, so the trace has no gaps.
         self.monitor.poll();
+        if screen != Screen::Network {
+            // Reading the traffic costs processor time, so it stops while
+            // nobody is looking at it.
+            self.network.pause();
+        }
         match screen {
             Screen::Dashboard => return self.show_dashboard(ui, context),
             Screen::Cleanup => cleanup::show(&mut self.cleanup, ui, context),
@@ -65,6 +72,7 @@ impl Screens {
             Screen::DiskMap => disk_map::show(&mut self.disk_map, ui, context),
             Screen::Duplicates => duplicates::show(&mut self.duplicates, ui, context),
             Screen::Monitor => monitor::show(&mut self.monitor, ui, context),
+            Screen::Network => network::show(&mut self.network, ui, context),
             Screen::Photos => photos::show(&mut self.photos, ui, context),
         }
         None
@@ -124,6 +132,18 @@ impl Screens {
     /// opens filled in.
     pub(crate) fn preload_docker(&mut self, services: &UiServices) {
         self.docker.inspect_now(services);
+    }
+
+    /// Reads the traffic and analyzes the connection before the first
+    /// frame, so the network screen opens filled in, on the tab named by
+    /// `tab` when there is one.
+    pub(crate) fn preload_network(
+        &mut self,
+        services: &UiServices,
+        tab: Option<&str>,
+        with_speed_test: bool,
+    ) {
+        self.network.load_now(services, tab, with_speed_test);
     }
 
     /// Searches `root` for duplicates before the first frame, so that screen

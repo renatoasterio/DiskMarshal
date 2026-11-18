@@ -4,6 +4,8 @@ use std::fmt;
 use std::iter::Sum;
 use std::ops::{Add, AddAssign};
 
+use crate::shared::scale_by_thousands;
+
 /// A non-negative amount of bytes.
 ///
 /// Arithmetic saturates instead of overflowing, so summing sizes reported by the
@@ -17,7 +19,6 @@ impl ByteSize {
 
     /// Decimal units, the same ones Finder shows (1 GB = 1 000 000 000 bytes).
     const UNITS: [&'static str; 5] = ["B", "KB", "MB", "GB", "TB"];
-    const UNIT_STEP: u128 = 1000;
 
     /// Creates a size from a raw byte count.
     #[must_use]
@@ -68,29 +69,7 @@ impl Sum for ByteSize {
 /// comma: `12,4 GB`. Plain bytes are shown without decimals: `512 B`.
 impl fmt::Display for ByteSize {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let bytes = u128::from(self.0);
-        if bytes < Self::UNIT_STEP {
-            return write!(f, "{bytes} B");
-        }
-
-        let last_unit = Self::UNITS.len() - 1;
-        let mut unit = 1;
-        let mut divisor = Self::UNIT_STEP;
-        while unit < last_unit && bytes >= divisor * Self::UNIT_STEP {
-            unit += 1;
-            divisor *= Self::UNIT_STEP;
-        }
-
-        // Work in tenths so that rounding (999,95 MB -> 1,0 GB) stays exact.
-        let mut tenths = (bytes * 10 + divisor / 2) / divisor;
-        if tenths >= Self::UNIT_STEP * 10 && unit < last_unit {
-            unit += 1;
-            divisor *= Self::UNIT_STEP;
-            tenths = (bytes * 10 + divisor / 2) / divisor;
-        }
-
-        let label = Self::UNITS.get(unit).copied().unwrap_or("TB");
-        write!(f, "{},{} {label}", tenths / 10, tenths % 10)
+        f.write_str(&scale_by_thousands(self.0, &Self::UNITS))
     }
 }
 

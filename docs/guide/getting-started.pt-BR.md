@@ -141,7 +141,7 @@ Pressione `Command + Espaço`, digite `DiskMarshal` e pressione Return. Você ta
 
 **O que você deve ver:** uma sequência curta de abertura (clique para pular) e, em seguida, o "Painel".
 
-![O painel do DiskMarshal: barra de status em cima, as nove telas à esquerda, medidores e o espaço recuperável à direita](../assets/screens/dashboard.png)
+![O painel do DiskMarshal: barra de status em cima, as dez telas à esquerda, medidores e o espaço recuperável à direita](../assets/screens/dashboard.png)
 
 *Captura do app com dados de demonstração. Os seus números serão outros, e "Espaço recuperável" começa com "não analisado" em todas as linhas.*
 

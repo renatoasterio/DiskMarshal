@@ -30,6 +30,8 @@ enum Command {
     Apps(commands::apps::AppsArguments),
     /// Mostra o que o Docker guarda e o que nada está usando
     Docker,
+    /// Mostra quais programas estão usando a rede e a que velocidade
+    Network(commands::network::NetworkArguments),
 }
 
 fn main() -> ExitCode {
@@ -52,5 +54,6 @@ fn run() -> anyhow::Result<()> {
         Command::Scan(arguments) => commands::scan::run(&arguments),
         Command::Apps(arguments) => commands::apps::run(&arguments),
         Command::Docker => commands::docker::run(),
+        Command::Network(arguments) => commands::network::run(&arguments),
     }
 }

@@ -1,6 +1,7 @@
 //! Ports: what the use cases need from the outside world.
 
 mod app_bundle_reader;
+mod connection_inspector;
 mod container_engine;
 mod content_hasher;
 mod external_opener;
@@ -12,16 +13,22 @@ mod folder_picker;
 mod history_repository;
 mod image_thumbnailer;
 mod metrics_provider;
+mod network_settings;
+mod network_tuner;
 mod permission_probe;
 mod privileged_cleaner;
+mod reachability_probe;
 mod rule_catalog;
 mod running_app_probe;
+mod speed_tester;
+mod traffic_probe;
 mod trash_bin;
 mod version_control_probe;
 mod volume_stats;
 mod wall_clock;
 
 pub use app_bundle_reader::{AppBundleFacts, AppBundleReader};
+pub use connection_inspector::{ConnectionInspector, InspectionError};
 pub use container_engine::{ContainerEngine, EngineError};
 pub use content_hasher::ContentHasher;
 pub use external_opener::ExternalOpener;
@@ -33,10 +40,15 @@ pub use folder_picker::FolderPicker;
 pub use history_repository::HistoryRepository;
 pub use image_thumbnailer::ImageThumbnailer;
 pub use metrics_provider::MetricsProvider;
+pub use network_settings::{NetworkSettings, NetworkSettingsError};
+pub use network_tuner::NetworkTuner;
 pub use permission_probe::{AccessStatus, PermissionProbe};
 pub use privileged_cleaner::{AuthenticationKind, PrivilegeError, PrivilegedCleaner};
+pub use reachability_probe::ReachabilityProbe;
 pub use rule_catalog::RuleCatalog;
 pub use running_app_probe::RunningAppProbe;
+pub use speed_tester::{SpeedTestError, SpeedTester};
+pub use traffic_probe::{TrafficProbe, TrafficProbeError};
 pub use trash_bin::TrashBin;
 pub use version_control_probe::VersionControlProbe;
 pub use volume_stats::VolumeStats;

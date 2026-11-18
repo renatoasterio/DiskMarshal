@@ -82,7 +82,7 @@ pub(crate) fn show(model: &mut CleanupViewModel, ui: &mut Ui, context: &ScreenCo
     };
 
     let admin_meta = if model.cleans_system() {
-        pt_br::cleanup_admin_meta(model.authentication())
+        pt_br::admin_meta(model.authentication())
     } else {
         pt_br::CLEANUP_ADMIN_UNAVAILABLE
     };

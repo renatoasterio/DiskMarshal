@@ -282,6 +282,25 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .temp-row { grid-template-columns: 56px 1fr 44px; }
 .proc-row { grid-template-columns: minmax(0, 1fr) 70px 150px 48px; border-top: 1px solid var(--color-line); padding: 5px 0; }
 
+/* Network */
+.net-tab { display: flex; flex-direction: column; gap: var(--space-3); flex: 1; min-height: 0; }
+.grid-net { display: grid; grid-template-columns: 1.1fr 1fr; gap: var(--space-3); flex: 1; min-height: 0; }
+.grid-net > .hud-panel { display: flex; flex-direction: column; min-height: 0; padding-bottom: 4px; }
+.net-rates { display: flex; gap: var(--space-4); font: 700 20px/1 var(--font-display); letter-spacing: .04em; text-transform: none; }
+.net-rates small { font: 400 11px var(--font-data); color: var(--color-text-secondary); }
+.down { color: var(--color-accent); } .up { color: var(--color-ok); }
+.row.net-app { grid-template-columns: minmax(0, 1fr) 70px 70px 48px; width: 100%; background: none; border: 0; border-top: 1px solid var(--color-line); text-align: left; font-size: 12px; }
+.row.net-app[aria-pressed="true"] { background: rgb(var(--color-accent-rgb) / .1); box-shadow: inset 2px 0 0 var(--color-accent); }
+.row.net-app > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row.net-conn { grid-template-columns: minmax(0, 1fr) 52px 66px 66px; font-size: 12px; min-height: 38px; }
+.row.net-find { grid-template-columns: 84px minmax(0, 1fr) auto; font-size: 12px; }
+.row.net-boost { grid-template-columns: 14px minmax(0, 1fr) 170px 72px 118px; }
+.row.net-boost .name, .row.net-find .name { white-space: normal; }
+.badge.info { color: var(--color-text-secondary); }
+.link { background: none; border: 0; padding: 0; color: var(--color-accent); font-size: 11px; white-space: nowrap; }
+.net-note { color: var(--color-text-muted); font-size: 11px; margin: 0; }
+.net-guide { margin: 0; padding-left: 16px; color: var(--color-text-secondary); font-size: 12px; display: flex; flex-direction: column; gap: 4px; }
+
 /* Overlays */
 .overlay { position: absolute; inset: 0; z-index: 30; display: grid; place-items: center; background: rgb(0 0 0 / .66); }
 .dialog { width: 460px; background: var(--color-surface-window); animation: enter .2s ease-out; }
@@ -514,6 +533,32 @@ button { font: inherit; color: inherit; cursor: pointer; }
   const TYPE_LEGEND = { system: ['Sistema e apps', '--color-category-system'], code: ['Código', '--color-category-code'], photo: ['Fotos', '--color-category-photo'],
     video: ['Vídeos', '--color-category-video'], document: ['Documentos', '--color-category-document'], download: ['Downloads', '--color-category-download'] };
   const CLOUD_LEGEND = { local: ['Somente local', '--color-category-system'], synced: ['iCloud, baixado', '--color-category-document'], cloud: ['Somente na nuvem', '--color-category-download'] };
+  /* Network. Rates in megabits per second; `conns` rows are destination, service, transport, response time in ms, received, sent, note.
+     Addresses come from the ranges reserved for documentation. */
+  const NET_APPS = [
+    { name: 'Google Chrome', down: 38.2, up: 2.1, conns: [['203.0.113.24:443', 'HTTPS', 'TCP', 14, '1,1 GB', '48,0 MB'], ['203.0.113.80:443', 'HTTPS', 'UDP', 11, '620,0 MB', '12,4 MB'], ['198.51.100.7:443', 'HTTPS', 'TCP', 38, '84,1 MB', '3,1 MB', '212 retransmissões'], ['192.0.2.61:443', 'HTTPS', 'TCP', 22, '9,4 MB', '1,2 MB'], ['192.0.2.118:443', 'HTTPS', 'TCP', 19, '2,2 MB', '640,0 KB']] },
+    { name: 'Dropbox', down: 0.3, up: 11.2, conns: [['198.51.100.44:443', 'HTTPS', 'TCP', 31, '18,3 MB', '2,7 GB'], ['198.51.100.45:443', 'HTTPS', 'TCP', 33, '1,1 MB', '94,0 MB']] },
+    { name: 'Spotify', down: 2.4, up: 0.1, conns: [['203.0.113.140:443', 'HTTPS', 'TCP', 17, '212,0 MB', '4,8 MB'], ['203.0.113.141:4070', 'porta 4070', 'TCP', 18, '3,0 MB', '1,1 MB']] },
+    { name: 'Slack', down: 0.6, up: 0.2, conns: [['192.0.2.200:443', 'HTTPS', 'TCP', 24, '41,5 MB', '6,3 MB']] },
+    { name: 'Docker', down: 0.2, up: 0.1, conns: [['192.0.2.9:443', 'HTTPS', 'TCP', 41, '517,0 KB', '393,0 KB']] },
+    { name: 'mDNSResponder', system: true, down: 0.05, up: 0.03, conns: [['192.168.0.1:53', 'DNS', 'UDP', 38, '10,9 MB', '3,4 MB'], ['*:5353', 'Bonjour', 'UDP', 0, '5,1 MB', '1,4 MB']] },
+    { name: 'apsd', system: true, down: 0.01, up: 0.01, conns: [['203.0.113.5:5223', 'notificações', 'TCP', 123, '2,5 MB', '222,0 KB']] },
+  ];
+  /* What the analysis concluded: tone, label, sentence, and the tab that deals with it. */
+  const NET_FINDINGS = [
+    ['review', 'Atenção', 'A descoberta automática de proxy está ligada, mas nenhum proxy respondeu nesta rede. Cada conexão nova espera por essa procura.', 'boost'],
+    ['review', 'Atenção', 'O DNS em uso responde em 38 ms. O mais rápido medido daqui responde em 9 ms.', 'boost'],
+    ['info', 'Informação', 'Dropbox está enviando 11 Mb/s: 84% de tudo o que este Mac envia agora.', 'traffic'],
+    ['safe', 'OK', 'Sinal Wi-Fi forte (−52 dBm), em 5 GHz, no padrão Wi-Fi 6.'],
+    ['safe', 'OK', 'Nenhum pacote perdido em 20 envios até a internet.'],
+  ];
+  const netFinding = ([tone, label, text, tab]) => `<div class="row net-find"><span><span class="badge ${tone}">${label}</span></span><span class="name">${text}</span>${tab ? `<button class="link" data-open-tab="${tab}">${tab === 'boost' ? 'ver ação' : 'ver tráfego'}</button>` : '<span></span>'}</div>`;
+  /* What the app offers to change. `admin` asks macOS to authenticate; `on` is the default selection. */
+  const NET_BOOSTS = [
+    { id: 'wpad', name: 'Desligar a descoberta automática de proxy', detail: 'Wi-Fi · nenhum proxy respondeu nesta rede', effect: 'conexões novas deixam de esperar', risk: 'safe', admin: true, on: true, change: 'Proxy automático do Wi-Fi: ligado → desligado' },
+    { id: 'flush', name: 'Limpar o cache de DNS', detail: 'o macOS volta a consultar os endereços · nada é apagado do disco', effect: 'corrige sites presos em endereço antigo', risk: 'safe', admin: true, on: true, change: 'Cache de DNS: esvaziado' },
+    { id: 'dns', name: 'Usar o DNS mais rápido medido', detail: 'Wi-Fi · de 192.168.0.1 (38 ms) para 1.1.1.1 e 1.0.0.1 (9 ms) · nomes internos da rede e filtros do DNS atual deixam de valer', effect: 'sites começam a abrir antes', risk: 'review', admin: true, on: false, change: 'DNS do Wi-Fi: 192.168.0.1 → 1.1.1.1, 1.0.0.1' },
+  ];
 
   /* ---------- Dialog flow shared by every destructive action ---------- */
   const overlayHost = $('#overlay-host');
@@ -762,6 +807,57 @@ button { font: inherit; color: inherit; cursor: pointer; }
           ${[['Xcode', '4,1 GB', 0.38], ['Google Chrome', '3,6 GB', 0.21], ['Docker', '5,2 GB', 0.12], ['node', '1,1 GB', 0.09]].map(([n, mem, cpu]) => `<div class="proc-row"><span>${n}</span><span class="num path">${mem}</span><span class="seg">${segments(cpu, 16)}</span><span class="num">${Math.round(cpu * 100)}%</span></div>`).join('')}</div>`,
       mount: mountMonitor,
     },
+    network: {
+      label: 'Rede', title: 'Central de rede', sub: 'Leitura local dos contadores do macOS · nenhum pacote é capturado',
+      icon: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3.2 3.4 3.2 14.6 0 18M12 3c-3.2 3.4-3.2 14.6 0 18"/>',
+      render: () => `<div class="control-group" id="net-tabs" role="group" aria-label="Seções da rede">
+          <button class="chip" data-tab="traffic" aria-pressed="true">Tráfego</button><button class="chip" data-tab="analysis" aria-pressed="false">Análise</button>
+          <button class="chip" data-tab="boost" aria-pressed="false">Otimização · ${NET_BOOSTS.length}</button>
+          <span style="flex:1"></span><span class="status-item path"><i class="dot"></i>Wi-Fi · en0 · 192.168.0.24</span></div>
+
+        <div class="net-tab" data-panel="traffic">
+          <div class="grid-mon">
+            <div class="hud-panel"><div class="panel-head"><span>Tráfego agora</span><span class="net-rates"><span class="down">↓ <span id="net-down">0</span><small> Mb/s</small></span><span class="up">↑ <span id="net-up">0</span><small> Mb/s</small></span></span></div>
+              <canvas class="scope" id="net-scope" width="1040" height="232" style="height:116px"></canvas><p class="net-note" id="net-scale"></p></div>
+            <div class="hud-panel"><div class="panel-head"><span>Desde que o app abriu</span><span class="meta">há 42 min</span></div>
+              <dl class="kv" style="margin:0"><dt>Recebido</dt><dd class="num down" id="net-total-down">4,2 GB</dd><dt>Enviado</dt><dd class="num up">612,0 MB</dd><dt>Pico de download</dt><dd class="num">212,0 Mb/s</dd>
+                <dt>Conexões abertas</dt><dd class="num">87</dd><dt>Programas na rede</dt><dd class="num">23</dd><dt>Retransmissões</dt><dd class="num">0,4%</dd></dl></div></div>
+          <div class="grid-net">
+            <div class="hud-panel"><div class="panel-head"><span>Programas</span><span class="meta">quem está usando a rede</span></div>
+              <div class="row net-app head"><span>Programa</span><span class="num">Recebendo</span><span class="num">Enviando</span><span></span></div><div class="scroll" id="net-apps"></div></div>
+            <div class="hud-panel"><div class="panel-head"><span id="net-conn-title">Conexões</span><span class="meta" id="net-conn-meta"></span></div>
+              <div class="row net-conn head"><span>Destino</span><span class="num">Resposta</span><span class="num">Recebido</span><span class="num">Enviado</span></div><div class="scroll" id="net-conns"></div></div></div>
+        </div>
+
+        <div class="net-tab" data-panel="analysis" hidden>
+          <div class="grid-mon-4">${[['Download', 'net-s-down', 'Mb/s'], ['Upload', 'net-s-up', 'Mb/s'], ['Latência', 'net-s-lat', 'ms'], ['Resposta sob carga', 'net-s-rpm', 'RPM']].map(([name, id, unit]) =>
+            `<div class="hud-panel"><div class="panel-head"><span>${name}</span></div><div class="readout"><span id="${id}">—</span><small> ${unit}</small></div><div class="seg" id="${id}-seg" style="margin-top:10px">${segments(0)}</div></div>`).join('')}</div>
+          <div class="control-group"><span class="net-note" id="net-test-note">Ainda não medido. A medição usa o programa de teste do próprio macOS e servidores da Apple, por cerca de 20 s. Numa conexão de 500 Mb/s ela transfere mais de 1 GB.</span>
+            <span style="flex:1"></span><button class="btn primary" id="net-test">Medir velocidade</button></div>
+          <div class="grid-net" style="flex:none">
+            <div class="hud-panel" style="padding-bottom:var(--space-3)"><div class="panel-head"><span>Wi-Fi</span><span class="meta">802.11ax · Wi-Fi 6</span></div>
+              ${[['Sinal', 0.8, '−52 dBm', '--color-ok'], ['Ruído', 0.12, '−93 dBm', '--color-ok'], ['Taxa', 0.62, '1.201 Mb/s', '--color-accent']].map(([n, r, v, c]) => `<div class="temp-row" style="grid-template-columns:56px 1fr 84px"><span>${n}</span><span class="seg" style="--seg-color:var(${c})">${segments(r, 14)}</span><span class="num">${v}</span></div>`).join('')}
+              <p class="net-note" style="margin-top:6px">Canal 44 · 5 GHz · 80 MHz · 3 redes vizinhas no mesmo canal</p></div>
+            <div class="hud-panel" style="padding-bottom:var(--space-3)"><div class="panel-head"><span>Caminho até a internet</span><span class="meta">20 envios</span></div>
+              <dl class="kv" style="margin:0"><dt>Roteador</dt><dd>192.168.0.1 · 3 ms</dd><dt>Internet</dt><dd>14 ms · 0% de perda</dd><dt>DNS em uso</dt><dd style="color:var(--color-warn)">192.168.0.1 · 38 ms</dd><dt>Proxy</dt><dd style="color:var(--color-warn)">descoberta automática ligada</dd><dt>VPN</dt><dd>3 perfis · nenhum ativo</dd></dl></div></div>
+          <div class="hud-panel" style="padding-bottom:4px;display:flex;flex-direction:column;flex:1;min-height:0"><div class="panel-head"><span>Diagnóstico</span><span class="meta">${NET_FINDINGS.filter(([tone]) => tone === 'review').length} pontos de atenção</span></div>
+            <div class="scroll" id="net-findings">${NET_FINDINGS.map(netFinding).join('')}</div></div>
+        </div>
+
+        <div class="net-tab" data-panel="boost" hidden>
+          <p class="stage-sub" style="margin:0">Ações escolhidas a partir da análise deste Mac. Cada uma diz o que muda, é aplicada só depois da sua confirmação e pode ser desfeita aqui.</p>
+          <div class="hud-panel" style="padding-bottom:4px"><div class="row net-boost head"><span></span><span>Ação</span><span>Efeito esperado</span><span>Risco</span><span>Permissão</span></div>
+            ${NET_BOOSTS.map((b) => `<label class="row net-boost"><input class="chk" type="checkbox" data-boost="${b.id}" data-scope="${b.admin ? 'admin' : 'user'}" ${b.on ? 'checked' : ''}>
+              <span style="min-width:0"><div class="name">${b.name}</div><div class="path" style="white-space:normal">${b.detail}</div></span><span class="path" style="white-space:normal">${b.effect}</span>
+              <span><span class="badge ${b.risk}">${b.risk === 'safe' ? 'Seguro' : 'Revisar'}</span></span><span class="path">${b.admin ? lockIcon + ' administrador' : 'sua conta'}</span></label>`).join('')}</div>
+          <div class="hud-panel"><div class="panel-head"><span>Orientações</span><span class="meta">o app não muda isto por você</span></div>
+            <ul class="net-guide"><li>O canal 44 é dividido com 3 redes vizinhas. No roteador, teste os canais 36 ou 149.</li><li>Há 3 perfis de VPN instalados. Uma VPN ligada costuma reduzir a velocidade: ligue só quando precisar.</li>
+              <li>Para chamadas de vídeo e jogos, o cabo de rede é mais estável que o Wi-Fi.</li></ul>
+            <p class="net-note" style="margin-top:8px">O DiskMarshal não altera parâmetros TCP do sistema. No macOS atual esses "aceleradores" não trazem ganho medido e podem piorar a conexão.</p></div>
+          <div class="action-footer"><span class="summary" id="net-summary"></span><button class="btn quiet" id="net-undo" hidden>Desfazer alterações</button><button class="btn primary" id="net-apply">Aplicar selecionadas</button></div>
+        </div>`,
+      mount: mountNetwork,
+    },
   };
 
   function wireSelection(el, { verb, title, lines, prefix = '', doneNote }) {
@@ -864,10 +960,99 @@ button { font: inherit; color: inherit; cursor: pointer; }
     }
     paint(); every(motion() === 'full' ? 250 : 1000, sample);
   }
+  function mountNetwork(el) {
+    const rate = (mbps) => (mbps >= 1 ? formatNumber(mbps, 1) + ' Mb/s' : formatNumber(Math.round(mbps * 1000)) + ' kb/s');
+    const openTab = (id) => {
+      $$('[data-tab]', el).forEach((chip) => chip.setAttribute('aria-pressed', String(chip.dataset.tab === id)));
+      $$('[data-panel]', el).forEach((panel) => { panel.hidden = panel.dataset.panel !== id; });
+      if (id === 'traffic') paint();
+    };
+    el.addEventListener('click', (e) => { const opener = e.target.closest('[data-tab], [data-open-tab]'); if (opener) openTab(opener.dataset.tab || opener.dataset.openTab); });
+
+    /* Traffic: two traces, download and upload, on a scale that follows the peak. */
+    const canvas = $('#net-scope', el), ctx = canvas.getContext('2d');
+    const apps = NET_APPS.map((app) => ({ ...app, base: [app.down, app.up] }));
+    const sum = (key) => apps.reduce((total, app) => total + app[key], 0);
+    const down = Array.from({ length: 120 }, () => sum('down') * (0.7 + Math.random() * 0.6)), up = Array.from({ length: 120 }, () => sum('up') * (0.7 + Math.random() * 0.6));
+    let selected = 0;
+    function paint() {
+      const css = getComputedStyle(root), W = canvas.width, H = canvas.height, top = Math.ceil(Math.max(10, ...down, ...up) * 1.2 / 10) * 10;
+      ctx.clearRect(0, 0, W, H); ctx.lineWidth = 1; ctx.strokeStyle = css.getPropertyValue('--color-line');
+      for (let gx = 0; gx <= W; gx += W / 12) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke(); }
+      for (let gy = 0; gy <= H; gy += H / 4) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); }
+      const glow = Number(css.getPropertyValue('--glow-strength')) || 0;
+      const trace = (points, color) => { const stroke = (width, alpha) => { ctx.beginPath(); points.forEach((p, i) => { const px = i * W / (points.length - 1), py = H - p / top * H; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); });
+        ctx.lineWidth = width; ctx.globalAlpha = alpha; ctx.strokeStyle = color; ctx.stroke(); ctx.globalAlpha = 1; };
+        if (glow) { stroke(10 * glow, .08); stroke(5 * glow, .16); } stroke(2, 1); };
+      trace(up, css.getPropertyValue('--color-ok').trim()); trace(down, css.getPropertyValue('--color-accent').trim());
+      $('#net-scale', el).textContent = `últimos 2 minutos · topo da escala em ${formatNumber(top)} Mb/s`;
+    }
+    $('#net-apps', el).innerHTML = apps.map((app, i) => `<button class="row net-app" data-app="${i}" aria-pressed="${i === selected}"><span>${app.name}${app.system ? ' <span class="path">· sistema</span>' : ''}</span><span class="num down"></span><span class="num up"></span><span class="seg"></span></button>`).join('');
+    const rows = $$('#net-apps .net-app', el);
+    function paintApps() {
+      const busiest = Math.max(...apps.map((app) => app.down + app.up));
+      rows.forEach((row, i) => { const app = apps[i], cells = row.children; cells[1].textContent = rate(app.down); cells[2].textContent = rate(app.up); cells[3].innerHTML = segments((app.down + app.up) / busiest, 8); });
+      $('#net-down', el).textContent = formatNumber(down[down.length - 1], 1); $('#net-up', el).textContent = formatNumber(up[up.length - 1], 1);
+    }
+    function paintConnections() {
+      const app = apps[selected];
+      $('#net-conn-title', el).textContent = `Conexões · ${app.name}`; $('#net-conn-meta', el).textContent = `${app.conns.length} ${app.conns.length === 1 ? 'aberta' : 'abertas'}`;
+      $('#net-conns', el).innerHTML = app.conns.map(([host, service, transport, ms, received, sent, note]) => `<div class="row net-conn"><span style="min-width:0"><div class="path" style="color:var(--color-text-primary);font-size:12px">${host}</div><div class="path">${service} · ${transport}${note ? ` · <span style="color:var(--color-warn)">${note}</span>` : ''}</div></span>
+        <span class="num">${ms ? ms + ' ms' : '—'}</span><span class="num down">${received}</span><span class="num up">${sent}</span></div>`).join('');
+    }
+    $('#net-apps', el).onclick = (e) => { const row = e.target.closest('[data-app]'); if (!row) return; selected = Number(row.dataset.app); rows.forEach((r) => r.setAttribute('aria-pressed', String(r === row))); paintConnections(); };
+    function sample() {
+      apps.forEach((app) => { app.down = clamp(app.down * (0.75 + Math.random() * 0.5), app.base[0] * 0.3, app.base[0] * 1.7); app.up = clamp(app.up * (0.75 + Math.random() * 0.5), app.base[1] * 0.3, app.base[1] * 1.7); });
+      down.push(sum('down')); down.shift(); up.push(sum('up')); up.shift(); paintApps(); if (!$('[data-panel="traffic"]', el).hidden) paint();
+    }
+    paintApps(); paintConnections(); paint(); every(motion() === 'full' ? 500 : 1000, sample);
+
+    /* Analysis: the speed test fills the four readouts, then adds what it found to the diagnosis. */
+    const SPEED = [['net-s-down', 468, 0.47], ['net-s-up', 383, 0.38], ['net-s-lat', 13, 0.13], ['net-s-rpm', 440, 0.44]];
+    $('#net-test', el).onclick = (e) => {
+      const button = e.currentTarget, note = $('#net-test-note', el), steps = motion() === 'off' ? 1 : 30; let step = 0;
+      button.disabled = true; button.textContent = 'Medindo…'; note.textContent = 'Medindo download e upload ao mesmo tempo. A rede fica ocupada por alguns segundos.';
+      const timer = every(100, () => {
+        step += 1; const progress = 1 - Math.pow(1 - step / steps, 3);
+        SPEED.forEach(([id, value, ratio]) => { $('#' + id, el).textContent = formatNumber(Math.round(value * progress)); $(`#${id}-seg`, el).innerHTML = segments(ratio * progress); });
+        if (step < steps) return;
+        clearInterval(timer); button.disabled = false; button.textContent = 'Medir de novo';
+        note.textContent = 'Medido agora · servidor da Apple mais próximo · 1,4 GB transferidos em 18 s';
+        if (!$('#net-load-finding', el)) $('#net-findings', el).insertAdjacentHTML('afterbegin', netFinding(['safe', 'OK', '<span id="net-load-finding">A conexão responde bem com a rede ocupada (440 RPM, nível médio). Chamadas de vídeo não devem travar durante um download.</span>']));
+      });
+    };
+
+    /* Optimization: nothing changes before the confirmation, and every change can be taken back. */
+    const boxes = $$('[data-boost]', el), summary = $('#net-summary', el), undo = $('#net-undo', el);
+    const picked = () => boxes.filter((box) => box.checked && !box.disabled);
+    function summarize() {
+      const chosen = picked(), admin = chosen.filter((box) => box.dataset.scope === 'admin').length;
+      summary.classList.remove('field-error');
+      summary.innerHTML = `<b>${chosen.length}</b> ${chosen.length === 1 ? 'ação selecionada' : 'ações selecionadas'}${admin ? ` · ${lockIcon} ${admin === 1 ? '1 pede' : admin + ' pedem'} administrador` : ''}`;
+    }
+    boxes.forEach((box) => { box.onchange = summarize; }); summarize();
+    $('#net-apply', el).onclick = () => {
+      const chosen = picked(), changes = chosen.map((box) => NET_BOOSTS.find((boost) => boost.id === box.dataset.boost).change);
+      if (!chosen.length) { summary.classList.add('field-error'); summary.textContent = 'Marque ao menos uma ação.'; return; }
+      const apply = () => {
+        overlayHost.innerHTML = `<div class="overlay"><div class="hud-panel dialog" role="dialog" aria-modal="true"><h2 style="color:var(--color-ok)">Aplicado</h2><div>O que mudou neste Mac:</div><ul>${changes.map((line) => `<li>${line}</li>`).join('')}</ul>
+          <p class="stage-sub">Os valores anteriores ficaram guardados. "Desfazer alterações" devolve cada ajuste ao que era.</p><div class="dialog-actions"><button class="btn primary" data-act="close">Fechar</button></div></div></div>`;
+        $('[data-act="close"]', overlayHost).onclick = () => { closeOverlay(); chosen.forEach((box) => { box.checked = false; box.disabled = true; box.closest('.row').classList.add('done'); }); undo.hidden = false; summarize(); };
+        $('[data-act="close"]', overlayHost).focus();
+      };
+      overlayHost.innerHTML = `<div class="overlay"><div class="hud-panel dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title"><h2 id="dlg-title">Autorização requerida</h2>
+        <div>As ações marcadas mudam ajustes de rede deste Mac. Nenhum arquivo é apagado.</div><ul>${changes.map((line) => `<li>${line}</li>`).join('')}</ul>
+        <div class="dialog-actions"><button class="btn quiet" data-act="cancel">Cancelar</button><button class="btn primary" data-act="go">Aplicar</button></div></div></div>`;
+      $('[data-act="cancel"]', overlayHost).onclick = closeOverlay;
+      $('[data-act="go"]', overlayHost).onclick = () => (chosen.some((box) => box.dataset.scope === 'admin') ? systemAuth(apply) : apply());
+      $('[data-act="go"]', overlayHost).focus();
+    };
+    undo.onclick = () => { boxes.forEach((box) => { box.disabled = false; box.closest('.row').classList.remove('done'); }); undo.hidden = true; summarize(); };
+  }
 
   /* ---------- Shell: navigation, boot, page controls ---------- */
   const rail = $('#rail'), order = Object.keys(screens);
-  rail.insertAdjacentHTML('afterbegin', order.map((id, i) => `<button class="rail-item" data-go="${id}"><svg viewBox="0 0 24 24" aria-hidden="true">${screens[id].icon}</svg><span>${screens[id].label}</span><kbd>${i + 1}</kbd></button>`).join(''));
+  rail.insertAdjacentHTML('afterbegin', order.map((id, i) => `<button class="rail-item" data-go="${id}"><svg viewBox="0 0 24 24" aria-hidden="true">${screens[id].icon}</svg><span>${screens[id].label}</span><kbd>${(i + 1) % 10}</kbd></button>`).join(''));
   $('#disk-seg').innerHTML = segments(0.92, 18);
   function show(id) {
     disposers.forEach((dispose) => dispose()); disposers = []; closeOverlay();
@@ -883,7 +1068,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   const screenFromHash = () => { const id = location.hash.slice(1).replace(/-/g, '_'); return screens[id] ? id : null; };
   addEventListener('hashchange', () => { const id = screenFromHash(); if (id && id !== current()) show(id); });
   document.addEventListener('click', (e) => { const go = e.target.closest('[data-go]'); if (go) show(go.dataset.go); });
-  document.addEventListener('keydown', (e) => { if (e.target.matches('input') || e.metaKey || e.ctrlKey) return; const i = Number(e.key) - 1; if (order[i]) show(order[i]); });
+  document.addEventListener('keydown', (e) => { if (e.target.matches('input') || e.metaKey || e.ctrlKey || !/^\d$/.test(e.key)) return; const i = (Number(e.key) + 9) % 10; if (order[i]) show(order[i]); });
   $('#fda-link').onclick = () => { overlayHost.innerHTML = `<div class="overlay"><div class="hud-panel dialog" role="dialog" aria-modal="true"><h2>Acesso total ao disco</h2>
     <div>Sem essa permissão, o macOS bloqueia partes da Biblioteca e a análise fica incompleta.</div><ul><li>Abra Ajustes do Sistema › Privacidade e Segurança</li><li>Ative DiskMarshal em Acesso Total ao Disco</li><li>Volte ao app: a verificação é refeita sozinha</li></ul>
     <div class="dialog-actions"><button class="btn quiet" data-act="cancel">Agora não</button><button class="btn primary" data-act="cancel">Abrir ajustes</button></div></div></div>`;

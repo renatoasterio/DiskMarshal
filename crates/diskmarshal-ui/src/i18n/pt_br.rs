@@ -1,11 +1,23 @@
 //! Brazilian Portuguese texts.
 
+use std::net::IpAddr;
+use std::time::Duration;
+
 use diskmarshal_application::ApplicationError;
-use diskmarshal_application::ports::{AuthenticationKind, EngineError, PrivilegeError};
+use diskmarshal_application::ports::{
+    AuthenticationKind, EngineError, InspectionError, PrivilegeError, SpeedTestError,
+    TrafficProbeError,
+};
 use diskmarshal_domain::applications::LeftoverKind;
 use diskmarshal_domain::docker::ResourceKind;
+use diskmarshal_domain::network::{
+    Advice, ConnectionProfile, Direction, Finding, NetworkChange, NetworkReport, Optimization,
+    OptimizationKind, PingResult, ProxySettings, ResponsivenessLevel, Severity, SignalQuality,
+    SpeedTest, VpnProfiles, WifiLink,
+};
 use diskmarshal_domain::photos::SimilarityTolerance;
 use diskmarshal_domain::scan::{CloudState, FileCategory};
+use diskmarshal_domain::shared::ByteSize;
 
 pub(crate) use diskmarshal_domain::shared::group_digits;
 
@@ -23,6 +35,7 @@ pub(crate) const SCREEN_DEVELOPER: &str = "Desenvolvedor";
 pub(crate) const SCREEN_DOCKER: &str = "Docker";
 pub(crate) const SCREEN_DISK_MAP: &str = "Mapa do disco";
 pub(crate) const SCREEN_MONITOR: &str = "Monitor";
+pub(crate) const SCREEN_NETWORK: &str = "Rede";
 
 pub(crate) const TITLE_DASHBOARD: &str = "Central de operações";
 pub(crate) const TITLE_CLEANUP: &str = "Limpeza";
@@ -33,6 +46,7 @@ pub(crate) const TITLE_DEVELOPER: &str = "Artefatos de build";
 pub(crate) const TITLE_DOCKER: &str = "Resíduos do Docker";
 pub(crate) const TITLE_DISK_MAP: &str = "Mapa de setores";
 pub(crate) const TITLE_MONITOR: &str = "Telemetria";
+pub(crate) const TITLE_NETWORK: &str = "Central de rede";
 
 pub(crate) const SUBTITLE_DASHBOARD: &str =
     "Visão geral do disco, da memória e do que pode ser recuperado";
@@ -49,6 +63,8 @@ pub(crate) const SUBTITLE_DEVELOPER: &str =
     "Pastas recriáveis reconhecidas pelo arquivo do projeto";
 pub(crate) const SUBTITLE_DISK_MAP: &str = "Cada bloco é proporcional ao espaço ocupado";
 pub(crate) const SUBTITLE_MONITOR: &str = "Amostragem a cada segundo";
+pub(crate) const SUBTITLE_NETWORK: &str =
+    "Leitura local dos contadores do macOS · nenhum pacote é capturado";
 
 // Status bar and rail
 pub(crate) const FREE_SPACE_SUFFIX: &str = "livres";
@@ -471,14 +487,20 @@ pub(crate) fn application_error(error: &ApplicationError) -> String {
         ApplicationError::ItemNotAllowed(path) => {
             format!("Este item não pode ser removido aqui: {}", path.display())
         }
+        ApplicationError::NetworkChangeNotAllowed(reason) => {
+            format!("Esta mudança de rede não pode ser feita aqui: {reason}")
+        }
+        ApplicationError::NetworkChangeFailed(reason) => {
+            format!("O macOS recusou a mudança de rede: {reason}")
+        }
         ApplicationError::Io { path, source } => {
             format!("O macOS recusou o acesso a {}: {source}", path.display())
         }
     }
 }
 
-/// What the system group of the cleanup says about how macOS will ask.
-pub(crate) const fn cleanup_admin_meta(authentication: AuthenticationKind) -> &'static str {
+/// What a group of administrator actions says about how macOS will ask.
+pub(crate) const fn admin_meta(authentication: AuthenticationKind) -> &'static str {
     match authentication {
         AuthenticationKind::TouchId => "pede a sua digital · senha se ela falhar",
         AuthenticationKind::Password => "pede a senha do macOS",
@@ -552,6 +574,456 @@ pub(crate) fn age(seconds: i64) -> String {
         _ => YEARS.of(days / 365),
     };
     format!("há {counted}")
+}
+
+// Network
+pub(crate) const NETWORK_TAB_TRAFFIC: &str = "Tráfego";
+pub(crate) const NETWORK_TAB_ANALYSIS: &str = "Análise";
+pub(crate) const NETWORK_TAB_TUNING: &str = "Otimização";
+pub(crate) const NETWORK_NOW: &str = "Tráfego agora";
+pub(crate) const NETWORK_SESSION: &str = "Desde que a tela abriu";
+pub(crate) const NETWORK_RECEIVED: &str = "Recebido";
+pub(crate) const NETWORK_SENT: &str = "Enviado";
+pub(crate) const NETWORK_PEAK: &str = "Pico de download";
+pub(crate) const NETWORK_CONNECTIONS_WITH_DATA: &str = "Conexões com dados";
+pub(crate) const NETWORK_PROGRAMS_ON: &str = "Programas na rede";
+pub(crate) const NETWORK_RESENT: &str = "Reenviado";
+pub(crate) const NETWORK_PROGRAMS: &str = "Programas";
+pub(crate) const NETWORK_PROGRAMS_META: &str = "quem está usando a rede";
+pub(crate) const NETWORK_COLUMN_PROGRAM: &str = "Programa";
+pub(crate) const NETWORK_COLUMN_RECEIVING: &str = "Recebendo";
+pub(crate) const NETWORK_COLUMN_SENDING: &str = "Enviando";
+pub(crate) const NETWORK_CONNECTIONS: &str = "Conexões";
+pub(crate) const NETWORK_OPEN: Counted = Counted::new("aberta", "abertas");
+pub(crate) const NETWORK_COLUMN_DESTINATION: &str = "Destino";
+pub(crate) const NETWORK_COLUMN_ANSWER: &str = "Resposta";
+pub(crate) const NETWORK_WAITING_TITLE: &str = "Aguardando leituras";
+pub(crate) const NETWORK_WAITING_BODY: &str = "A primeira leitura só marca o ponto de partida dos contadores. As velocidades aparecem na segunda, em cerca de dois segundos.";
+pub(crate) const NETWORK_UNREADABLE_TITLE: &str = "Tráfego indisponível";
+pub(crate) const NETWORK_NO_TRAFFIC: &str = "Nenhum programa moveu dados pela rede.";
+pub(crate) const NETWORK_NO_CONNECTIONS: &str = "Escolha um programa para ver as conexões dele.";
+pub(crate) const NETWORK_NOT_MEASURED: &str = "—";
+pub(crate) const NETWORK_TASK_LOST: &str = "A operação parou por um erro interno. Tente de novo.";
+pub(crate) const NETWORK_CANCELLED: &str = "A autenticação foi cancelada. Nada foi alterado.";
+
+pub(crate) const NETWORK_DOWNLOAD: &str = "Download";
+pub(crate) const NETWORK_UPLOAD: &str = "Upload";
+pub(crate) const NETWORK_LATENCY: &str = "Latência";
+pub(crate) const NETWORK_RESPONSIVENESS: &str = "Resposta sob carga";
+pub(crate) const NETWORK_UNIT_MEGABITS: &str = "Mb/s";
+pub(crate) const NETWORK_UNIT_MILLIS: &str = "ms";
+pub(crate) const NETWORK_UNIT_RPM: &str = "RPM";
+pub(crate) const NETWORK_SPEED_NOTE: &str = "A medição usa o programa de teste do macOS e servidores da Apple, por cerca de 20 segundos. Numa conexão de 500 Mb/s ela transfere mais de 1 GB.";
+pub(crate) const NETWORK_SPEED_RUNNING: &str =
+    "Medindo download e upload ao mesmo tempo. A rede fica ocupada por cerca de 20 segundos.";
+pub(crate) const NETWORK_MEASURE_SPEED: &str = "Medir velocidade";
+pub(crate) const NETWORK_MEASURE_AGAIN: &str = "Medir de novo";
+pub(crate) const NETWORK_ANALYZE: &str = "Analisar conexão";
+pub(crate) const NETWORK_ANALYZE_AGAIN: &str = "Analisar de novo";
+pub(crate) const NETWORK_ANALYZE_TITLE: &str = "Análise da conexão";
+pub(crate) const NETWORK_ANALYZE_BODY: &str = "A análise lê os ajustes de rede deste Mac e o sinal do Wi-Fi, e mede quanto o roteador, a internet e os servidores de nomes demoram para responder. Para isso ela envia alguns pings e consultas: poucos kilobytes.";
+pub(crate) const NETWORK_ANALYZING: &str = "Analisando a conexão. Leva cerca de dez segundos.";
+pub(crate) const NETWORK_WIFI: &str = "Wi-Fi";
+pub(crate) const NETWORK_SIGNAL: &str = "Sinal";
+pub(crate) const NETWORK_NOISE: &str = "Ruído";
+pub(crate) const NETWORK_RATE: &str = "Taxa";
+pub(crate) const NETWORK_NO_WIFI: &str = "Este Mac não está ligado à rede por Wi-Fi.";
+pub(crate) const NETWORK_PATH: &str = "Caminho até a internet";
+pub(crate) const NETWORK_ROUTER: &str = "Roteador";
+pub(crate) const NETWORK_INTERNET: &str = "Internet";
+pub(crate) const NETWORK_DNS_IN_USE: &str = "DNS em uso";
+pub(crate) const NETWORK_PROXY: &str = "Proxy";
+pub(crate) const NETWORK_VPN: &str = "VPN";
+pub(crate) const NETWORK_DIAGNOSIS: &str = "Diagnóstico";
+pub(crate) const NETWORK_ATTENTION_POINTS: Counted =
+    Counted::new("ponto de atenção", "pontos de atenção");
+
+pub(crate) const NETWORK_TUNING_INTRO: &str = "Ações escolhidas a partir da análise deste Mac. Cada uma diz o que muda, só é aplicada depois da sua confirmação e pode ser desfeita aqui.";
+pub(crate) const NETWORK_TUNING_NEEDS_ANALYSIS: &str = "As ações são escolhidas a partir da análise da conexão. Analise a conexão para ver o que pode ser melhorado neste Mac.";
+pub(crate) const NETWORK_ACTIONS: &str = "Ações";
+pub(crate) const NETWORK_APPLIED: &str = "aplicada";
+pub(crate) const NETWORK_ADVICE: &str = "Orientações";
+pub(crate) const NETWORK_ADVICE_META: &str = "o app não muda isto por você";
+pub(crate) const NETWORK_NO_ADVICE: &str = "Nada a sugerir para esta conexão.";
+pub(crate) const NETWORK_NO_TCP_TWEAKS: &str = "O DiskMarshal não altera parâmetros TCP do sistema. No macOS atual esses \"aceleradores\" não trazem ganho medido e podem piorar a conexão.";
+pub(crate) const NETWORK_SELECTED_ACTIONS: Counted =
+    Counted::new("ação selecionada", "ações selecionadas");
+pub(crate) const NETWORK_APPLY: &str = "Aplicar selecionadas";
+pub(crate) const NETWORK_UNDO: &str = "Desfazer alterações";
+pub(crate) const NETWORK_NOTHING_SELECTED: &str = "Marque ao menos uma ação.";
+pub(crate) const NETWORK_TUNER_UNAVAILABLE: &str =
+    "Mudar ajustes de rede só funciona no app instalado.";
+pub(crate) const NETWORK_CONFIRM_TITLE: &str = "Autorização requerida";
+pub(crate) const NETWORK_CONFIRM_BODY: &str =
+    "As ações marcadas mudam ajustes de rede deste Mac. Nenhum arquivo é apagado.";
+pub(crate) const NETWORK_CONFIRM_APPLY: &str = "Aplicar";
+pub(crate) const NETWORK_UNDO_BODY: &str = "Cada ajuste volta ao que era antes de ser aplicado:";
+pub(crate) const NETWORK_UNDO_APPLY: &str = "Desfazer";
+pub(crate) const NETWORK_APPLYING_TITLE: &str = "Aplicando";
+pub(crate) const NETWORK_APPLIED_TITLE: &str = "Aplicado";
+pub(crate) const NETWORK_APPLIED_BODY: &str = "O que mudou neste Mac:";
+pub(crate) const NETWORK_APPLIED_NOTE: &str =
+    "\"Desfazer alterações\" devolve cada ajuste ao que era.";
+pub(crate) const NETWORK_UNDONE_TITLE: &str = "Desfeito";
+pub(crate) const NETWORK_UNDONE_BODY: &str = "Os ajustes voltaram ao que eram:";
+pub(crate) const NETWORK_FAILED_TITLE: &str = "Não aplicado";
+pub(crate) const NETWORK_ADMIN_PROMPT: &str = "O DiskMarshal precisa de permissão de administrador para mudar os ajustes de rede que você selecionou.";
+
+/// Writes a number with `places` decimal places and the pt-BR decimal comma.
+pub(crate) fn decimal(value: f64, places: usize) -> String {
+    format!("{value:.places$}").replace('.', ",")
+}
+
+/// Writes an answer time in whole milliseconds: "14 ms".
+pub(crate) fn millis(time: Duration) -> String {
+    match time.as_millis() {
+        0 => "menos de 1 ms".to_owned(),
+        millis => format!("{millis} ms"),
+    }
+}
+
+/// The note under the traffic plot: what it spans and what its top stands for.
+pub(crate) fn network_scale(top_megabits: f32) -> String {
+    format!("últimos 2 minutos · topo da escala em {top_megabits:.0} Mb/s")
+}
+
+/// The title of the panel that lists the connections of `program`.
+pub(crate) fn network_connections_title(program: &str) -> String {
+    format!("{NETWORK_CONNECTIONS} · {program}")
+}
+
+/// Says how much of what a connection sent had to be sent again.
+pub(crate) fn network_resent(amount: ByteSize) -> String {
+    format!("reenvio {amount}")
+}
+
+/// Says where the traffic leaves this Mac: "Wi-Fi · en0 · 192.168.0.24".
+pub(crate) fn network_interface(profile: &ConnectionProfile) -> String {
+    [
+        Some(profile.service.clone()).filter(|service| !service.is_empty()),
+        Some(profile.interface.clone()).filter(|interface| !interface.is_empty()),
+        profile.local_address.map(|address| address.to_string()),
+    ]
+    .into_iter()
+    .flatten()
+    .collect::<Vec<_>>()
+    .join(" · ")
+}
+
+/// Says what a finished speed test cost.
+pub(crate) fn network_speed_done(test: &SpeedTest) -> String {
+    format!(
+        "Medido agora · {} transferidos em {} s",
+        test.transferred,
+        test.duration.as_secs()
+    )
+}
+
+/// The step a responsiveness figure falls in.
+pub(crate) const fn network_responsiveness_level(level: ResponsivenessLevel) -> &'static str {
+    match level {
+        ResponsivenessLevel::Low => "baixa",
+        ResponsivenessLevel::Medium => "média",
+        ResponsivenessLevel::High => "alta",
+    }
+}
+
+/// The line under the wireless figures: channel, band, width and neighbors.
+pub(crate) fn network_wifi_channel(link: &WifiLink) -> String {
+    const NEIGHBORS: Counted = Counted::new(
+        "rede vizinha no mesmo canal",
+        "redes vizinhas no mesmo canal",
+    );
+    [
+        Some(format!("Canal {}", link.channel)),
+        link.band.map(|band| band.label().to_owned()),
+        link.width_mhz.map(|width| format!("{width} MHz")),
+        Some(NEIGHBORS.of(link.neighbors_on_channel)),
+    ]
+    .into_iter()
+    .flatten()
+    .collect::<Vec<_>>()
+    .join(" · ")
+}
+
+/// The note beside the wireless panel title: "802.11ax · Wi-Fi 6".
+pub(crate) fn network_wifi_standard(link: &WifiLink) -> String {
+    match link.generation() {
+        Some(generation) => format!("{} · {generation}", link.standard),
+        None => link.standard.clone(),
+    }
+}
+
+/// Says what pinging the router found. Many routers ignore pings on purpose.
+pub(crate) fn network_router(address: Option<IpAddr>, ping: Option<&PingResult>) -> String {
+    let Some(address) = address else {
+        return NETWORK_NOT_MEASURED.to_owned();
+    };
+    match ping.and_then(|ping| ping.average) {
+        Some(average) => format!("{address} · {}", millis(average)),
+        None => format!("{address} · não responde a ping"),
+    }
+}
+
+/// Says what pinging the internet found.
+pub(crate) fn network_internet(ping: Option<&PingResult>) -> String {
+    match ping {
+        Some(ping) if ping.sent == 0 => "não foi possível medir".to_owned(),
+        Some(ping) => match ping.average {
+            Some(average) => format!(
+                "{} · {:.0}% de perda",
+                millis(average),
+                ping.loss_ratio() * 100.0
+            ),
+            None => "sem resposta".to_owned(),
+        },
+        None => NETWORK_NOT_MEASURED.to_owned(),
+    }
+}
+
+/// Says which name server is in use and how long it takes to answer.
+pub(crate) fn network_dns_in_use(report: &NetworkReport) -> String {
+    let Some(server) = report.profile.dns_servers.first() else {
+        return "nenhum".to_owned();
+    };
+    match report.current_dns_time() {
+        Some(time) => format!("{server} · {}", millis(time)),
+        None => format!("{server} · sem resposta"),
+    }
+}
+
+/// Says how connections look for a proxy.
+pub(crate) const fn network_proxy(proxy: ProxySettings) -> &'static str {
+    if proxy.is_auto_discovery_on {
+        "descoberta automática ligada"
+    } else if proxy.has_configured_proxy {
+        "configurado"
+    } else {
+        "nenhum"
+    }
+}
+
+/// Says how many VPN profiles exist and how many are connected.
+pub(crate) fn network_vpn(vpn: VpnProfiles) -> String {
+    const PROFILES: Counted = Counted::new("perfil", "perfis");
+    const ACTIVE: Counted = Counted::new("ativo", "ativos");
+    match (vpn.installed, vpn.connected) {
+        (0, _) => "nenhum perfil".to_owned(),
+        (installed, 0) => format!("{} · nenhum ativo", PROFILES.of(installed)),
+        (installed, connected) => {
+            format!("{} · {}", PROFILES.of(installed), ACTIVE.of(connected))
+        }
+    }
+}
+
+/// The label of the badge that says how much a finding asks of the user.
+pub(crate) const fn network_severity(severity: Severity) -> &'static str {
+    match severity {
+        Severity::Attention => "Atenção",
+        Severity::Info => "Informação",
+        Severity::Good => "OK",
+    }
+}
+
+/// Says one conclusion of the analysis in a sentence.
+pub(crate) fn network_finding(finding: &Finding) -> String {
+    match finding {
+        Finding::ProxyDiscoveryUnanswered => "A descoberta automática de proxy está ligada, mas nenhum proxy respondeu nesta rede. Cada conexão nova espera por essa procura.".to_owned(),
+        Finding::ProxyDiscoveryOn => "A descoberta automática de proxy está ligada: o macOS procura um proxy antes de cada conexão nova.".to_owned(),
+        Finding::SlowDns { current, fastest } => format!(
+            "O DNS em uso responde em {}. O mais rápido medido daqui responde em {}.",
+            millis(*current),
+            millis(*fastest)
+        ),
+        Finding::PacketLoss { sent, lost } => format!(
+            "{lost} de {sent} pacotes enviados à internet ficaram sem resposta. Perda de pacotes trava chamadas e deixa tudo mais lento."
+        ),
+        Finding::NoPacketLoss { sent } => {
+            format!("Nenhum pacote perdido em {sent} envios até a internet.")
+        }
+        Finding::SlowAnswer { latency } => format!(
+            "A internet demora {} para responder. Acima de 100 ms, chamadas e jogos ficam com atraso.",
+            millis(*latency)
+        ),
+        Finding::WifiSignal {
+            quality,
+            signal_dbm,
+            band,
+            generation,
+        } => {
+            let strength = match quality {
+                SignalQuality::Strong => "Sinal Wi-Fi forte",
+                SignalQuality::Fair => "Sinal Wi-Fi regular",
+                SignalQuality::Weak => "Sinal Wi-Fi fraco",
+            };
+            let band = band.map_or_else(String::new, |band| format!(", em {}", band.label()));
+            let generation =
+                generation.map_or_else(String::new, |name| format!(", no padrão {name}"));
+            let closer = if *quality == SignalQuality::Weak {
+                " Mais perto do roteador a velocidade sobe."
+            } else {
+                ""
+            };
+            format!("{strength} ({signal_dbm} dBm){band}{generation}.{closer}")
+        }
+        Finding::VpnConnected => {
+            "Uma VPN está conectada: tudo faz um caminho mais longo e a velocidade cai.".to_owned()
+        }
+        Finding::HeavyProgram {
+            name,
+            direction,
+            rate,
+            share_percent,
+        } => match direction {
+            Direction::Upload => format!(
+                "{name} está enviando {rate}: {share_percent}% de tudo o que este Mac envia agora."
+            ),
+            Direction::Download => format!(
+                "{name} está recebendo {rate}: {share_percent}% de tudo o que este Mac recebe agora."
+            ),
+        },
+        Finding::Responsiveness { level, rpm } => {
+            let level_name = network_responsiveness_level(*level);
+            match level {
+                ResponsivenessLevel::Low => format!(
+                    "A conexão trava com a rede ocupada ({rpm} RPM, resposta {level_name}). Chamadas de vídeo sofrem durante um download."
+                ),
+                ResponsivenessLevel::Medium | ResponsivenessLevel::High => format!(
+                    "A conexão responde bem com a rede ocupada ({rpm} RPM, resposta {level_name})."
+                ),
+            }
+        }
+    }
+}
+
+/// Says what only the user can do for the connection.
+pub(crate) fn network_advice(advice: &Advice) -> String {
+    match advice {
+        Advice::CrowdedChannel { channel, neighbors } => format!(
+            "O canal {channel} é dividido com {neighbors} redes vizinhas. No roteador, teste outro canal."
+        ),
+        Advice::SlowBand => "Este Mac está na faixa de 2,4 GHz. A rede de 5 GHz do mesmo roteador é bem mais rápida.".to_owned(),
+        Advice::VpnProfiles { installed } => {
+            const PROFILES: Counted =
+                Counted::new("perfil de VPN instalado", "perfis de VPN instalados");
+            format!(
+                "Há {}. Uma VPN ligada costuma reduzir a velocidade: ligue só quando precisar.",
+                PROFILES.of(*installed)
+            )
+        }
+        Advice::PreferCable => {
+            "Para chamadas de vídeo e jogos, o cabo de rede é mais estável que o Wi-Fi.".to_owned()
+        }
+    }
+}
+
+/// The name of an optimization.
+pub(crate) const fn network_optimization_title(kind: &OptimizationKind) -> &'static str {
+    match kind {
+        OptimizationKind::DisableProxyDiscovery => "Desligar a descoberta automática de proxy",
+        OptimizationKind::FlushDnsCache => "Limpar o cache de DNS",
+        OptimizationKind::UseFasterDns { .. } => "Usar o DNS mais rápido medido",
+    }
+}
+
+/// What an optimization changes and what to expect from it, in one line.
+pub(crate) fn network_optimization_detail(optimization: &Optimization) -> String {
+    let service = optimization.change.service().unwrap_or_default();
+    match &optimization.kind {
+        OptimizationKind::DisableProxyDiscovery => {
+            format!("{service} · conexões novas deixam de esperar pela procura de um proxy")
+        }
+        OptimizationKind::FlushDnsCache => {
+            "corrige sites presos em endereço antigo · nada é apagado do disco".to_owned()
+        }
+        OptimizationKind::UseFasterDns {
+            provider,
+            current,
+            fastest,
+        } => format!(
+            "{service} · {provider}: {} (atual: {}) · filtros e nomes internos do DNS atual se perdem",
+            millis(*fastest),
+            millis(*current)
+        ),
+    }
+}
+
+/// Says what one change does to the settings, for the confirmation.
+pub(crate) fn network_change(change: &NetworkChange) -> String {
+    match change {
+        NetworkChange::FlushDnsCache => "Cache de DNS: esvaziar".to_owned(),
+        NetworkChange::SetProxyAutoDiscovery {
+            service,
+            is_enabled,
+        } => format!(
+            "Descoberta automática de proxy do {service}: {}",
+            if *is_enabled { "ligar" } else { "desligar" }
+        ),
+        NetworkChange::SetDnsServers { service, servers } if servers.is_empty() => {
+            format!("DNS do {service}: voltar ao que a rede informa")
+        }
+        NetworkChange::SetDnsServers { service, servers } => format!(
+            "DNS do {service}: {}",
+            servers
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+    }
+}
+
+/// Says what macOS will ask for before the changes are applied.
+pub(crate) const fn network_authentication(kind: AuthenticationKind) -> &'static str {
+    match kind {
+        AuthenticationKind::TouchId => {
+            "O macOS vai pedir a sua impressão digital ou a senha de administrador."
+        }
+        AuthenticationKind::Password => "O macOS vai pedir a senha de administrador.",
+    }
+}
+
+/// Says why the network settings were not changed.
+pub(crate) fn network_privilege_error(error: &PrivilegeError) -> String {
+    administrator_failure("Os ajustes de rede não foram alterados", error)
+}
+
+/// Says why the traffic could not be read.
+pub(crate) fn traffic_probe_error(error: &TrafficProbeError) -> String {
+    match error {
+        TrafficProbeError::Unavailable(reason) => {
+            format!("O macOS não informou o tráfego de rede: {reason}")
+        }
+        TrafficProbeError::TimedOut => "A leitura do tráfego de rede demorou demais.".to_owned(),
+        TrafficProbeError::Unreadable(reason) => {
+            format!("O tráfego de rede veio num formato desconhecido: {reason}")
+        }
+    }
+}
+
+/// Says why the connection could not be analyzed.
+pub(crate) fn inspection_error(error: &InspectionError) -> String {
+    match error {
+        InspectionError::Offline => "Este Mac não está conectado a uma rede.".to_owned(),
+        InspectionError::Unavailable(reason) => {
+            format!("Não foi possível ler os ajustes de rede: {reason}")
+        }
+    }
+}
+
+/// Says why the speed test produced no result.
+pub(crate) fn speed_test_error(error: &SpeedTestError) -> String {
+    match error {
+        SpeedTestError::Unavailable(reason) => {
+            format!("O teste de velocidade do macOS não está disponível: {reason}")
+        }
+        SpeedTestError::TimedOut => {
+            "O teste de velocidade demorou demais e foi interrompido.".to_owned()
+        }
+        SpeedTestError::Failed(reason) => {
+            format!("O teste de velocidade não terminou: {reason}")
+        }
+    }
 }
 
 #[cfg(test)]

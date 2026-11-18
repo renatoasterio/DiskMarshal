@@ -1,16 +1,21 @@
 //! What the app and the privileged helper say to each other.
 //!
-//! The app asks on the command line, in one of two forms: the ids of the
-//! administrator rules to clean, or the identifier of an app to uninstall
-//! followed by the items of it to remove. Neither form carries a command,
-//! and the items only choose among what the helper finds by itself. The
-//! helper answers with one line of JSON listing what happened to each item.
+//! The app asks on the command line, in one of three forms: the ids of the
+//! administrator rules to clean, the identifier of an app to uninstall
+//! followed by the items of it to remove, or the network settings to change
+//! (see `network_request`). No form carries a command, and the items only
+//! choose among what the helper finds by itself. For a cleanup or an
+//! uninstall the helper answers with one line of JSON listing what happened
+//! to each item.
 
 use std::path::{Component, Path, PathBuf};
 
 use diskmarshal_domain::deletion::{DeletionOutcome, DeletionStatus, SkipReason};
+use diskmarshal_domain::network::NetworkChange;
 use diskmarshal_domain::shared::ByteSize;
 use serde::{Deserialize, Serialize};
+
+use crate::privilege::network_request::{NETWORK_FLAG, parse_network_changes};
 
 /// File name of the helper, which sits beside the app's own executable.
 pub const HELPER_NAME: &str = "diskmarshal-privileged-helper";
@@ -43,6 +48,8 @@ pub enum HelperTask {
         /// The items to remove, each an absolute path.
         items: Vec<PathBuf>,
     },
+    /// Change network settings, in this order.
+    ChangeNetwork(Vec<NetworkChange>),
 }
 
 /// What the helper is asked to do.
@@ -60,7 +67,7 @@ impl HelperRequest {
     /// # Errors
     ///
     /// Fails, naming nothing the caller sent, when the arguments are not
-    /// one of the two forms. For a cleanup: at least one rule id, none
+    /// one of the three forms. For a cleanup: at least one rule id, none
     /// repeated, nothing shaped like a path or an option. For an uninstall:
     /// a bundle identifier and at least one absolute, plain path.
     pub fn parse(arguments: impl IntoIterator<Item = String>) -> Result<Self, &'static str> {
@@ -75,6 +82,9 @@ impl HelperRequest {
         }
         let task = match words.split_first() {
             Some((flag, details)) if flag == UNINSTALL_FLAG => Self::uninstall(details)?,
+            Some((flag, details)) if flag == NETWORK_FLAG => {
+                HelperTask::ChangeNetwork(parse_network_changes(details)?)
+            }
             _ => Self::clean_rules(words)?,
         };
         Ok(Self { task, is_dry_run })

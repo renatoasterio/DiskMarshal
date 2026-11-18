@@ -6,9 +6,11 @@ that hard. The plain-language version for users is the
 
 ## Least privilege
 
-- The app always runs as the logged-in user. It opens no network connection
-  and sends no telemetry. Docker is asked through its own program, which
-  talks to the engine on this Mac.
+- The app always runs as the logged-in user and sends no telemetry. It links
+  no network code: when the user asks for an analysis of the connection or a
+  speed test, programs that ship with macOS send the packets. See
+  [Network](#network). Docker is asked through its own program, which talks
+  to the engine on this Mac.
 - The app never runs as root and keeps no background service.
 - Administrator rights exist only inside `diskmarshal-privileged-helper`, for
   one operation, after macOS itself authenticates the user. The app never sees
@@ -82,6 +84,52 @@ Each screen adds its own guard on top:
   folders. Rules with risk `review` and rules with scope `administrator` are
   never selected by default.
 
+## Network
+
+The network screen does three things, with three different reaches.
+
+**Reading the traffic** (`NettopTrafficProbe`). It runs `/usr/bin/nettop`,
+which ships with macOS, once per reading, as the logged-in user, and reads
+the counters the system keeps for every open connection: addresses, ports,
+bytes each way, bytes sent again and the average answer time.
+
+- No packet is captured. The content of what travels is never read.
+- `nettop` is asked for addresses as numbers (`-n`), so reading the traffic
+  looks up no name on the network.
+- Nothing is written to disk and nothing is sent anywhere. The readings live
+  in memory, and are taken only while the network screen is open.
+
+**Measuring the connection**, only when the user clicks a button.
+
+- The analysis (`AnalyzeNetwork`) reads settings with `/sbin/route`,
+  `/usr/sbin/networksetup`, `/usr/sbin/ipconfig`, `/usr/sbin/scutil` and
+  `/usr/sbin/system_profiler`, then uses the network: ten pings to the router
+  and ten to `1.1.1.1` (`/sbin/ping`, `/sbin/ping6`), and one question, asked
+  twice, to each name server in use and to one address of each public service
+  in `PUBLIC_RESOLVERS` (`/usr/bin/dig`, for `example.com`). When macOS is set
+  to look for a proxy, `/usr/bin/dscacheutil` asks once whether the name
+  `wpad` resolves, which is the question macOS itself is already asking.
+- The speed test (`NetworkQualitySpeedTester`) runs `/usr/bin/networkQuality`,
+  which talks to Apple's servers and moves real data: more than a gigabyte
+  on a fast connection. The interface says so before the button is clicked.
+- Neither carries anything about the user or the disk. The app links no
+  network code of its own: every packet is sent by a program of macOS.
+
+**Changing settings**, through the privileged helper, after a confirmation
+and after macOS authenticates the user. See
+[Changing network settings](#changing-network-settings) and
+[adr/0004-network-changes-through-the-privileged-helper.md](adr/0004-network-changes-through-the-privileged-helper.md).
+
+Verified by hand, on one Mac (macOS 27.2 on Apple Silicon): the traffic of
+that Mac was listed as an ordinary user, in the app and in
+`diskmarshal-cli network`; the analysis read the settings, the wireless link
+and the answer times of that network; `networkQuality` ran with a cleared
+environment and its answer was read. Not verified: the speed test button
+itself; other macOS versions, where these programs may print in another
+form (a report that cannot be read is refused or left empty, never guessed
+at); a Mac with no way out to a network, a connected VPN, and a network that
+answers the search for a proxy.
+
 ## iCloud
 
 Reading a cloud-only file makes macOS download it. Each of the three binaries
@@ -102,7 +150,8 @@ that really is cloud-only.
   `clippy::undocumented_unsafe_blocks` enforces it. The other library crates
   and all binaries declare `#![forbid(unsafe_code)]`.
 - No shell. External programs (`/usr/bin/git`, `/usr/bin/open`,
-  `/usr/bin/defaults`, `/usr/bin/codesign`, `/usr/bin/osascript`, and Docker's
+  `/usr/bin/defaults`, `/usr/bin/codesign`, `/usr/bin/osascript`, the
+  programs named under [Network](#network), and Docker's
   `docker`, looked for only in the fixed places its installers use) are
   started with an absolute path, an argument list, a cleared environment and
   no standard input. Docker receives `HOME`, where it keeps the address of its
@@ -174,8 +223,10 @@ In the helper (`apps/privileged-helper/src/main.rs`):
    `--dry-run`. An id is lowercase words joined by hyphens, at most 64
    characters; at most 16 ids; none repeated. Anything shaped like a path or
    an option rejects the whole request, and the error names nothing the
-   caller sent. The other form it accepts, `--uninstall`, is described in
-   [Uninstalling with administrator rights](#uninstalling-with-administrator-rights).
+   caller sent. The other two forms it accepts, `--uninstall` and
+   `--network`, are described in
+   [Uninstalling with administrator rights](#uninstalling-with-administrator-rights)
+   and [Changing network settings](#changing-network-settings).
 3. The folders come from the catalog compiled into the helper, never from the
    caller.
 4. `CleanRules` accepts only ids that name a rule of that catalog whose scope
@@ -229,6 +280,64 @@ in `/Library`, where nothing of those two apps was removed. The tests
 exercise this path on temporary folders (`tests/uninstall_flow.rs`,
 `privilege/helper_protocol.rs`) and with `--dry-run` against a real app, as
 an ordinary user.
+
+### Changing network settings
+
+Three settings of macOS can make a connection faster and need an
+administrator to change: the search for a proxy before each new connection,
+the cache of names already looked up, and the name servers of a network
+service. The app asks the helper with a third form of request, `--network`,
+followed by one group of words per change, the groups separated by `--then`:
+
+| Group | Change | What the helper runs |
+|---|---|---|
+| `flush-dns` | Empty the name cache | `/usr/bin/dscacheutil -flushcache`, then `/usr/bin/killall -HUP mDNSResponder` |
+| `proxy-discovery on\|off <service>` | Turn the proxy search on or off | `/usr/sbin/networksetup -setproxyautodiscovery <service> on\|off` |
+| `dns <service> [<server>...]` | Set the name servers; none means the ones the network hands out | `/usr/sbin/networksetup -setdnsservers <service> <server>...\|empty` |
+
+In the app, `TuneNetwork` refuses an empty or malformed request before macOS
+is asked to authenticate anyone, and `MacosNetworkTuner` starts the helper
+the same way a cleanup does, behind the same checks of the helper file and
+of the signature of the bundle.
+
+In the helper, `ChangeNetworkSettings` trusts none of it:
+
+1. A request carries what to change, never a command. Each group must be one
+   of the three forms, word for word; anything else rejects the whole
+   request, and the error names nothing the caller sent.
+2. A service name is printable, at most 64 characters, with no space around
+   it, and does not start with a hyphen, so it can never be read as an
+   option. A server must parse as an IP address; at most four per service.
+   At most eight changes per request.
+3. The helper lists the network services itself
+   (`networksetup -listallnetworkservices`). A change that names a service
+   macOS does not list stops the request before anything is touched.
+4. Each change becomes one fixed command, started with an absolute path, an
+   argument list, a cleared environment, no standard input and a time limit.
+   No shell is involved after the launch.
+5. The changes are applied in order. One that macOS refuses stops the ones
+   after it; the ones before it stay applied, and the app reports the
+   failure.
+
+What this cannot do: delete a file, name a program to run, or set anything
+other than those three settings. Every one is an ordinary setting, visible
+in System Settings, and each change the app offers comes with the change
+that takes it back (flushing the cache has nothing to take back). The app
+remembers what it applied only while it is open.
+
+The app decides what to offer (`NetworkReport::optimizations`), and only two
+changes start selected: flushing the cache, and turning the proxy search off
+when the network was seen not to answer it. Changing the name servers is
+never selected by default: the server in use may filter content or know
+names that exist only inside the network.
+
+Not verified: a real change, by the password or by the fingerprint. The
+tests exercise the parsing, the checks and the order of the changes with
+stand-ins (`privilege/network_request.rs`,
+`use_cases/change_network_settings.rs`), and `--dry-run` was run against
+this Mac as an ordinary user: it accepted a request for the three changes on
+a real service and refused an unknown service, a server that is not an
+address, an option in place of a service and an empty request.
 
 Things that follow from this design:
 

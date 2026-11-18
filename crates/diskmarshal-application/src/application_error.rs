@@ -45,6 +45,15 @@ pub enum ApplicationError {
     #[error("item not allowed here: {}", .0.display())]
     ItemNotAllowed(PathBuf),
 
+    /// A change to the network settings was asked that is malformed, or
+    /// that names something this Mac does not have.
+    #[error("network change not allowed: {0}")]
+    NetworkChangeNotAllowed(String),
+
+    /// macOS refused a change to the network settings.
+    #[error("network change failed: {0}")]
+    NetworkChangeFailed(String),
+
     /// The operating system refused an operation on `path`.
     #[error("i/o failure at {}: {source}", .path.display())]
     Io {

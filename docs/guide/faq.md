@@ -24,7 +24,15 @@ Be aware that the project is young and has no stable release. Some things have n
 
 ### Does it send my data anywhere?
 
-No. DiskMarshal never connects to the internet. There is no telemetry, no account and no update check.
+No. There is no telemetry, no account and no update check. The app uses the network only when you click "Analisar conexão" (analyze connection) or "Medir velocidade" (measure speed) on the network screen, to time your connection. Nothing about you or your files is sent. See [Safety](safety.md#the-network-only-when-you-ask).
+
+### Does the network screen see what I do online?
+
+No. It reads the counters macOS keeps for each connection: which program, which address and port, and how many bytes went each way. It never captures a packet, so it cannot see pages, messages or passwords.
+
+### Can it make my internet faster than my plan?
+
+No. It finds what is slowing the connection down on the Mac (a proxy search nobody answers, a slow name server, a program taking most of the upload) and offers to fix what it can. The speed of the plan is set by your provider.
 
 ### Will scanning download my iCloud files?
 
@@ -100,7 +108,7 @@ Yes, as long as the project still has the file that describes it (`package.json`
 
 ### How is this different from other cleaners?
 
-The code is open, so anyone can check what it does. It never deletes without a preview, never touches the inside of your Photos library, and never sends anything over the network.
+The code is open, so anyone can check what it does. It never deletes without a preview, never touches the inside of your Photos library, and never sends anything about you over the network.
 
 ### Why does the uninstaller leave some files of an app behind?
 

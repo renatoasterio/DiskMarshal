@@ -27,6 +27,18 @@ pub(crate) struct CommandOutput {
     pub stderr: Vec<u8>,
 }
 
+impl CommandOutput {
+    /// The first thing the program said went wrong, for an error message.
+    pub(crate) fn first_error_line(&self) -> String {
+        String::from_utf8_lossy(&self.stderr)
+            .lines()
+            .map(str::trim)
+            .find(|line| !line.is_empty())
+            .unwrap_or("no message")
+            .to_owned()
+    }
+}
+
 /// Why a program produced no output.
 #[derive(Debug)]
 pub(crate) enum CommandFailure {
@@ -134,6 +146,19 @@ mod tests {
         assert_eq!(output.code, Some(3));
         assert_eq!(output.stdout, b"printed\n");
         assert_eq!(output.stderr, b"failed\n");
+    }
+
+    #[test]
+    fn the_first_error_line_skips_blank_lines() {
+        let output = run_bounded(
+            &mut shell("echo >&2; echo '  refused  ' >&2; echo later >&2"),
+            Stdout::Discard,
+            GENEROUS,
+        )
+        .unwrap();
+        assert_eq!(output.first_error_line(), "refused");
+        let silent = run_bounded(&mut shell("exit 1"), Stdout::Discard, GENEROUS).unwrap();
+        assert_eq!(silent.first_error_line(), "no message");
     }
 
     #[test]

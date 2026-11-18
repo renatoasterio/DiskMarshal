@@ -9,7 +9,10 @@ use std::process::ExitCode;
 use std::sync::Arc;
 
 use anyhow::{Context as _, anyhow};
-use diskmarshal_application::ports::{ContainerEngine, MetricsProvider};
+use diskmarshal_application::ports::{
+    ConnectionInspector, ContainerEngine, MetricsProvider, NetworkTuner, ReachabilityProbe,
+    SpeedTester, TrafficProbe,
+};
 use diskmarshal_infrastructure::bundles::{PlistAppBundleReader, application_folders};
 use diskmarshal_infrastructure::catalog::TomlRuleCatalog;
 use diskmarshal_infrastructure::filesystem::{
@@ -19,9 +22,12 @@ use diskmarshal_infrastructure::filesystem::{
 use diskmarshal_infrastructure::hashing::Blake3ContentHasher;
 use diskmarshal_infrastructure::imaging::ImageIoThumbnailer;
 use diskmarshal_infrastructure::metrics::{SysinfoMetricsProvider, UnavailableMetrics};
+use diskmarshal_infrastructure::network::{
+    MacosConnectionInspector, NettopTrafficProbe, NetworkQualitySpeedTester, PingReachabilityProbe,
+};
 use diskmarshal_infrastructure::permissions::FullDiskAccessProbe;
 use diskmarshal_infrastructure::persistence::JsonlHistoryRepository;
-use diskmarshal_infrastructure::privilege::MacosPrivilegedCleaner;
+use diskmarshal_infrastructure::privilege::{MacosNetworkTuner, MacosPrivilegedCleaner};
 use diskmarshal_infrastructure::process::{DockerCliContainerEngine, GitVersionControlProbe};
 use diskmarshal_infrastructure::system::{
     LocaltimeWallClock, NativeFolderPicker, OpenCommandOpener, SysinfoRunningAppProbe,
@@ -73,6 +79,7 @@ impl DesktopApp {
     fn new(ctx: &egui::Context) -> Self {
         let home = env::var_os("HOME").map_or_else(|| PathBuf::from("/"), PathBuf::from);
         let temporary = env::var_os("TMPDIR").map(PathBuf::from);
+        let network = capture::network().unwrap_or_else(system_network);
         let services = UiServices {
             volume_stats: Arc::new(StatfsVolumeStats),
             wall_clock: Arc::new(LocaltimeWallClock),
@@ -96,6 +103,11 @@ impl DesktopApp {
             application_folders: capture::application_folders()
                 .unwrap_or_else(|| application_folders(&home)),
             metrics: capture::metrics().unwrap_or_else(system_metrics),
+            traffic_probe: network.traffic_probe,
+            connection_inspector: network.connection_inspector,
+            reachability: network.reachability,
+            speed_tester: network.speed_tester,
+            network_tuner: network.network_tuner,
             home,
         };
         Self {
@@ -115,6 +127,27 @@ fn system_metrics() -> Arc<dyn MetricsProvider> {
 /// The Docker installed on this Mac, when there is one.
 fn docker(home: &Path) -> Arc<dyn ContainerEngine> {
     Arc::new(DockerCliContainerEngine::for_home(home))
+}
+
+/// What the network screen needs from the outside world.
+struct NetworkAdapters {
+    traffic_probe: Arc<dyn TrafficProbe>,
+    connection_inspector: Arc<dyn ConnectionInspector>,
+    reachability: Arc<dyn ReachabilityProbe>,
+    speed_tester: Arc<dyn SpeedTester>,
+    network_tuner: Arc<dyn NetworkTuner>,
+}
+
+/// The network of this machine, read and changed through the programs
+/// macOS ships.
+fn system_network() -> NetworkAdapters {
+    NetworkAdapters {
+        traffic_probe: Arc::new(NettopTrafficProbe::new()),
+        connection_inspector: Arc::new(MacosConnectionInspector),
+        reachability: Arc::new(PingReachabilityProbe),
+        speed_tester: Arc::new(NetworkQualitySpeedTester),
+        network_tuner: Arc::new(MacosNetworkTuner::beside_current_executable()),
+    }
 }
 
 impl eframe::App for DesktopApp {
@@ -138,7 +171,7 @@ mod capture {
     use diskmarshal_infrastructure::system::prefers_reduced_motion;
     use diskmarshal_ui::MotionPreference;
 
-    use super::UiOptions;
+    use super::{NetworkAdapters, UiOptions};
 
     pub(super) fn native_options() -> eframe::NativeOptions {
         eframe::NativeOptions::default()
@@ -156,6 +189,11 @@ mod capture {
 
     /// The normal app always lists the apps of this machine.
     pub(super) fn application_folders() -> Option<Vec<PathBuf>> {
+        None
+    }
+
+    /// The normal app always shows the network of this machine.
+    pub(super) fn network() -> Option<NetworkAdapters> {
         None
     }
 
@@ -187,8 +225,11 @@ mod capture {
 /// `DISKMARSHAL_DEMO=1` replaces the readings of the monitor with made-up
 /// ones, and what Docker holds too. `DISKMARSHAL_APPS=<folder>` lists the apps
 /// of that folder instead of the ones installed, and `DISKMARSHAL_DOCKER=1`
-/// asks Docker first. Run with `HOME` pointing at a demonstration folder to
-/// keep every personal path out of the picture.
+/// asks Docker first. `DISKMARSHAL_NETWORK=<tab>` fills in the network screen
+/// first and opens it on that tab (`traffic`, `analysis` or `tuning`); with
+/// `DISKMARSHAL_DEMO` the network it shows is made up too, speed test
+/// included. Run with `HOME` pointing at a demonstration folder to keep
+/// every personal path out of the picture.
 #[cfg(feature = "capture")]
 mod capture {
     use std::path::PathBuf;
@@ -204,7 +245,12 @@ mod capture {
     use diskmarshal_domain::shared::ByteSize;
     use diskmarshal_ui::{MotionPreference, Palette, Screen};
 
-    use super::UiOptions;
+    use super::{NetworkAdapters, UiOptions};
+
+    /// With `DISKMARSHAL_DEMO` set, the network screen shows a made-up network.
+    pub(super) fn network() -> Option<NetworkAdapters> {
+        std::env::var_os("DISKMARSHAL_DEMO").map(|_| demo_network::adapters())
+    }
 
     const GIGABYTE: u64 = 1_000_000_000;
     const DEMO_CORES: u32 = 10;
@@ -385,6 +431,229 @@ mod capture {
             preload_photos: std::env::var_os("DISKMARSHAL_PHOTOS").map(std::path::PathBuf::from),
             preload_apps: std::env::var_os("DISKMARSHAL_APPS").is_some(),
             preload_docker: std::env::var_os("DISKMARSHAL_DOCKER").is_some(),
+            preload_network: std::env::var_os("DISKMARSHAL_NETWORK").is_some(),
+            // Only the made-up tester: a real test spends real data.
+            preload_speed_test: std::env::var_os("DISKMARSHAL_DEMO").is_some(),
+            network_tab: std::env::var("DISKMARSHAL_NETWORK").ok(),
+        }
+    }
+
+    /// A made-up network for documentation screenshots, so they show no
+    /// program, address or network of the machine that takes them. The
+    /// addresses come from the ranges reserved for documentation.
+    mod demo_network {
+        use std::net::{IpAddr, Ipv4Addr};
+        use std::sync::Arc;
+        use std::sync::atomic::{AtomicU64, Ordering};
+        use std::time::Duration;
+
+        use diskmarshal_application::ports::{
+            ConnectionInspector, InspectionError, NetworkTuner, PrivilegeError, ReachabilityProbe,
+            SpeedTestError, SpeedTester, TrafficProbe, TrafficProbeError,
+        };
+        use diskmarshal_domain::network::{
+            BitRate, Connection, ConnectionProfile, Endpoint, NetworkChange, PingResult,
+            ProcessTraffic, ProxySettings, Responsiveness, SpeedTest, TrafficReading, Transport,
+            VpnProfiles, WifiBand, WifiLink,
+        };
+        use diskmarshal_domain::shared::ByteSize;
+
+        use super::NetworkAdapters;
+
+        const ROUTER: IpAddr = IpAddr::V4(Ipv4Addr::new(192, 168, 0, 1));
+        const THIS_MAC: IpAddr = IpAddr::V4(Ipv4Addr::new(192, 168, 0, 24));
+        const FASTEST_RESOLVER: IpAddr = IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1));
+        /// Seconds between two made-up readings.
+        const STEP_SECONDS: u64 = 2;
+        const BYTES_PER_MEGABIT_SECOND: f64 = 125_000.0;
+        const NAME_SERVICE_PORT: u16 = 53;
+
+        /// A program, the megabits per second it receives and sends, and
+        /// the addresses and ports its connections go to.
+        type DemoProgram = (&'static str, f64, f64, &'static [([u8; 4], u16)]);
+
+        const PROGRAMS: [DemoProgram; 6] = [
+            (
+                "Safari",
+                38.0,
+                2.1,
+                &[
+                    ([203, 0, 113, 24], 443),
+                    ([203, 0, 113, 80], 443),
+                    ([198, 51, 100, 7], 443),
+                ],
+            ),
+            (
+                "Backup",
+                0.3,
+                11.2,
+                &[([198, 51, 100, 44], 443), ([198, 51, 100, 45], 443)],
+            ),
+            ("Música", 2.4, 0.1, &[([203, 0, 113, 140], 443)]),
+            ("Mensagens", 0.6, 0.2, &[([192, 0, 2, 200], 443)]),
+            ("mDNSResponder", 0.05, 0.03, &[([192, 168, 0, 1], 53)]),
+            ("apsd", 0.01, 0.01, &[([203, 0, 113, 5], 5223)]),
+        ];
+
+        pub(super) fn adapters() -> NetworkAdapters {
+            NetworkAdapters {
+                traffic_probe: Arc::new(DemoTraffic::default()),
+                connection_inspector: Arc::new(DemoConnection),
+                reachability: Arc::new(DemoConnection),
+                speed_tester: Arc::new(DemoConnection),
+                network_tuner: Arc::new(DemoConnection),
+            }
+        }
+
+        /// Counters that grow a little differently at each reading.
+        #[derive(Default)]
+        struct DemoTraffic {
+            readings: AtomicU64,
+        }
+
+        impl DemoTraffic {
+            /// The connections of the program at `index` of the list, with
+            /// what they had moved by reading number `step`.
+            fn connections(index: usize, step: u64) -> Vec<Connection> {
+                let (_, download, upload, destinations) = PROGRAMS[index];
+                // The usual speed of the program, swinging by a third.
+                let moved = |megabits: f64| {
+                    let seconds = (step * STEP_SECONDS) as f64;
+                    let swing = (step as f64 * 0.7 + index as f64).sin() * 0.33;
+                    let bytes = megabits * BYTES_PER_MEGABIT_SECOND * (seconds + swing);
+                    (bytes.max(0.0) / destinations.len() as f64) as u64
+                };
+                destinations
+                    .iter()
+                    .enumerate()
+                    .map(|(place, (address, port))| Connection {
+                        transport: if *port == NAME_SERVICE_PORT {
+                            Transport::Udp
+                        } else {
+                            Transport::Tcp
+                        },
+                        local: Endpoint {
+                            address: THIS_MAC.to_string(),
+                            port: Some(50_000 + (index * 10 + place) as u16),
+                        },
+                        remote: Endpoint {
+                            address: Ipv4Addr::from(*address).to_string(),
+                            port: Some(*port),
+                        },
+                        interface: "en0".to_owned(),
+                        received: ByteSize::from_bytes(40_000_000 + moved(download)),
+                        sent: ByteSize::from_bytes(2_000_000 + moved(upload)),
+                        retransmitted: ByteSize::from_bytes(if place == 2 { 8_400 } else { 0 }),
+                        round_trip: Some(Duration::from_millis(
+                            11 + (index * 7 + place * 5) as u64,
+                        )),
+                    })
+                    .collect()
+            }
+        }
+
+        impl TrafficProbe for DemoTraffic {
+            fn read(&self) -> Result<TrafficReading, TrafficProbeError> {
+                let step = self.readings.fetch_add(1, Ordering::Relaxed);
+                let processes = PROGRAMS
+                    .iter()
+                    .enumerate()
+                    .map(|(index, (program, ..))| ProcessTraffic {
+                        pid: 500 + index as u32,
+                        program: (*program).to_owned(),
+                        connections: Self::connections(index, step),
+                    })
+                    .collect();
+                Ok(TrafficReading {
+                    taken_at: Duration::from_secs(step * STEP_SECONDS),
+                    processes,
+                })
+            }
+        }
+
+        /// A wireless connection with two things worth fixing: a proxy
+        /// search nobody answers and a slow name server.
+        struct DemoConnection;
+
+        impl ConnectionInspector for DemoConnection {
+            fn profile(&self) -> Result<ConnectionProfile, InspectionError> {
+                Ok(ConnectionProfile {
+                    interface: "en0".to_owned(),
+                    service: "Wi-Fi".to_owned(),
+                    local_address: Some(THIS_MAC),
+                    gateway: Some(ROUTER),
+                    dns_servers: vec![ROUTER],
+                    configured_dns: Vec::new(),
+                    proxy: ProxySettings {
+                        is_auto_discovery_on: true,
+                        is_discovery_answered: Some(false),
+                        has_configured_proxy: false,
+                    },
+                    vpn: VpnProfiles {
+                        installed: 3,
+                        connected: 0,
+                    },
+                    wifi: Some(WifiLink {
+                        signal_dbm: -52,
+                        noise_dbm: -93,
+                        channel: 44,
+                        band: Some(WifiBand::FiveGigahertz),
+                        width_mhz: Some(80),
+                        standard: "802.11ax".to_owned(),
+                        transmit_rate: BitRate::from_bits_per_second(1_201_000_000),
+                        neighbors_on_channel: 3,
+                    }),
+                })
+            }
+        }
+
+        impl ReachabilityProbe for DemoConnection {
+            fn ping(&self, target: IpAddr) -> PingResult {
+                PingResult {
+                    sent: 10,
+                    received: 10,
+                    average: Some(Duration::from_millis(if target == ROUTER { 3 } else { 14 })),
+                }
+            }
+
+            fn time_dns(&self, server: IpAddr) -> Option<Duration> {
+                let millis = if server == ROUTER {
+                    38
+                } else if server == FASTEST_RESOLVER {
+                    9
+                } else {
+                    13
+                };
+                Some(Duration::from_millis(millis))
+            }
+        }
+
+        impl SpeedTester for DemoConnection {
+            fn measure(&self) -> Result<SpeedTest, SpeedTestError> {
+                Ok(SpeedTest {
+                    download: BitRate::from_bits_per_second(468_000_000),
+                    upload: BitRate::from_bits_per_second(383_000_000),
+                    idle_latency: Some(Duration::from_millis(13)),
+                    responsiveness: Some(Responsiveness::from_rpm(440)),
+                    transferred: ByteSize::from_bytes(1_400_000_000),
+                    duration: Duration::from_secs(18),
+                })
+            }
+        }
+
+        impl NetworkTuner for DemoConnection {
+            fn is_available(&self) -> bool {
+                true
+            }
+
+            /// A demonstration changes nothing.
+            fn apply(
+                &self,
+                _changes: &[NetworkChange],
+                _prompt: &str,
+            ) -> Result<(), PrivilegeError> {
+                Err(PrivilegeError::Failed("demonstration".to_owned()))
+            }
         }
     }
 }
