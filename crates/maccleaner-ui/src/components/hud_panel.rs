@@ -1,9 +1,11 @@
 //! The framed panel every block of content sits in.
 
-use egui::{Align, Frame, Layout, Painter, Rect, RichText, Stroke, Ui, pos2};
+use egui::{Align, Frame, Label, Layout, Painter, Rect, RichText, Stroke, Ui, pos2};
 
 use crate::theme::{CORNER_SIZE, FONT_SIZE_SMALL, SPACE_2, SPACE_3, Tokens};
 
+/// Width of the line around a panel.
+const FRAME_STROKE: f32 = 1.0;
 /// Extra space between the letters of a panel title.
 const TITLE_LETTER_SPACING: f32 = 1.5;
 
@@ -11,12 +13,24 @@ const TITLE_LETTER_SPACING: f32 = 1.5;
 pub(crate) struct HudPanel<'a> {
     title: &'a str,
     meta: Option<&'a str>,
+    min_height: Option<f32>,
 }
 
 impl<'a> HudPanel<'a> {
     /// Creates a panel with the given title.
     pub(crate) const fn new(title: &'a str) -> Self {
-        Self { title, meta: None }
+        Self {
+            title,
+            meta: None,
+            min_height: None,
+        }
+    }
+
+    /// Makes the panel at least this tall, frame included, so the panels of a
+    /// row end on the same line.
+    pub(crate) const fn min_height(mut self, height: f32) -> Self {
+        self.min_height = Some(height);
+        self
     }
 
     /// Adds a short note at the right end of the title row.
@@ -34,9 +48,12 @@ impl<'a> HudPanel<'a> {
     ) -> R {
         let frame = Frame::NONE
             .fill(tokens.color_surface_panel)
-            .stroke(Stroke::new(1.0, tokens.color_line))
+            .stroke(Stroke::new(FRAME_STROKE, tokens.color_line))
             .inner_margin(SPACE_3);
         let shown = frame.show(ui, |ui| {
+            if let Some(height) = self.min_height {
+                ui.set_min_height((height - 2.0 * (SPACE_3 + FRAME_STROKE)).max(0.0));
+            }
             ui.horizontal(|ui| {
                 ui.label(
                     RichText::new(self.title.to_uppercase())
@@ -46,10 +63,14 @@ impl<'a> HudPanel<'a> {
                 );
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     if let Some(meta) = self.meta {
-                        ui.label(
-                            RichText::new(meta)
-                                .size(FONT_SIZE_SMALL)
-                                .color(tokens.color_text_muted),
+                        // A long note is cut short instead of pushing the panel wider.
+                        ui.add(
+                            Label::new(
+                                RichText::new(meta)
+                                    .size(FONT_SIZE_SMALL)
+                                    .color(tokens.color_text_muted),
+                            )
+                            .truncate(),
                         );
                     }
                 });

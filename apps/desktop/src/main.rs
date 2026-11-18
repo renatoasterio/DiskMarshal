@@ -3,13 +3,30 @@
 
 #![forbid(unsafe_code)]
 
+use std::env;
+use std::path::PathBuf;
 use std::process::ExitCode;
 use std::sync::Arc;
 
 use anyhow::{Context as _, anyhow};
 use eframe::egui;
-use maccleaner_infrastructure::filesystem::{StatfsVolumeStats, disable_dataless_materialization};
-use maccleaner_infrastructure::system::LocaltimeWallClock;
+use maccleaner_application::ports::MetricsProvider;
+use maccleaner_infrastructure::catalog::TomlRuleCatalog;
+use maccleaner_infrastructure::filesystem::{
+    LstatFileInspector, ReaddirWalker, SafeFileRemover, StatfsVolumeStats,
+    disable_dataless_materialization, icloud_sync_roots,
+};
+use maccleaner_infrastructure::hashing::Blake3ContentHasher;
+use maccleaner_infrastructure::imaging::ImageIoThumbnailer;
+use maccleaner_infrastructure::metrics::{SysinfoMetricsProvider, UnavailableMetrics};
+use maccleaner_infrastructure::permissions::FullDiskAccessProbe;
+use maccleaner_infrastructure::persistence::JsonlHistoryRepository;
+use maccleaner_infrastructure::privilege::OsascriptPrivilegedCleaner;
+use maccleaner_infrastructure::process::GitVersionControlProbe;
+use maccleaner_infrastructure::system::{
+    LocaltimeWallClock, NativeFolderPicker, OpenCommandOpener,
+};
+use maccleaner_infrastructure::trash::NsFileManagerTrashBin;
 use maccleaner_ui::{MacCleanerUi, UiOptions, UiServices, WINDOW_SIZE};
 
 const APP_NAME: &str = "MacCleaner";
@@ -53,14 +70,39 @@ struct DesktopApp {
 
 impl DesktopApp {
     fn new(ctx: &egui::Context) -> Self {
+        let home = env::var_os("HOME").map_or_else(|| PathBuf::from("/"), PathBuf::from);
+        let temporary = env::var_os("TMPDIR").map(PathBuf::from);
         let services = UiServices {
             volume_stats: Arc::new(StatfsVolumeStats),
             wall_clock: Arc::new(LocaltimeWallClock),
+            walker: Arc::new(ReaddirWalker::new(icloud_sync_roots())),
+            opener: Arc::new(OpenCommandOpener),
+            inspector: Arc::new(LstatFileInspector),
+            remover: Arc::new(SafeFileRemover),
+            trash_bin: Arc::new(NsFileManagerTrashBin::new()),
+            history: Arc::new(JsonlHistoryRepository::for_home(&home)),
+            rules: Arc::new(TomlRuleCatalog::new(home.clone(), temporary)),
+            version_control: Arc::new(GitVersionControlProbe),
+            folder_picker: Arc::new(NativeFolderPicker),
+            hasher: Arc::new(Blake3ContentHasher),
+            thumbnailer: Arc::new(ImageIoThumbnailer),
+            privileged: Arc::new(OsascriptPrivilegedCleaner::beside_current_executable()),
+            permissions: Arc::new(FullDiskAccessProbe::for_home(&home)),
+            metrics: capture::metrics().unwrap_or_else(system_metrics),
+            home,
         };
         Self {
-            interface: MacCleanerUi::new(ctx, services, capture::ui_options()),
+            interface: MacCleanerUi::new(ctx, services, &capture::ui_options()),
         }
     }
+}
+
+/// The readings of this machine, or a stand-in when it cannot be queried.
+fn system_metrics() -> Arc<dyn MetricsProvider> {
+    SysinfoMetricsProvider::new().map_or_else(
+        || Arc::new(UnavailableMetrics) as Arc<dyn MetricsProvider>,
+        |provider| Arc::new(provider),
+    )
 }
 
 impl eframe::App for DesktopApp {
@@ -73,17 +115,39 @@ impl eframe::App for DesktopApp {
     }
 }
 
-/// Normal start-up: default renderer, start-up sequence and full motion.
+/// Normal start-up: default renderer, start-up sequence, and as much motion
+/// as the user asked macOS for.
 #[cfg(not(feature = "capture"))]
 mod capture {
+    use std::sync::Arc;
+
+    use maccleaner_application::ports::MetricsProvider;
+    use maccleaner_infrastructure::system::prefers_reduced_motion;
+    use maccleaner_ui::MotionPreference;
+
     use super::UiOptions;
 
     pub(super) fn native_options() -> eframe::NativeOptions {
         eframe::NativeOptions::default()
     }
 
+    /// The normal app always shows the readings of this machine.
+    pub(super) fn metrics() -> Option<Arc<dyn MetricsProvider>> {
+        None
+    }
+
     pub(super) fn ui_options() -> UiOptions {
-        UiOptions::default()
+        // "Reduce motion" in System Settings is where the app starts from;
+        // the appearance panel still lets the user choose otherwise.
+        let motion = if prefers_reduced_motion() {
+            MotionPreference::Reduced
+        } else {
+            MotionPreference::Full
+        };
+        UiOptions {
+            motion,
+            ..UiOptions::default()
+        }
     }
 }
 
@@ -92,12 +156,84 @@ mod capture {
 /// With `EFRAME_SCREENSHOT_TO=<file>.png` set, eframe saves the second frame
 /// and exits. That hook exists only in the OpenGL renderer, and the frame has
 /// to be still, so this build skips the start-up sequence and all motion.
-/// `MACCLEANER_SCREEN=<slug>` and `MACCLEANER_PALETTE=<slug>` choose what to capture.
+/// `MACCLEANER_SCREEN=<slug>` and `MACCLEANER_PALETTE=<slug>` choose what to capture,
+/// `MACCLEANER_SCAN=<folder>` measures a folder first so the disk map is filled in, and
+/// `MACCLEANER_ANALYZE=1` analyzes the cleanup rules first. `MACCLEANER_DEV`,
+/// `MACCLEANER_DUP` and `MACCLEANER_PHOTOS` each name a folder to search
+/// first for build folders, duplicates and similar photos, and
+/// `MACCLEANER_DEMO=1` replaces the readings of the monitor with made-up
+/// ones. Run with `HOME` pointing at a demonstration folder to keep every
+/// personal path out of the picture.
 #[cfg(feature = "capture")]
 mod capture {
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicU32, Ordering};
+
+    use maccleaner_application::ports::MetricsProvider;
+    use maccleaner_domain::monitoring::{ProcessUsage, SensorReading, SystemSnapshot};
+    use maccleaner_domain::shared::ByteSize;
     use maccleaner_ui::{MotionPreference, Palette, Screen};
 
     use super::UiOptions;
+
+    const GIGABYTE: u64 = 1_000_000_000;
+    const DEMO_CORES: u32 = 10;
+
+    /// Made-up readings for documentation screenshots, so they show no
+    /// program that happens to be running on the machine that takes them.
+    #[derive(Default)]
+    struct DemoMetrics {
+        readings: AtomicU32,
+    }
+
+    impl MetricsProvider for DemoMetrics {
+        fn sample(&self) -> SystemSnapshot {
+            let step = self.readings.fetch_add(1, Ordering::Relaxed) as f32;
+            let wave = |speed: f32, offset: f32| (step * speed + offset).sin() * 0.5 + 0.5;
+            let process = |name: &str, cpu_cores: f32, megabytes: u64| ProcessUsage {
+                name: name.to_owned(),
+                cpu_cores,
+                memory: ByteSize::from_bytes(megabytes * 1_000_000),
+            };
+            let sensor = |label: &str, celsius: f32| SensorReading {
+                label: label.to_owned(),
+                celsius,
+            };
+            SystemSnapshot {
+                cpu_usage: 0.14 + 0.16 * wave(0.45, 0.0) + 0.06 * wave(1.7, 1.0),
+                core_usage: (0..DEMO_CORES)
+                    .map(|core| {
+                        let busy = 0.75 / (core as f32 + 1.0);
+                        (busy * (0.5 + 0.5 * wave(0.6, core as f32))).clamp(0.02, 1.0)
+                    })
+                    .collect(),
+                memory_used: ByteSize::from_bytes(19 * GIGABYTE + 600_000_000),
+                memory_total: ByteSize::from_bytes(32 * GIGABYTE),
+                swap_used: ByteSize::from_bytes(GIGABYTE + 200_000_000),
+                sensors: vec![
+                    sensor("CPU", 52.0),
+                    sensor("GPU", 47.0),
+                    sensor("SSD", 38.0),
+                    sensor("Bateria", 33.0),
+                    sensor("Placa", 41.0),
+                ],
+                processes: vec![
+                    process("WindowServer", 0.21, 512),
+                    process("Xcode", 0.18, 2_400),
+                    process("Safari", 0.12, 1_100),
+                    process("node", 0.09, 640),
+                    process("mds_stores", 0.06, 180),
+                    process("kernel_task", 0.05, 96),
+                ],
+            }
+        }
+    }
+
+    /// With `MACCLEANER_DEMO` set, the monitor shows made-up readings.
+    pub(super) fn metrics() -> Option<Arc<dyn MetricsProvider>> {
+        std::env::var_os("MACCLEANER_DEMO")
+            .map(|_| Arc::new(DemoMetrics::default()) as Arc<dyn MetricsProvider>)
+    }
 
     pub(super) fn native_options() -> eframe::NativeOptions {
         eframe::NativeOptions {
@@ -120,6 +256,12 @@ mod capture {
             motion: MotionPreference::Off,
             initial_screen,
             palette,
+            preload_scan: std::env::var_os("MACCLEANER_SCAN").map(std::path::PathBuf::from),
+            preload_cleanup: std::env::var_os("MACCLEANER_ANALYZE").is_some(),
+            preload_developer: std::env::var_os("MACCLEANER_DEV").map(std::path::PathBuf::from),
+            preload_duplicates: std::env::var_os("MACCLEANER_DUP").map(std::path::PathBuf::from),
+            preload_monitor: true,
+            preload_photos: std::env::var_os("MACCLEANER_PHOTOS").map(std::path::PathBuf::from),
         }
     }
 }

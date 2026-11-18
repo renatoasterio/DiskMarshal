@@ -43,6 +43,13 @@ impl Screen {
         Self::ALL.into_iter().find(|screen| screen.slug() == slug)
     }
 
+    /// Whether the screen reads the user's own folders, where macOS hides
+    /// content from apps without Full Disk Access.
+    #[must_use]
+    pub const fn reads_personal_folders(self) -> bool {
+        !matches!(self, Self::Dashboard | Self::Monitor)
+    }
+
     /// Identifier of the screen, stable across languages.
     #[must_use]
     pub const fn slug(self) -> &'static str {

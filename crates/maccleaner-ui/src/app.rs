@@ -1,6 +1,6 @@
 //! The window frame: status bar, navigation rail, working area and overlays.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -9,18 +9,23 @@ use egui::{
     Layout, Order, Panel, Rect, RichText, Role, Sense, Stroke, StrokeKind, Ui, UiBuilder, Vec2,
     WidgetInfo, pos2, vec2,
 };
-use maccleaner_application::ports::{VolumeStats, WallClock};
+use maccleaner_application::ports::{
+    AccessStatus, ContentHasher, ExternalOpener, FileInspector, FileRemover, FileSystemWalker,
+    FolderPicker, HistoryRepository, ImageThumbnailer, MetricsProvider, PermissionProbe,
+    PrivilegedCleaner, RuleCatalog, TrashBin, VersionControlProbe, VolumeStats, WallClock,
+};
 use maccleaner_domain::monitoring::VolumeUsage;
 
 use crate::animation::{MotionPreference, Timeline, ease_out_cubic};
 use crate::components::{
-    APPEARANCE_PANEL_WIDTH, AppearanceSettings, BootSequence, HudPanel, Icon, appearance_panel,
-    icon_button, segmented_bar,
+    APPEARANCE_PANEL_WIDTH, AppearanceSettings, BootSequence, Icon, appearance_panel, icon_button,
+    segmented_bar,
 };
 use crate::effects::glow::{self, TextStyle};
 use crate::effects::{paint_grid, paint_scanlines};
 use crate::i18n::pt_br;
 use crate::navigation::Screen;
+use crate::screens::{ScreenContext, Screens};
 use crate::theme::{
     FONT_SIZE_BRAND, FONT_SIZE_DATA, FONT_SIZE_RAIL, FONT_SIZE_SMALL, FONT_SIZE_TITLE,
     MOTION_ENTER_SECONDS, MOTION_SCAN_BAND_SECONDS, MOTION_TYPE_SECONDS_PER_CHARACTER, Palette,
@@ -34,6 +39,12 @@ const STARTUP_VOLUME: &str = "/";
 const DISK_REFRESH_SECONDS: f64 = 5.0;
 /// Repaint interval while nothing is animating: enough for the clock.
 const IDLE_REPAINT: Duration = Duration::from_secs(1);
+/// Repaint interval of the animations that loop in the background: twenty
+/// frames per second. Measured on an M2 Pro, drawing every frame kept the
+/// app at 46% of a core while it sat idle; this pace brings it near 10%.
+const AMBIENT_REPAINT: Duration = Duration::from_millis(50);
+/// For how long after the user does something every frame is drawn.
+const SMOOTH_SECONDS: f64 = 1.5;
 
 const BRAND_WIDTH: f32 = 132.0;
 const BRAND_LETTER_SPACING: f32 = 2.7;
@@ -58,10 +69,40 @@ pub struct UiServices {
     pub volume_stats: Arc<dyn VolumeStats>,
     /// Reads the time shown in the status bar.
     pub wall_clock: Arc<dyn WallClock>,
+    /// Reads folders from disk for every scan.
+    pub walker: Arc<dyn FileSystemWalker>,
+    /// Shows items in Finder and opens System Settings.
+    pub opener: Arc<dyn ExternalOpener>,
+    /// Reads the identity and real location of an item.
+    pub inspector: Arc<dyn FileInspector>,
+    /// Removes items permanently.
+    pub remover: Arc<dyn FileRemover>,
+    /// Moves items to the Trash.
+    pub trash_bin: Arc<dyn TrashBin>,
+    /// Records every removal.
+    pub history: Arc<dyn HistoryRepository>,
+    /// Supplies the catalog of what can be cleaned.
+    pub rules: Arc<dyn RuleCatalog>,
+    /// Tells whether a folder holds files under version control.
+    pub version_control: Arc<dyn VersionControlProbe>,
+    /// Lets the user choose a folder with the system dialog.
+    pub folder_picker: Arc<dyn FolderPicker>,
+    /// Fingerprints file content, to find duplicates.
+    pub hasher: Arc<dyn ContentHasher>,
+    /// Reads processor, memory, sensor and process figures.
+    pub metrics: Arc<dyn MetricsProvider>,
+    /// Makes small pictures of image files, to compare and to show.
+    pub thumbnailer: Arc<dyn ImageThumbnailer>,
+    /// Cleans system areas after macOS authenticates the user.
+    pub privileged: Arc<dyn PrivilegedCleaner>,
+    /// Finds out which permissions the user gave the app.
+    pub permissions: Arc<dyn PermissionProbe>,
+    /// The user's home folder.
+    pub home: PathBuf,
 }
 
 /// How the interface starts.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UiOptions {
     /// Whether the start-up sequence plays before the first screen.
     pub shows_boot: bool,
@@ -71,6 +112,19 @@ pub struct UiOptions {
     pub initial_screen: Screen,
     /// The color scheme the interface starts with.
     pub palette: Palette,
+    /// A folder to measure before the first frame, so the disk map opens
+    /// filled in. `None` waits for the user to choose.
+    pub preload_scan: Option<PathBuf>,
+    /// Whether to analyze the cleanup rules before the first frame.
+    pub preload_cleanup: bool,
+    /// A folder to search for build folders before the first frame.
+    pub preload_developer: Option<PathBuf>,
+    /// A folder to search for duplicates before the first frame.
+    pub preload_duplicates: Option<PathBuf>,
+    /// Whether to take one reading of the system before the first frame.
+    pub preload_monitor: bool,
+    /// A folder to search for similar photos before the first frame.
+    pub preload_photos: Option<PathBuf>,
 }
 
 impl Default for UiOptions {
@@ -80,6 +134,12 @@ impl Default for UiOptions {
             motion: MotionPreference::default(),
             initial_screen: Screen::default(),
             palette: Palette::default(),
+            preload_scan: None,
+            preload_cleanup: false,
+            preload_developer: None,
+            preload_duplicates: None,
+            preload_monitor: false,
+            preload_photos: None,
         }
     }
 }
@@ -95,13 +155,18 @@ pub struct MacCleanerUi {
     screen_entered: Timeline,
     is_appearance_open: bool,
     disk_usage: Option<VolumeUsage>,
-    disk_usage_read_at: Option<f64>,
+    full_disk_access: AccessStatus,
+    /// When the disk usage and the permissions were last read.
+    system_read_at: Option<f64>,
+    /// When the user last moved the pointer, clicked or typed.
+    last_input_at: f64,
+    screens: Screens,
 }
 
 impl MacCleanerUi {
     /// Creates the interface and installs its fonts and theme on `ctx`.
     #[must_use]
-    pub fn new(ctx: &Context, services: UiServices, options: UiOptions) -> Self {
+    pub fn new(ctx: &Context, services: UiServices, options: &UiOptions) -> Self {
         let appearance = AppearanceSettings {
             motion: options.motion,
             palette: options.palette,
@@ -111,6 +176,25 @@ impl MacCleanerUi {
         install_fonts(ctx);
         apply_style(ctx, &tokens);
 
+        let mut screens = Screens::default();
+        if let Some(root) = &options.preload_scan {
+            screens.preload_scan(services.walker.as_ref(), root);
+        }
+        if options.preload_cleanup {
+            screens.preload_cleanup(&services);
+        }
+        if let Some(root) = &options.preload_developer {
+            screens.preload_developer(&services, root);
+        }
+        if let Some(root) = &options.preload_duplicates {
+            screens.preload_duplicates(&services, root);
+        }
+        if options.preload_monitor {
+            screens.preload_monitor(&services);
+        }
+        if let Some(root) = &options.preload_photos {
+            screens.preload_photos(ctx, &services, root);
+        }
         let now = ctx.input(|input| input.time);
         let plays_boot = options.shows_boot && options.motion.allows_ambient();
         Self {
@@ -122,7 +206,10 @@ impl MacCleanerUi {
             screen_entered: Timeline::start(now),
             is_appearance_open: false,
             disk_usage: None,
-            disk_usage_read_at: None,
+            full_disk_access: AccessStatus::Unknown,
+            system_read_at: None,
+            last_input_at: now,
+            screens,
         }
     }
 
@@ -136,8 +223,8 @@ impl MacCleanerUi {
     pub fn show(&mut self, ui: &mut Ui) {
         let ctx = ui.ctx().clone();
         let now = ctx.input(|input| input.time);
-        self.refresh_disk_usage(now);
-        self.schedule_repaint(&ctx);
+        self.refresh_system_facts(now);
+        self.schedule_repaint(&ctx, now);
 
         if let Some(boot) = self.boot {
             let is_over = CentralPanel::no_frame()
@@ -179,9 +266,11 @@ impl MacCleanerUi {
         self.paint_scanlines(&ctx, now);
     }
 
-    fn refresh_disk_usage(&mut self, now: f64) {
+    /// Reads again, every few seconds, the facts about the system the frame
+    /// shows: how full the disk is and what macOS lets the app read.
+    fn refresh_system_facts(&mut self, now: f64) {
         let is_stale = self
-            .disk_usage_read_at
+            .system_read_at
             .is_none_or(|read_at| now - read_at >= DISK_REFRESH_SECONDS);
         if is_stale {
             self.disk_usage = self
@@ -189,17 +278,36 @@ impl MacCleanerUi {
                 .volume_stats
                 .usage(Path::new(STARTUP_VOLUME))
                 .ok();
-            self.disk_usage_read_at = Some(now);
+            self.full_disk_access = self.services.permissions.full_disk_access();
+            self.system_read_at = Some(now);
         }
     }
 
-    /// Animates continuously only while the window has focus and the user
-    /// allows looping motion. Otherwise one frame per second keeps the clock
-    /// right without spending processor or battery.
-    fn schedule_repaint(&self, ctx: &Context) {
-        let is_focused = ctx.input(|input| input.focused);
-        if self.appearance.motion.allows_ambient() && is_focused {
+    /// Paces the frames to what is on screen.
+    ///
+    /// Right after the user does something, every frame is drawn, so
+    /// transitions are smooth. After that, the animations that loop in the
+    /// background get a slower, steady pace. Without focus, or with looping
+    /// motion turned off, one frame per second keeps the clock right without
+    /// spending processor or battery.
+    fn schedule_repaint(&mut self, ctx: &Context, now: f64) {
+        let (is_focused, had_input) = ctx.input(|input| {
+            (
+                input.focused,
+                !input.events.is_empty() || input.pointer.is_moving(),
+            )
+        });
+        if had_input {
+            self.last_input_at = now;
+        }
+        let motion = self.appearance.motion;
+        let is_settling = self.boot.is_some()
+            || now - self.last_input_at < SMOOTH_SECONDS
+            || self.screen_entered.elapsed(now) < SMOOTH_SECONDS;
+        if is_focused && motion.allows_transitions() && is_settling {
             ctx.request_repaint();
+        } else if is_focused && motion.allows_ambient() {
+            ctx.request_repaint_after(AMBIENT_REPAINT);
         } else {
             ctx.request_repaint_after(IDLE_REPAINT);
         }
@@ -438,7 +546,7 @@ impl MacCleanerUi {
         });
     }
 
-    fn stage(&self, ui: &mut Ui, now: f64) {
+    fn stage(&mut self, ui: &mut Ui, now: f64) {
         let tokens = self.tokens;
         let rect = ui.max_rect();
         paint_grid(ui.painter(), rect, &tokens);
@@ -455,7 +563,7 @@ impl MacCleanerUi {
         let content = rect
             .shrink2(vec2(SPACE_5, SPACE_4))
             .translate(vec2(0.0, (1.0 - entered) * ENTER_OFFSET));
-        ui.scope_builder(UiBuilder::new().max_rect(content), |ui| {
+        let requested = ui.scope_builder(UiBuilder::new().max_rect(content), |ui| {
             ui.set_opacity(entered);
             self.stage_title(ui, now);
             ui.add_space(SPACE_1);
@@ -465,13 +573,51 @@ impl MacCleanerUi {
                     .color(tokens.color_text_secondary),
             );
             ui.add_space(SPACE_3);
-            HudPanel::new(self.screen.label()).show(ui, &tokens, |ui| {
-                ui.label(RichText::new(pt_br::MODULE_PENDING_TITLE).color(tokens.color_warn));
-                ui.label(
-                    RichText::new(pt_br::MODULE_PENDING_BODY).color(tokens.color_text_secondary),
-                );
-            });
+            self.permission_notice(ui);
+            let context = ScreenContext {
+                tokens: &tokens,
+                appearance: &self.appearance,
+                services: &self.services,
+                now,
+            };
+            self.screens.show(self.screen, ui, &context)
         });
+        if let Some(screen) = requested.inner {
+            self.go_to(screen, now);
+        }
+    }
+
+    /// Says, on the screens that read the disk, that macOS is hiding part of
+    /// it, with the way to fix that one click away.
+    fn permission_notice(&self, ui: &mut Ui) {
+        if self.full_disk_access != AccessStatus::Denied || !self.screen.reads_personal_folders() {
+            return;
+        }
+        let tokens = self.tokens;
+        ui.horizontal(|ui| {
+            ui.spacing_mut().item_spacing.x = SPACE_2;
+            ui.label(
+                RichText::new(pt_br::FULL_DISK_ACCESS_MISSING)
+                    .size(FONT_SIZE_SMALL)
+                    .color(tokens.color_warn),
+            );
+            let link = ui.add(
+                egui::Label::new(
+                    RichText::new(pt_br::OPEN_FULL_DISK_ACCESS)
+                        .size(FONT_SIZE_SMALL)
+                        .color(tokens.color_accent),
+                )
+                .sense(Sense::click()),
+            );
+            if link
+                .on_hover_cursor(egui::CursorIcon::PointingHand)
+                .clicked()
+            {
+                // If System Settings does not open, the text still says what is missing.
+                let _ = self.services.opener.open_full_disk_access_settings();
+            }
+        });
+        ui.add_space(SPACE_2);
     }
 
     /// Paints the screen title, typed out letter by letter, with a blinking cursor.

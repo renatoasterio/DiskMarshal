@@ -44,6 +44,26 @@ pub struct DeletionReport {
     pub unrecorded: usize,
 }
 
+impl DeletionReport {
+    /// Adds one outcome and what it freed.
+    pub fn record(&mut self, outcome: DeletionOutcome) {
+        match outcome.status {
+            DeletionStatus::Deleted => self.reclaimed += outcome.reclaimable,
+            DeletionStatus::Trashed => self.trashed += outcome.reclaimable,
+            DeletionStatus::WouldDelete | DeletionStatus::Skipped(_) => {}
+        }
+        self.outcomes.push(outcome);
+    }
+
+    /// Adds everything another report holds to this one.
+    pub fn absorb(&mut self, other: Self) {
+        self.outcomes.extend(other.outcomes);
+        self.reclaimed += other.reclaimed;
+        self.trashed += other.trashed;
+        self.unrecorded += other.unrecorded;
+    }
+}
+
 /// Removes approved items, checking each one again right before touching it.
 pub struct DeleteItems<'a> {
     policy: &'a ProtectedPaths,
@@ -78,15 +98,10 @@ impl<'a> DeleteItems<'a> {
         let mut report = DeletionReport::default();
         for request in requests {
             let outcome = self.process(request, &roots, mode);
-            match outcome.status {
-                DeletionStatus::Deleted => report.reclaimed += outcome.reclaimable,
-                DeletionStatus::Trashed => report.trashed += outcome.reclaimable,
-                DeletionStatus::WouldDelete | DeletionStatus::Skipped(_) => {}
-            }
             if outcome.is_removed() && self.ports.history.append(&outcome).is_err() {
                 report.unrecorded += 1;
             }
-            report.outcomes.push(outcome);
+            report.record(outcome);
         }
         report
     }
@@ -274,6 +289,10 @@ mod tests {
         fn append(&self, outcome: &DeletionOutcome) -> Result<(), ApplicationError> {
             self.recorded.lock().unwrap().push(outcome.target.clone());
             Ok(())
+        }
+
+        fn recent(&self, _limit: usize) -> Vec<maccleaner_domain::deletion::HistoryEntry> {
+            Vec::new()
         }
     }
 

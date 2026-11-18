@@ -2,10 +2,12 @@
 
 mod deletion_outcome;
 mod deletion_request;
+mod history_entry;
 mod item_fingerprint;
 mod protected_paths;
 
 pub use deletion_outcome::{DeletionOutcome, DeletionStatus, SkipReason};
 pub use deletion_request::{DeletionMethod, DeletionRequest};
+pub use history_entry::{HistoryAction, HistoryEntry};
 pub use item_fingerprint::ItemFingerprint;
 pub use protected_paths::{ProtectedPaths, ProtectionReason};

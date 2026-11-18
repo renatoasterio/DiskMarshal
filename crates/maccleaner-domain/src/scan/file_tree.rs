@@ -102,6 +102,12 @@ impl FileTree {
         self.nodes.is_empty()
     }
 
+    /// Returns `true` when `id` has at least one child.
+    #[must_use]
+    pub fn has_children(&self, id: NodeId) -> bool {
+        self.children(id).next().is_some()
+    }
+
     /// Iterates over the direct children of `parent`, in insertion order.
     pub fn children(&self, parent: NodeId) -> impl Iterator<Item = NodeId> + '_ {
         let first = self.node(parent).and_then(|node| node.first_child);

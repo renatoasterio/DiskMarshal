@@ -1,0 +1,75 @@
+# Catalog of code projects and the folders they can recreate.
+#
+# A folder is offered only when one of the `markers` sits next to it. A marker
+# starting with `*.` matches any file with that extension.
+#
+#   safe    names nobody uses for anything else; selected by default
+#   review  common names a project might use for real content; never
+#           selected by default
+#
+# `ecosystem` is one of: node, dotnet, rust, jvm, python, swift, flutter, go,
+# php, terraform.
+
+[[project]]
+ecosystem = "node"
+markers = ["package.json"]
+safe = ["node_modules", ".next", ".nuxt", ".turbo", ".angular", ".parcel-cache", ".svelte-kit"]
+review = ["dist", "build", "coverage", "out"]
+
+[[project]]
+ecosystem = "dotnet"
+markers = ["*.csproj", "*.fsproj", "*.vbproj", "*.sln"]
+safe = ["bin", "obj", ".vs", "TestResults"]
+review = ["packages"]
+
+[[project]]
+ecosystem = "rust"
+markers = ["Cargo.toml"]
+safe = ["target"]
+
+[[project]]
+ecosystem = "jvm"
+markers = ["pom.xml"]
+safe = ["target"]
+
+[[project]]
+ecosystem = "jvm"
+markers = ["build.gradle", "build.gradle.kts", "settings.gradle", "settings.gradle.kts"]
+safe = ["build", ".gradle"]
+
+[[project]]
+ecosystem = "python"
+markers = ["pyproject.toml", "requirements.txt", "setup.py", "Pipfile"]
+safe = [".venv", "venv", "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", ".tox"]
+review = ["build", "dist"]
+
+[[project]]
+ecosystem = "swift"
+markers = ["Package.swift"]
+safe = [".build"]
+
+[[project]]
+ecosystem = "swift"
+markers = ["Podfile"]
+safe = ["Pods"]
+
+[[project]]
+ecosystem = "flutter"
+markers = ["pubspec.yaml"]
+safe = [".dart_tool"]
+review = ["build"]
+
+[[project]]
+ecosystem = "go"
+markers = ["go.mod"]
+review = ["vendor"]
+
+[[project]]
+ecosystem = "php"
+markers = ["composer.json"]
+review = ["vendor"]
+
+[[project]]
+ecosystem = "terraform"
+markers = ["*.tf"]
+safe = [".terraform"]

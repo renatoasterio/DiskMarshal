@@ -1,6 +1,6 @@
 //! Removal history stored as one JSON object per line.
 
-use std::fs::{DirBuilder, OpenOptions};
+use std::fs::{self, DirBuilder, OpenOptions};
 use std::io::{self, Write as _};
 use std::os::unix::fs::{DirBuilderExt as _, OpenOptionsExt as _};
 use std::path::{Path, PathBuf};
@@ -8,8 +8,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use maccleaner_application::ApplicationError;
 use maccleaner_application::ports::HistoryRepository;
-use maccleaner_domain::deletion::{DeletionOutcome, DeletionStatus};
-use serde::Serialize;
+use maccleaner_domain::deletion::{DeletionOutcome, DeletionStatus, HistoryAction, HistoryEntry};
+use maccleaner_domain::shared::ByteSize;
+use serde::{Deserialize, Serialize};
 
 /// Only the owner may enter the folder or read the file.
 const DIRECTORY_MODE: u32 = 0o700;
@@ -23,6 +24,19 @@ struct HistoryRecord<'a> {
     path: &'a str,
     reclaimable_bytes: u64,
 }
+
+/// One line of the history file, as read back. Fields this version does not
+/// know are ignored, so a newer history never breaks an older app.
+#[derive(Deserialize)]
+struct StoredRecord {
+    timestamp_unix_seconds: i64,
+    action: String,
+    path: PathBuf,
+    reclaimable_bytes: u64,
+}
+
+const ACTION_DELETED: &str = "deleted";
+const ACTION_TRASHED: &str = "trashed";
 
 /// Appends every removal to a JSON Lines file readable only by its owner.
 #[derive(Debug, Clone)]
@@ -70,8 +84,8 @@ impl JsonlHistoryRepository {
 impl HistoryRepository for JsonlHistoryRepository {
     fn append(&self, outcome: &DeletionOutcome) -> Result<(), ApplicationError> {
         let action = match outcome.status {
-            DeletionStatus::Deleted => "deleted",
-            DeletionStatus::Trashed => "trashed",
+            DeletionStatus::Deleted => ACTION_DELETED,
+            DeletionStatus::Trashed => ACTION_TRASHED,
             DeletionStatus::WouldDelete | DeletionStatus::Skipped(_) => return Ok(()),
         };
         let timestamp_unix_seconds = SystemTime::now()
@@ -88,6 +102,31 @@ impl HistoryRepository for JsonlHistoryRepository {
             path: self.file.clone(),
             source,
         })
+    }
+
+    fn recent(&self, limit: usize) -> Vec<HistoryEntry> {
+        let Ok(content) = fs::read_to_string(&self.file) else {
+            return Vec::new();
+        };
+        content
+            .lines()
+            .rev()
+            .filter_map(|line| serde_json::from_str::<StoredRecord>(line).ok())
+            .filter_map(|record| {
+                let action = match record.action.as_str() {
+                    ACTION_DELETED => HistoryAction::Deleted,
+                    ACTION_TRASHED => HistoryAction::Trashed,
+                    _ => return None,
+                };
+                Some(HistoryEntry {
+                    timestamp_unix_seconds: record.timestamp_unix_seconds,
+                    action,
+                    path: record.path,
+                    reclaimable: ByteSize::from_bytes(record.reclaimable_bytes),
+                })
+            })
+            .take(limit)
+            .collect()
     }
 }
 
@@ -168,5 +207,36 @@ mod tests {
             .unwrap();
 
         assert!(!file.exists());
+    }
+
+    #[test]
+    fn reads_back_the_latest_removals_newest_first() {
+        let fixture = TempTree::new().unwrap();
+        let file = fixture.path("history.jsonl");
+        let history = JsonlHistoryRepository::new(file.clone());
+        assert!(history.recent(10).is_empty(), "no file yet");
+
+        history
+            .append(&outcome("/tmp/first", DeletionStatus::Deleted))
+            .unwrap();
+        history
+            .append(&outcome("/tmp/second", DeletionStatus::Trashed))
+            .unwrap();
+        fs::write(&file, fs::read_to_string(&file).unwrap() + "not json\n").unwrap();
+        history
+            .append(&outcome("/tmp/third", DeletionStatus::Deleted))
+            .unwrap();
+
+        let recent = history.recent(2);
+        let paths: Vec<_> = recent.iter().map(|entry| entry.path.clone()).collect();
+        assert_eq!(
+            paths,
+            [PathBuf::from("/tmp/third"), PathBuf::from("/tmp/second")]
+        );
+        assert_eq!(
+            recent[1].action,
+            maccleaner_domain::deletion::HistoryAction::Trashed
+        );
+        assert_eq!(recent[0].reclaimable, ByteSize::from_bytes(4_096));
     }
 }

@@ -2,6 +2,7 @@
 
 use std::mem::MaybeUninit;
 use std::ptr;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use maccleaner_application::ports::WallClock;
 use maccleaner_domain::monitoring::LocalTime;
@@ -29,6 +30,14 @@ impl WallClock for LocaltimeWallClock {
             second: u8::try_from(parts.tm_sec).unwrap_or_default(),
         }
     }
+
+    fn unix_seconds(&self) -> i64 {
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_or(0, |elapsed| {
+                i64::try_from(elapsed.as_secs()).unwrap_or(i64::MAX)
+            })
+    }
 }
 
 #[cfg(test)]
@@ -41,5 +50,6 @@ mod tests {
     fn returns_a_valid_time_of_day() {
         let time = LocaltimeWallClock.now();
         assert!(time.hour < 24 && time.minute < 60 && time.second < 61);
+        assert!(LocaltimeWallClock.unix_seconds() > 1_700_000_000);
     }
 }

@@ -1,17 +1,41 @@
 //! Building blocks shared by every screen.
 
+mod action_footer;
+mod activity_bar;
 mod appearance_panel;
 mod boot_sequence;
+mod cell_row;
 mod chip;
+mod dialog;
+mod hud_button;
 mod hud_panel;
 mod icon;
 mod icon_button;
+mod key_value;
+mod line_plot;
+mod progress_panel;
+mod radar;
+mod radial_gauge;
+mod removal_flow;
 mod segmented_bar;
+mod selection_row;
 
+pub(crate) use action_footer::action_footer;
+pub(crate) use activity_bar::activity_bar;
 pub(crate) use appearance_panel::{APPEARANCE_PANEL_WIDTH, AppearanceSettings, appearance_panel};
 pub(crate) use boot_sequence::BootSequence;
+pub(crate) use cell_row::{CellWidth, cell_row};
 pub(crate) use chip::chip;
+pub(crate) use dialog::dialog;
+pub(crate) use hud_button::{ButtonKind, hud_button};
 pub(crate) use hud_panel::HudPanel;
 pub(crate) use icon::Icon;
 pub(crate) use icon_button::icon_button;
-pub(crate) use segmented_bar::segmented_bar;
+pub(crate) use key_value::key_value;
+pub(crate) use line_plot::line_plot;
+pub(crate) use progress_panel::{ProgressPanel, progress_panel};
+pub(crate) use radar::radar;
+pub(crate) use radial_gauge::{RadialGauge, radial_gauge};
+pub(crate) use removal_flow::{ConfirmText, RemovalEvent, RemovalFlow};
+pub(crate) use segmented_bar::{paint as paint_segmented_bar, segmented_bar};
+pub(crate) use selection_row::{SelectionRow, selection_row};

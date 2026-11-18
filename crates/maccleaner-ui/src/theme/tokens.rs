@@ -54,4 +54,10 @@ pub(crate) struct Tokens {
     pub color_ok: Color32,
     pub color_warn: Color32,
     pub color_alert: Color32,
+    pub color_category_system: Color32,
+    pub color_category_code: Color32,
+    pub color_category_photo: Color32,
+    pub color_category_media: Color32,
+    pub color_category_document: Color32,
+    pub color_category_archive: Color32,
 }

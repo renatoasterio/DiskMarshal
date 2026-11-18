@@ -5,7 +5,12 @@
 
 #![forbid(unsafe_code)]
 
+pub mod cleanup;
 pub mod deletion;
+pub mod dev_artifacts;
+pub mod duplicates;
 pub mod monitoring;
+pub mod photos;
 pub mod scan;
 pub mod shared;
+pub mod treemap;

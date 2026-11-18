@@ -75,6 +75,12 @@ const AGENCY: Tokens = Tokens {
     color_ok: rgb(0x45_f0_a0),
     color_warn: rgb(0xff_b0_20),
     color_alert: rgb(0xff_4d_5a),
+    color_category_system: rgb(0x7d_95_a0),
+    color_category_code: rgb(0x4a_a8_ff),
+    color_category_photo: rgb(0xff_6f_b0),
+    color_category_media: rgb(0xff_b0_20),
+    color_category_document: rgb(0x45_f0_a0),
+    color_category_archive: rgb(0xa9_8b_ff),
 };
 
 const TERMINAL: Tokens = Tokens {

@@ -7,6 +7,7 @@
 #![forbid(unsafe_code)]
 
 mod application_error;
+mod parallel;
 pub mod ports;
 pub mod progress;
 pub mod use_cases;

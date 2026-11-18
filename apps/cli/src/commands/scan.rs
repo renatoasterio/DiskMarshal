@@ -7,6 +7,7 @@ use clap::Args;
 use maccleaner_application::progress::{CancellationToken, NoProgress};
 use maccleaner_application::use_cases::{ScanDisk, ScanReport};
 use maccleaner_domain::scan::{EntryKind, FileTree};
+use maccleaner_domain::shared::group_digits;
 use maccleaner_infrastructure::filesystem::{ReaddirWalker, icloud_sync_roots};
 
 /// Arguments of the `scan` subcommand.
@@ -63,31 +64,5 @@ fn print_report(report: &ScanReport, top: usize) {
             node.allocated_size().to_string(),
             node.name()
         );
-    }
-}
-
-/// Formats an integer with the pt-BR thousands separator: `4.712.330`.
-fn group_digits(value: u64) -> String {
-    let digits = value.to_string();
-    let mut grouped = String::with_capacity(digits.len() + digits.len() / 3);
-    for (index, digit) in digits.chars().enumerate() {
-        if index > 0 && (digits.len() - index).is_multiple_of(3) {
-            grouped.push('.');
-        }
-        grouped.push(digit);
-    }
-    grouped
-}
-
-#[cfg(test)]
-mod tests {
-    use super::group_digits;
-
-    #[test]
-    fn groups_digits_in_threes() {
-        assert_eq!(group_digits(0), "0");
-        assert_eq!(group_digits(999), "999");
-        assert_eq!(group_digits(1_000), "1.000");
-        assert_eq!(group_digits(4_712_330), "4.712.330");
     }
 }

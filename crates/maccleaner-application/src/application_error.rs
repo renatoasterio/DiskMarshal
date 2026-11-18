@@ -22,6 +22,15 @@ pub enum ApplicationError {
     #[error("too many items to hold in one scan")]
     TreeCapacityExceeded,
 
+    /// A rule catalog shipped with the app is malformed.
+    #[error("invalid rule catalog: {0}")]
+    InvalidCatalog(String),
+
+    /// A cleanup was asked to run a rule that does not exist, or that may not
+    /// run with the privileges of the caller.
+    #[error("rule not allowed here: {0}")]
+    RuleNotAllowed(String),
+
     /// The operating system refused an operation on `path`.
     #[error("i/o failure at {}: {source}", .path.display())]
     Io {

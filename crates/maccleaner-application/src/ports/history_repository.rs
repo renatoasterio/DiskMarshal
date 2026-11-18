@@ -1,6 +1,6 @@
 //! Port for the record of everything MacCleaner removed.
 
-use maccleaner_domain::deletion::DeletionOutcome;
+use maccleaner_domain::deletion::{DeletionOutcome, HistoryEntry};
 
 use crate::ApplicationError;
 
@@ -12,4 +12,8 @@ pub trait HistoryRepository: Send + Sync {
     ///
     /// Fails when the record cannot be stored.
     fn append(&self, outcome: &DeletionOutcome) -> Result<(), ApplicationError>;
+
+    /// Returns up to `limit` of the latest removals, newest first. A history
+    /// that does not exist yet, or cannot be read, is simply empty.
+    fn recent(&self, limit: usize) -> Vec<HistoryEntry>;
 }
