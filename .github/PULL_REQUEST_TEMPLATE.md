@@ -4,7 +4,7 @@
 
 ## How it was checked
 
-<!-- Tests added, commands run, screens compared with the prototype. -->
+<!-- Tests added, commands run, screens checked in the running app. -->
 
 ## Checklist
 

@@ -2,13 +2,13 @@
 
 [English](getting-started.md) · Português
 
-Este guia leva você do zero até a janela do MacCleaner aberta no seu Mac, um passo de cada vez. Não é preciso saber programar.
+Este guia leva você do zero até o MacCleaner instalado no seu Mac e aberto, um passo de cada vez. Não é preciso saber programar.
 
-- **Tempo:** cerca de 15 minutos, a maior parte esperando downloads.
-- **Espaço em disco:** deixe uns 6 GB livres para as ferramentas e a compilação.
+- **Tempo:** cerca de 15 minutos, a maior parte esperando downloads e a compilação.
+- **Espaço em disco:** deixe uns 6 GB livres para as ferramentas e a compilação. O app instalado ocupa cerca de 10 MB.
 - **Testado em:** macOS 27 em Apple Silicon. Outras versões e Macs com Intel devem funcionar, mas ainda não foram testados. Se algo falhar, [avise a gente](https://github.com/renatoasterio/MacCleaner/issues).
 
-> O MacCleaner está em desenvolvimento inicial. Seguir este guia é seguro: hoje o app e a ferramenta de linha de comando só leem o disco. Nada é apagado.
+> Instalar e abrir o MacCleaner não apaga nada. O app só remove o que você seleciona, depois de mostrar uma prévia e pedir confirmação. Leia o [guia de segurança](safety.pt-BR.md) antes da primeira limpeza: ele também diz com clareza o que ainda não foi testado.
 
 ## Como seguir este guia
 
@@ -19,6 +19,8 @@ Cada caixa cinza é um comando. Para cada uma:
 3. Pressione Return e espere o Terminal voltar a aceitar digitação.
 
 Para abrir o Terminal, pressione `Command + Espaço`, digite `Terminal` e pressione Return.
+
+Você só precisa do Terminal para instalar. Depois disso, o MacCleaner abre como qualquer outro app.
 
 ## Passo 1. Instale as ferramentas de linha de comando do Xcode
 
@@ -63,7 +65,7 @@ Instale o instalador do Rust:
 brew install rustup
 ```
 
-Diga ao Terminal onde encontrar as ferramentas do Rust:
+O Homebrew guarda as ferramentas do Rust em uma pasta própria (`/opt/homebrew/opt/rustup/bin` em Apple Silicon), onde o Terminal não procura sozinho. Diga ao Terminal onde encontrá-las:
 
 ```bash
 echo "export PATH=\"$(brew --prefix rustup)/bin:\$PATH\"" >> ~/.zshrc
@@ -87,7 +89,7 @@ rustup default stable
 cargo --version
 ```
 
-Deve aparecer algo como `cargo 1.100.0`. O projeto fixa a versão exata do Rust de que precisa e a baixa sozinho na primeira compilação.
+Deve aparecer algo como `cargo 1.100.0`. O projeto fixa a versão exata do Rust de que precisa (no arquivo `rust-toolchain.toml`) e a baixa sozinho na primeira compilação.
 
 ## Passo 4. Baixe o MacCleaner
 
@@ -107,25 +109,66 @@ Entre na pasta. Todos os comandos daqui em diante precisam rodar dentro dela.
 cd MacCleaner
 ```
 
-## Passo 5. Abra o app
+## Passo 5. Compile e instale o app
 
 ```bash
-cargo run --release -p maccleaner
+cargo xtask install
 ```
 
-Na primeira vez, isso baixa as bibliotecas que o MacCleaner usa e compila tudo. Conte com cerca de um minuto em um Mac recente e mais em máquinas antigas. Linhas começando com `Compiling` são normais.
+Esse único comando faz quatro coisas:
 
-**O que você deve ver:** uma sequência curta de abertura e, em seguida, esta janela.
+1. Compila o MacCleaner. Na primeira vez, também baixa as bibliotecas que o MacCleaner usa. Conte com alguns minutos. Linhas começando com `Compiling` são normais.
+2. Monta o app em `dist/MacCleaner.app`, dentro da pasta do projeto: o app em si, um pequeno auxiliar usado só na limpeza de sistema e o ícone.
+3. Assina o app, para o macOS aceitar abri-lo.
+4. Copia para `/Applications`, a pasta Aplicativos do seu Mac.
 
-![A janela do MacCleaner: barra de status em cima, trilho de navegação à esquerda, área de trabalho à direita](../assets/app-current.png)
+**Confira se deu certo:** as últimas linhas devem ser estas.
+
+```text
+xtask: installed /Applications/MacCleaner.app
+xtask: open it from Launchpad, Spotlight or the Applications folder
+```
+
+Se a cópia falhar porque a sua conta não pode gravar na pasta Aplicativos, instale o app na pasta Aplicativos do seu próprio usuário:
+
+```bash
+cargo xtask install ~/Applications
+```
+
+## Passo 6. Abra o app
+
+Pressione `Command + Espaço`, digite `MacCleaner` e pressione Return. Você também pode abrir pelo Launchpad ou pela pasta Aplicativos no Finder.
+
+**O que você deve ver:** uma sequência curta de abertura (clique para pular) e, em seguida, o "Painel".
+
+![O painel do MacCleaner: barra de status em cima, as sete telas à esquerda, medidores e o espaço recuperável à direita](../assets/screens/dashboard.png)
+
+*Captura do app com dados de demonstração. Os seus números serão outros, e "Espaço recuperável" começa com "não analisado" em todas as linhas.*
 
 Pressione `1` a `7` para visitar cada tela. Para sair, pressione `Command + Q`.
 
-As telas ainda mostram "Módulo em construção". Isso é esperado: veja o [estado do projeto](../../README.pt-BR.md#estado-do-projeto).
+## Passo 7. Dê o Acesso Total ao Disco (opcional)
 
-## Passo 6. Meça uma pasta
+O macOS mantém algumas pastas, como os dados do Mail e do Safari e a Lixeira, escondidas de todo app até você permitir. O MacCleaner funciona sem essa permissão; ele só não consegue ver nem medir essas pastas.
 
-A ferramenta de linha de comando já faz trabalho de verdade. Ela mede uma pasta e lista os maiores itens, sem alterar nada:
+Quando a permissão falta, as telas que leem as suas pastas mostram esta linha no topo:
+
+> Sem Acesso Total ao Disco, o macOS esconde parte da sua pasta pessoal das análises. **Abrir ajustes de Acesso Total ao Disco**
+
+Para dar a permissão:
+
+1. Clique no link **"Abrir ajustes de Acesso Total ao Disco"**. Os Ajustes do Sistema abrem na página certa.
+2. Ligue a chave ao lado de **MacCleaner**. Se o MacCleaner não estiver na lista, clique no botão **+** e escolha o app na pasta Aplicativos.
+3. Se o macOS pedir a sua senha ou o Touch ID para confirmar a mudança, informe.
+4. Encerre o MacCleaner (`Command + Q`) e abra de novo.
+
+Você pode desligar a chave do mesmo jeito quando quiser.
+
+> **O macOS esquece essa permissão quando o app é recompilado.** O app que você acabou de compilar leva uma assinatura local (chamada ad hoc), que muda a cada compilação. Toda vez que você roda `cargo xtask install` de novo, o macOS trata o resultado como um app novo, e é preciso repetir este passo. Assinar com uma identidade sua evita isso: defina a variável de ambiente `MACCLEANER_SIGNING_IDENTITY` com o nome da identidade antes de rodar `cargo xtask install`.
+
+## Passo 8. Meça uma pasta pelo Terminal (opcional)
+
+O MacCleaner também tem uma pequena ferramenta de linha de comando. Ela mede uma pasta e lista os maiores itens, sem alterar nada:
 
 ```bash
 cargo run --release -p maccleaner-cli -- scan ~/Downloads
@@ -149,16 +192,20 @@ Maiores itens
       9,2 GB  backup-2023.zip
 ```
 
-O [guia de uso](usage.pt-BR.md) explica cada linha.
+O [guia de uso](usage.pt-BR.md#a-ferramenta-de-linha-de-comando) explica cada linha.
 
 ## Pronto
 
 | Você quer | Faça isto |
 |---|---|
-| Abrir o app de novo | `cd ~/MacCleaner` e depois `cargo run --release -p maccleaner` |
-| Pegar a versão mais nova | `cd ~/MacCleaner`, depois `git pull`, depois abra o app de novo |
-| Liberar o espaço usado pela compilação | `cd ~/MacCleaner` e depois `cargo clean` |
-| Remover o MacCleaner | Mova a pasta `MacCleaner` para a Lixeira |
+| Abrir o app | Launchpad ou Spotlight, como qualquer outro app. O Terminal não é necessário. |
+| Entender o que cada tela faz | Leia o [guia de uso](usage.pt-BR.md). |
+| Pegar a versão mais nova | `cd ~/MacCleaner`, depois `git pull`, depois `cargo xtask install` |
+| Instalar em outro lugar | `cargo xtask install ~/Applications` (ou qualquer outra pasta) |
+| Só montar o app, sem instalar | `cargo xtask bundle`. O resultado é o `dist/MacCleaner.app`, dentro da pasta do projeto. |
+| Abrir o app sem instalar | `cargo run --release -p maccleaner`. O grupo "Sistema" da tela de limpeza pode ficar indisponível desse jeito: veja o [guia de uso](usage.pt-BR.md#o-grupo-sistema). |
+| Liberar o espaço usado pela compilação | `cd ~/MacCleaner` e depois `cargo clean`. O app instalado continua funcionando. |
+| Remover o MacCleaner | Mova o `/Applications/MacCleaner.app` para a Lixeira. Depois, se quiser, apague o histórico de remoções em `~/Library/Application Support/MacCleaner/` e a pasta `MacCleaner` do projeto. |
 
 ## Se algo der errado
 

@@ -7,11 +7,12 @@ Contribuições em português são bem-vindas: pode abrir issues e pull requests
 ## Ways to help
 
 - **Try it on your Mac and tell us how it went.** It is only tested on macOS 27 with Apple Silicon. A report from another macOS version or an Intel Mac is valuable, even when everything works.
-- **Build a screen.** The [roadmap](README.md#roadmap) lists what comes next, and the [prototype](design/prototype/index.html) shows how each screen should look.
+- **Verify what is not verified.** The README lists [what was not confirmed on the real thing](README.md#not-verified-yet): the system cleanup from the macOS dialog to the result, a file that is really cloud-only, a start with "Reduce motion" on. A careful report on any of these helps a lot.
+- **Add a cleanup rule or a kind of project.** Both are entries in a TOML file. See [Adding a cleanup rule or an ecosystem](#adding-a-cleanup-rule-or-an-ecosystem).
 - **Translate the interface.** Every text lives in `crates/maccleaner-ui/src/i18n/`.
 - **Improve the documentation.** If a step in a guide confused you, it will confuse someone else.
 
-For anything larger than a small fix, open an issue first so we can agree on the approach before you write the code.
+For anything larger than a small fix, open an issue first so we can agree on the approach before you write the code. The README also lists a few [ideas](README.md#what-is-left) nobody has started.
 
 ## Setting up
 
@@ -21,13 +22,25 @@ Follow [Getting started](docs/guide/getting-started.md), then install the depend
 brew install cargo-deny
 ```
 
-## The quality gate
+## The project tasks
 
-One command runs formatting, lints, tests and the dependency audit. A pull request must pass it:
+Project automation runs as `cargo xtask <task>`, from the project folder.
+
+| Task | What it does |
+|---|---|
+| `cargo xtask check` | The quality gate: formatting, lints, tests and the dependency audit. |
+| `cargo xtask bundle` | Builds the release binaries and assembles and signs `dist/MacCleaner.app`: the app, the privileged helper and the icon. |
+| `cargo xtask install` | Does what `bundle` does and copies the app to `/Applications`. `cargo xtask install ~/Applications` installs somewhere else. |
+
+A pull request must pass the quality gate:
 
 ```bash
 cargo xtask check
 ```
+
+While developing, `cargo run -p maccleaner` opens the app straight from the source. The cleanup of system areas needs the helper beside the executable, so try that part with the app made by `cargo xtask bundle` or `cargo xtask install`.
+
+The app is signed ad hoc unless the environment variable `MACCLEANER_SIGNING_IDENTITY` names a signing identity. With an ad hoc signature, macOS forgets the Full Disk Access permission each time the app is rebuilt and reinstalled.
 
 ## Rules that matter most
 
@@ -36,9 +49,66 @@ Read [architecture](docs/architecture.md), [conventions](docs/conventions.md) an
 1. **Dependencies point inward.** `maccleaner-ui` never depends on `maccleaner-infrastructure`. The interface reaches macOS only through a port.
 2. **One code path deletes.** Every removal goes through the `DeleteItems` use case. A change that touches deletion needs a test proving what it refuses to delete.
 3. **Nothing reads cloud-only content.** A scan must never start an iCloud download.
-4. **No `unwrap`, `expect` or `panic!`** outside tests. `unsafe` only in `maccleaner-infrastructure`, with a `SAFETY:` comment.
-5. **No stray strings or colors.** Interface texts go in `i18n/`; colors, sizes and durations go in `theme/tokens.rs`.
-6. **Say what is true.** The interface and the documentation never present a planned feature as finished.
+4. **The privileged helper takes rule ids, nothing else.** No path, no command and no option ever reaches it from the app. Its folders come from the catalog compiled into it.
+5. **No `unwrap`, `expect` or `panic!`** outside tests. `unsafe` only in `maccleaner-infrastructure`, with a `SAFETY:` comment.
+6. **No stray strings or colors.** Interface texts go in `i18n/`; colors, sizes and durations go in `theme/tokens.rs`.
+7. **Say what is true.** The interface and the documentation never present a planned feature as finished, or something untested as tested.
+
+## Adding a cleanup rule or an ecosystem
+
+What MacCleaner knows how to clean is data, not code. The two catalogs are in `crates/maccleaner-infrastructure/resources/` and are compiled into the binaries, so rebuild after changing them.
+
+### A cleanup rule
+
+Add an entry to `cleanup_rules.toml`:
+
+```toml
+[[rule]]
+id = "example-cache"
+name = "Cache do Exemplo"
+description = "~/Library/Application Support/Exemplo/Cache · recriado ao abrir o app"
+locations = ["~/Library/Application Support/Exemplo/Cache"]
+risk = "safe"
+scope = "user"
+method = "permanent"
+```
+
+| Field | Meaning |
+|---|---|
+| `id` | Unique name: lowercase words joined by hyphens. |
+| `name`, `description` | What the cleanup screen shows, in Brazilian Portuguese. |
+| `locations` | The folders to clean. Each one is absolute, or starts with `~/` (the home folder), or is `$TMPDIR` (the user's temporary folder). No folder may be inside the folder of another rule. |
+| `risk` | `safe`: recreated automatically, selected by default. `review`: may be worth keeping, never selected by default. |
+| `scope` | `user`: the logged-in user can remove it. `administrator`: macOS must authenticate an administrator first. |
+| `method` | `permanent`: removed at once. `trash`: moved to the Trash. |
+| `minimum_age_days` | Optional. Only items not modified for at least this many days are removed. |
+
+A rule removes the content of its folders, never the folders themselves. Unknown fields are rejected. The tests in `catalog/toml_rule_catalog.rs` check the whole catalog: every folder absolute, none inside another rule's folder, and everything a rule removes allowed by the deletion policy.
+
+Think twice before adding a rule with `scope = "administrator"`. It is compiled into the privileged helper and runs as root, the helper cannot use the Trash, and the change needs the same care as a change to deletion. Open an issue first.
+
+### A kind of project (developer screen)
+
+Add an entry to `artifact_rules.toml`:
+
+```toml
+[[project]]
+ecosystem = "node"
+markers = ["package.json"]
+safe = ["node_modules"]
+review = ["dist"]
+```
+
+| Field | Meaning |
+|---|---|
+| `ecosystem` | One of `node`, `dotnet`, `rust`, `jvm`, `python`, `swift`, `flutter`, `go`, `php`, `terraform`. |
+| `markers` | Files that identify the project. A folder is offered only when one of them sits next to it. A marker starting with `*.` matches any file with that extension. |
+| `safe` | Folder names nobody uses for anything else. Selected by default in projects untouched for 30 days or more. |
+| `review` | Common names a project might use for real content. Never selected by default. |
+
+An entry needs at least one marker and one folder. An ecosystem that is not in the list also needs a variant in `Ecosystem` (`crates/maccleaner-domain/src/dev_artifacts/ecosystem.rs`) and in the catalog reader (`crates/maccleaner-infrastructure/src/catalog/toml_rule_catalog.rs`).
+
+When you add either kind of entry, update the tables in the usage guide, in both languages.
 
 ## Commits and pull requests
 
@@ -46,30 +116,53 @@ Read [architecture](docs/architecture.md), [conventions](docs/conventions.md) an
 - Write commit messages as [Conventional Commits](https://www.conventionalcommits.org/): `feat(scan): add bulk walker`.
 - Keep a pull request to one subject, and describe what you changed and how you checked it.
 - Update `CHANGELOG.md` when the change is visible to users.
+- The README and the guides exist in English and Portuguese. Change both in the same pull request.
 
 ## Checking the interface without watching the window
 
-A development-only build saves one still frame of the app and exits. Use it to compare a screen with the prototype:
+A development-only build saves one still frame of the app and exits. Use it to check a screen, or to compare it with the design reference in `design/prototype/index.html`:
 
 ```bash
 cargo build -p maccleaner --features capture
 ```
 
 ```bash
-EFRAME_SCREENSHOT_TO=/tmp/maccleaner.png MACCLEANER_SCREEN=cleanup MACCLEANER_PALETTE=terminal ./target/debug/maccleaner
+EFRAME_SCREENSHOT_TO=/tmp/maccleaner.png MACCLEANER_SCREEN=cleanup MACCLEANER_PALETTE=terminal MACCLEANER_ANALYZE=1 ./target/debug/maccleaner
 ```
 
-`MACCLEANER_SCREEN` takes `dashboard`, `cleanup`, `duplicates`, `photos`, `developer`, `disk_map` or `monitor`. `MACCLEANER_PALETTE` takes `agency`, `terminal` or `tactical`.
+| Variable | Effect |
+|---|---|
+| `EFRAME_SCREENSHOT_TO` | The PNG file to save. |
+| `MACCLEANER_SCREEN` | The screen to show: `dashboard`, `cleanup`, `duplicates`, `photos`, `developer`, `disk_map` or `monitor`. |
+| `MACCLEANER_PALETTE` | `agency`, `terminal` or `tactical`. |
+| `MACCLEANER_ANALYZE=1` | Analyzes the cleanup rules first, so the cleanup screen opens filled in. |
+| `MACCLEANER_SCAN=<folder>` | Measures a folder first, so the disk map opens filled in. |
+| `MACCLEANER_DEV=<folder>` | Searches a folder for build folders first. |
+| `MACCLEANER_DUP=<folder>` | Searches a folder for duplicates first. |
+| `MACCLEANER_PHOTOS=<folder>` | Searches a folder for similar photos first. |
+| `MACCLEANER_DEMO=1` | Replaces the readings of the monitor with made-up ones. |
+
+This build skips the start-up sequence and all motion, so the frame is still. It only reads: nothing is removed. Run it with `HOME` pointing at a demonstration folder to keep every personal path out of the picture.
 
 ## Updating the screenshots
 
-The prototype screenshots and the tour GIF in `docs/assets/` are generated by a script. It needs Google Chrome, [ffmpeg](https://ffmpeg.org) and the Python package [Pillow](https://python-pillow.org):
+The screenshots and the tour GIF in `docs/assets/` are produced by a script. It builds the app in the capture mode above and runs it once per screen, with `HOME` pointing at a demonstration home folder that the script creates. So the pictures show made-up caches, projects, duplicates and photos, and no path or program of the machine that takes them. Nothing in the real home folder is read or changed.
+
+It needs cargo, [ffmpeg](https://ffmpeg.org) and the Python package [Pillow](https://python-pillow.org):
 
 ```bash
 python3 docs/assets/capture/make_assets.py
 ```
 
-Run it after changing `design/prototype/index.html`. `docs/assets/app-current.png` is the real app; regenerate it with the capture build above and resize it to 1600 pixels wide.
+It writes `docs/assets/screens/*.png` (one per screen), `docs/assets/palettes.png` and `docs/assets/tour.gif`. Run it after changing how a screen looks. Pass `--work-dir <folder>` to choose where the demonstration folder is created.
+
+The app icon has its own script, which draws `apps/desktop/bundle/AppIcon.icns` and the preview `docs/assets/app-icon.png`:
+
+```bash
+python3 apps/desktop/bundle/make_icon.py
+```
+
+Captions in the documentation say that these are screenshots of the app with demonstration data.
 
 ## Reporting a vulnerability
 
