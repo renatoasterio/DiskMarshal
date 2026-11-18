@@ -1,5 +1,6 @@
 //! Drawing of the cleanup screen.
 
+use diskmarshal_application::ports::AuthenticationKind;
 use diskmarshal_domain::cleanup::{CleanupFinding, PrivilegeScope, RiskLevel};
 use egui::{RichText, ScrollArea, Ui};
 
@@ -82,7 +83,7 @@ pub(crate) fn show(model: &mut CleanupViewModel, ui: &mut Ui, context: &ScreenCo
     };
 
     let admin_meta = if model.cleans_system() {
-        pt_br::CLEANUP_ADMIN_META
+        pt_br::cleanup_admin_meta(model.authentication())
     } else {
         pt_br::CLEANUP_ADMIN_UNAVAILABLE
     };
@@ -125,7 +126,7 @@ pub(crate) fn show(model: &mut CleanupViewModel, ui: &mut Ui, context: &ScreenCo
         model.request_removal();
     }
 
-    let lines = confirm_lines(&selection);
+    let lines = confirm_lines(&selection, model.authentication());
     let text = ConfirmText {
         body: pt_br::CLEANUP_CONFIRM_BODY,
         lines: &lines,
@@ -196,7 +197,7 @@ fn group(
     });
 }
 
-fn confirm_lines(selection: &Selection) -> Vec<String> {
+fn confirm_lines(selection: &Selection, authentication: AuthenticationKind) -> Vec<String> {
     let mut lines = vec![format!(
         "{} {} · {} {} · {}",
         selection.rules,
@@ -209,7 +210,7 @@ fn confirm_lines(selection: &Selection) -> Vec<String> {
         lines.push(pt_br::CLEANUP_CONFIRM_TRASH.to_owned());
     }
     if selection.needs_administrator {
-        lines.push(pt_br::CLEANUP_CONFIRM_ADMIN.to_owned());
+        lines.push(pt_br::cleanup_confirm_admin(authentication).to_owned());
     }
     lines.push(pt_br::CLEANUP_CONFIRM_RECHECK.to_owned());
     lines

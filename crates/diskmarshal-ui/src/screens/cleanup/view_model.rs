@@ -4,6 +4,7 @@
 use std::collections::BTreeSet;
 
 use diskmarshal_application::ApplicationError;
+use diskmarshal_application::ports::AuthenticationKind;
 use diskmarshal_application::progress::{CancellationToken, NoProgress, ScanProgress};
 use diskmarshal_application::use_cases::PlanCleanup;
 use diskmarshal_domain::cleanup::{CleanupFinding, CleanupPlan, PrivilegeScope, RiskLevel};
@@ -38,6 +39,8 @@ pub(crate) struct CleanupViewModel {
     has_started: bool,
     /// Whether this installation can clean with administrator rights.
     cleans_system: bool,
+    /// What macOS will ask for before cleaning system areas.
+    authentication: AuthenticationKind,
     pub removal: RemovalFlow,
 }
 
@@ -50,6 +53,7 @@ impl Default for CleanupViewModel {
             notice: None,
             has_started: false,
             cleans_system: false,
+            authentication: AuthenticationKind::default(),
             removal: RemovalFlow::Closed,
         }
     }
@@ -66,7 +70,7 @@ impl CleanupViewModel {
     /// Analyzes every rule again, in the background.
     pub(crate) fn analyze(&mut self, ctx: &Context, services: &UiServices) {
         self.has_started = true;
-        self.cleans_system = services.privileged.is_available();
+        self.read_privileges(services);
         let services = services.clone();
         self.analysis.start(ctx, move |progress, cancellation| {
             plan(&services, progress, cancellation)
@@ -77,7 +81,7 @@ impl CleanupViewModel {
     /// the screen already filled in.
     pub(crate) fn analyze_now(&mut self, services: &UiServices) {
         self.has_started = true;
-        self.cleans_system = services.privileged.is_available();
+        self.read_privileges(services);
         let outcome = plan(services, &NoProgress, &CancellationToken::new());
         if let Some(plan) = self.analysis.settle(outcome) {
             self.accept(plan);
@@ -136,6 +140,18 @@ impl CleanupViewModel {
     /// Whether this installation can clean with administrator rights.
     pub(crate) fn cleans_system(&self) -> bool {
         self.cleans_system
+    }
+
+    /// What macOS will ask for before cleaning system areas.
+    pub(crate) fn authentication(&self) -> AuthenticationKind {
+        self.authentication
+    }
+
+    /// Asks again, at every analysis, what this installation can do with
+    /// administrator rights: the user may have set up Touch ID meanwhile.
+    fn read_privileges(&mut self, services: &UiServices) {
+        self.cleans_system = services.privileged.is_available();
+        self.authentication = services.privileged.authentication();
     }
 
     pub(crate) fn is_selected(&self, rule_id: &str) -> bool {

@@ -5,6 +5,7 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use diskmarshal_application::ApplicationError;
+use diskmarshal_application::ports::AuthenticationKind;
 use diskmarshal_application::progress::{
     CancellationToken, NoProgress, ProgressSink, ScanProgress,
 };
@@ -49,6 +50,8 @@ pub(crate) struct AppsViewModel {
     notice: Option<String>,
     /// Whether this installation can remove with administrator rights.
     removes_system: bool,
+    /// What macOS will ask for before removing system items.
+    authentication: AuthenticationKind,
     pub removal: RemovalFlow,
 }
 
@@ -65,6 +68,7 @@ impl Default for AppsViewModel {
             selected: BTreeSet::new(),
             notice: None,
             removes_system: false,
+            authentication: AuthenticationKind::default(),
             removal: RemovalFlow::Closed,
         }
     }
@@ -82,7 +86,7 @@ impl AppsViewModel {
     pub(crate) fn list(&mut self, ctx: &Context, services: &UiServices) {
         self.forget_choice();
         self.has_started = true;
-        self.removes_system = services.privileged.is_available();
+        self.read_privileges(services);
         let services = services.clone();
         self.listing.start(ctx, move |progress, cancellation| {
             list(&services, progress, cancellation)
@@ -95,7 +99,7 @@ impl AppsViewModel {
     pub(crate) fn list_now(&mut self, services: &UiServices) {
         self.forget_choice();
         self.has_started = true;
-        self.removes_system = services.privileged.is_available();
+        self.read_privileges(services);
         let (progress, cancellation) = (NoProgress, CancellationToken::new());
         let outcome = list(services, &progress, &cancellation);
         let Some(apps) = self.listing.settle(outcome) else {
@@ -161,6 +165,19 @@ impl AppsViewModel {
     /// Whether this installation can remove with administrator rights.
     pub(crate) fn removes_system(&self) -> bool {
         self.removes_system
+    }
+
+    /// What macOS will ask for before removing system items.
+    pub(crate) fn authentication(&self) -> AuthenticationKind {
+        self.authentication
+    }
+
+    /// Asks again, every time the apps are listed, what this installation
+    /// can do with administrator rights: the user may have set up Touch ID
+    /// meanwhile.
+    fn read_privileges(&mut self, services: &UiServices) {
+        self.removes_system = services.privileged.is_available();
+        self.authentication = services.privileged.authentication();
     }
 
     /// The apps whose name or identifier holds what the user typed.

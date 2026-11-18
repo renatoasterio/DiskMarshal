@@ -95,7 +95,7 @@ As nove telas estão prontas, e o app apaga de verdade o que você seleciona, se
 
 Estas partes estão escritas e cobertas por testes automáticos em pastas temporárias, mas não foram confirmadas na situação real. Leve isso em conta.
 
-- **Limpeza de sistema, de ponta a ponta.** O diálogo de autenticação do macOS e uma limpeza real de `/Library/Caches` e `/Library/Logs` não foram exercitados pelos testes do projeto. O auxiliar que faz a limpeza é coberto por testes em pastas temporárias e pelo seu modo de simulação (`--dry-run`). Se o diálogo oferece o Touch ID ou só a senha, quem decide é o macOS.
+- **Limpeza de sistema, de ponta a ponta.** O diálogo de autenticação do macOS e uma limpeza real de `/Library/Caches` e `/Library/Logs` não foram exercitados pelos testes do projeto. O auxiliar que faz a limpeza é coberto por testes em pastas temporárias e pelo seu modo de simulação (`--dry-run`). O caminho da digital (Touch ID pelo `sudo`, que você mesmo ativa) também não foi exercitado: precisa de um dedo no sensor.
 - **Um arquivo que está realmente só na nuvem.** A proteção contra downloads do iCloud não foi testada com um arquivo que esteja de fato só na nuvem.
 - **Abrir com movimento reduzido.** O app lê a opção "Reduzir movimento" dos Ajustes do Sistema ao abrir; isso não foi testado com a opção ligada.
 - **Apagar dados pessoais reais pela interface.** A remoção foi exercitada apenas em pastas de teste.
@@ -141,7 +141,7 @@ Três paletas, escolhidas pelo ícone de aparência na barra de status:
 - **Locais protegidos.** Pastas do sistema, seus Documentos, Mesa e Imagens, pastas `.git` e o interior de apps e bibliotecas de fotos nunca podem ser apagados.
 - **Conferido de novo no último instante.** Cada item é olhado de novo logo antes da remoção. Se mudou desde a prévia, é pulado.
 - **Sem downloads de surpresa.** A varredura nunca faz o macOS baixar arquivos que estão só no iCloud.
-- **Privilégio de administrador só para uma operação.** O app nunca roda como administrador e não deixa nenhum serviço em segundo plano. O próprio macOS pede o Touch ID ou a senha, e o app nunca a vê.
+- **Privilégio de administrador só para uma operação.** O app nunca roda como administrador e não deixa nenhum serviço em segundo plano. O próprio macOS pede a senha, ou a sua digital depois que você [ativa essa opção](docs/guide/usage.pt-BR.md#usar-a-digital-em-vez-da-senha), e o app nunca vê nenhuma das duas.
 - **Sem rede, sem telemetria.** O app nunca se conecta à internet.
 
 Detalhes no [guia de segurança](docs/guide/safety.pt-BR.md).

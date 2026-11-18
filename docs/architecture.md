@@ -99,7 +99,7 @@ Ports, in `src/ports/`, with the adapter that implements each one:
 | `ImageThumbnailer` | `ImageIoThumbnailer` | `imaging` |
 | `MetricsProvider` | `SysinfoMetricsProvider`, `UnavailableMetrics` | `metrics` |
 | `PermissionProbe` | `FullDiskAccessProbe` | `permissions` |
-| `PrivilegedCleaner` | `OsascriptPrivilegedCleaner` | `privilege` |
+| `PrivilegedCleaner` | `MacosPrivilegedCleaner` | `privilege` |
 | `VersionControlProbe` | `GitVersionControlProbe` | `process` |
 | `ExternalOpener` | `OpenCommandOpener` | `system` |
 | `FolderPicker` | `NativeFolderPicker` | `system` |

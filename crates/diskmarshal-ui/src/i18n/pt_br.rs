@@ -1,7 +1,7 @@
 //! Brazilian Portuguese texts.
 
 use diskmarshal_application::ApplicationError;
-use diskmarshal_application::ports::{EngineError, PrivilegeError};
+use diskmarshal_application::ports::{AuthenticationKind, EngineError, PrivilegeError};
 use diskmarshal_domain::applications::LeftoverKind;
 use diskmarshal_domain::docker::ResourceKind;
 use diskmarshal_domain::photos::SimilarityTolerance;
@@ -113,10 +113,7 @@ pub(crate) const CLEANUP_FAILED: &str = "Análise interrompida";
 pub(crate) const CLEANUP_USER_GROUP: &str = "Conta do usuário";
 pub(crate) const CLEANUP_USER_META: &str = "sem autenticação";
 pub(crate) const CLEANUP_ADMIN_GROUP: &str = "Sistema";
-pub(crate) const CLEANUP_ADMIN_META: &str = "pede Touch ID ou a senha do macOS";
 pub(crate) const CLEANUP_ADMIN_UNAVAILABLE: &str = "só no app instalado · cargo xtask install";
-pub(crate) const CLEANUP_CONFIRM_ADMIN: &str =
-    "As áreas de sistema pedem Touch ID ou a senha de administrador, no diálogo do próprio macOS";
 pub(crate) const ADMIN_PROMPT: &str = "O DiskMarshal precisa de permissão de administrador para limpar as áreas de sistema que você selecionou.";
 pub(crate) const CLEANUP_ACTION: &str = "Limpar selecionados";
 pub(crate) const CLEANUP_AUTHORIZE: &str = "Autorizar limpeza";
@@ -152,13 +149,10 @@ pub(crate) const APPS_FOUND: &str = "Encontrado";
 pub(crate) const APPS_OTHER_COPY: &str =
     "Há outra cópia deste app instalada. Os dados são das duas, então só o app em si é oferecido.";
 pub(crate) const APPS_USER_META: &str = "vai para a Lixeira · pode ser recuperado";
-pub(crate) const APPS_ADMIN_META: &str = "pede Touch ID ou senha · apagado de vez";
 pub(crate) const APPS_ACTION: &str = "Desinstalar";
 pub(crate) const APPS_CHOOSE_FIRST: &str = "Escolha um app na lista.";
 pub(crate) const APPS_CONFIRM_TRASH: &str =
     "Os itens da sua conta vão para a Lixeira e podem ser recuperados de lá";
-pub(crate) const APPS_CONFIRM_ADMIN: &str =
-    "Os itens de sistema pedem Touch ID ou senha e são apagados de vez";
 pub(crate) const APPS_CONFIRM_REVIEW: &str =
     "Itens com o selo Revisar podem ser de outro app: confira antes";
 pub(crate) const APPS_ADMIN_PROMPT: &str = "O DiskMarshal precisa de permissão de administrador para remover os itens de sistema do app que você está desinstalando.";
@@ -462,6 +456,46 @@ pub(crate) fn application_error(error: &ApplicationError) -> String {
         }
         ApplicationError::Io { path, source } => {
             format!("O macOS recusou o acesso a {}: {source}", path.display())
+        }
+    }
+}
+
+/// What the system group of the cleanup says about how macOS will ask.
+pub(crate) const fn cleanup_admin_meta(authentication: AuthenticationKind) -> &'static str {
+    match authentication {
+        AuthenticationKind::TouchId => "pede a sua digital · senha se ela falhar",
+        AuthenticationKind::Password => "pede a senha do macOS",
+    }
+}
+
+/// The line of the cleanup confirmation about the system areas.
+pub(crate) const fn cleanup_confirm_admin(authentication: AuthenticationKind) -> &'static str {
+    match authentication {
+        AuthenticationKind::TouchId => {
+            "As áreas de sistema pedem a sua digital (Touch ID), no diálogo do próprio macOS"
+        }
+        AuthenticationKind::Password => {
+            "As áreas de sistema pedem a senha de administrador, no diálogo do próprio macOS"
+        }
+    }
+}
+
+/// What the system group of an uninstall says about how macOS will ask.
+pub(crate) const fn apps_admin_meta(authentication: AuthenticationKind) -> &'static str {
+    match authentication {
+        AuthenticationKind::TouchId => "pede a sua digital · apagado de vez",
+        AuthenticationKind::Password => "pede a senha · apagado de vez",
+    }
+}
+
+/// The line of the uninstall confirmation about the system items.
+pub(crate) const fn apps_confirm_admin(authentication: AuthenticationKind) -> &'static str {
+    match authentication {
+        AuthenticationKind::TouchId => {
+            "Os itens de sistema pedem a sua digital (Touch ID) e são apagados de vez"
+        }
+        AuthenticationKind::Password => {
+            "Os itens de sistema pedem a senha de administrador e são apagados de vez"
         }
     }
 }

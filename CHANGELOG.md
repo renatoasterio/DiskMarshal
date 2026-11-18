@@ -17,6 +17,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- The fingerprint for administrator actions: on a Mac where the user turned
+  on Touch ID for `sudo`, the system cleanup and the removal of an app's
+  system items ask for the fingerprint, and fall back to the password dialog
+  when it does not go through. The screens say which one will be asked. The
+  usage guide shows the one line that turns it on.
 - Apps screen: lists the installed apps with their size, version and whether
   they are open; for the chosen app, lists the bundle and what it left in the
   Library folders, each item with its kind, a "Seguro" or "Revisar" badge and

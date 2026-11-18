@@ -48,11 +48,11 @@ Porque o app foi recompilado. O app que você compila leva uma assinatura local 
 
 ### Como a limpeza das áreas de sistema pede a minha senha?
 
-Ela não pede; quem pede é o macOS. Quando você confirma uma limpeza que inclui o grupo "Sistema", o macOS mostra o diálogo de autenticação dele e recebe o seu Touch ID ou a senha de administrador. O DiskMarshal nunca vê a senha. O macOS então roda, uma única vez, um pequeno auxiliar que fica dentro do app, e o auxiliar encerra quando termina. O [guia de segurança](safety.pt-BR.md#áreas-de-administrador) explica os detalhes.
+Ela não pede; quem pede é o macOS. Quando você confirma uma limpeza que inclui o grupo "Sistema", o macOS mostra o diálogo de autenticação dele e recebe a sua senha de administrador, ou a sua digital se você a ativou. O DiskMarshal nunca vê nenhuma das duas. O macOS então roda, uma única vez, um pequeno auxiliar que fica dentro do app, e o auxiliar encerra quando termina. O [guia de segurança](safety.pt-BR.md#áreas-de-administrador) explica os detalhes.
 
 ### O diálogo vai oferecer o Touch ID?
 
-Quem decide é o macOS, não o DiskMarshal. Ele pode oferecer o Touch ID ou só o campo de senha. Isso não foi verificado pelo projeto.
+Só depois que você ativar. O diálogo de senha do macOS não aceita a digital. Depois que você ativa o Touch ID para o `sudo`, com uma linha no Terminal mostrada no [guia de uso](usage.pt-BR.md#usar-a-digital-em-vez-da-senha), o DiskMarshal pede primeiro a digital e mostra o diálogo de senha quando ela não passa. O caminho da digital não foi verificado pelos testes automáticos do projeto: precisa de um dedo no sensor.
 
 ### O DiskMarshal roda como administrador ou deixa algo rodando em segundo plano?
 
